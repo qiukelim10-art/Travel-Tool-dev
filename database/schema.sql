@@ -31,3 +31,26 @@ CREATE TABLE IF NOT EXISTS `booking_items` (
   PRIMARY KEY (`id`),
   KEY `idx_booking_items_filters` (`category`, `status`, `booked_by`, `booking_date`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `itinerary_items` (
+  `id` varchar(36) NOT NULL,
+  `travel_date` date NOT NULL,
+  `city` varchar(80) NOT NULL,
+  `start_time` time DEFAULT NULL,
+  `end_time` time DEFAULT NULL,
+  `title` varchar(255) NOT NULL,
+  `location` varchar(255) DEFAULT NULL,
+  `details` text,
+  `transport` text,
+  `meal` text,
+  `cost_amount` decimal(10,2) DEFAULT NULL,
+  `currency` enum('EUR', 'SGD') NOT NULL DEFAULT 'EUR',
+  `notes` text,
+  `map_query` varchar(255) DEFAULT NULL,
+  `sort_order` int NOT NULL DEFAULT 0,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_itinerary_items_order` (`travel_date`, `start_time`, `sort_order`, `id`),
+  KEY `idx_itinerary_items_city` (`city`, `travel_date`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

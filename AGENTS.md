@@ -101,6 +101,8 @@ If a command cannot be run:
 
 Do not modify code without attempting verification.
 
+When asking the user to review a completed website change, always provide verified desktop and phone LAN URLs. Include the port, desktop page HTTP status, phone LAN page HTTP status, and related API status. If phone access requires the same Wi-Fi or hotspot as the computer, state that clearly.
+
 ---
 
 ## 5. Completion Workflow

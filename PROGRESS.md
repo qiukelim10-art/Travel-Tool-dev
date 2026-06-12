@@ -11,6 +11,15 @@
 - Verified local runtime access for Dashboard and Bookings, plus `GET /api/reminders` and `GET /api/bookings`.
 - Verified temporary reminder and booking CRUD flows: create, patch, and delete all succeeded, and temporary verification data was removed.
 - User is currently satisfied with shared reminders/bookings and will request follow-up changes later.
+- Converted Itinerary from static-only display to shared MySQL/API CRUD while keeping the existing placeholder itinerary as seed data.
+- Added `itinerary_items` auto-create/seed support, `/api/itinerary` CRUD routes, city filtering, page-inline add/edit form, card display, safe lightweight Markdown-style rendering, and Google Maps search links.
+- Verified `npm.cmd run lint`, `npm.cmd run build`, `/itinerary` HTTP 200, `GET /api/itinerary`, and temporary itinerary create/update/delete on a short-lived local dev server.
+- Added the handoff rule that completed website changes must include verified desktop and phone LAN URLs, current port, page HTTP statuses, and related API status.
+- Fixed the mobile itinerary dev-server loading issue by allowing the LAN host in Next dev config and adding itinerary API timeout/error retry handling.
+- Verified the mobile itinerary fix on port 3100: desktop `/itinerary` 200, phone LAN `/itinerary` 200, `/api/itinerary` returned JSON, and mobile-width add/edit/delete smoke data was created and removed.
+- Fixed itinerary `travel_date` off-by-one handling by returning MySQL DATE values as local `YYYY-MM-DD` strings, added date filtering, and verified same-day multiple-item sorting plus mobile add/edit/delete cleanup.
+- Fixed mobile itinerary Add/Edit form overflow by constraining form grids, field wrappers, and controls to the card width; verified 320px and 390px mobile viewports plus Add/Edit/Delete cleanup.
+- Added an itinerary-form scoped iOS control sizing fix for date/time/select fields after real phone testing still showed native control overflow; build, lint, LAN page/API, Add/Edit/Delete, and filter smoke checks passed.
 
 ## 2026-06-11
 

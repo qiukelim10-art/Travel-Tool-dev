@@ -23,6 +23,7 @@ export const bookingStatuses = [
 ] as const satisfies readonly BookingStatus[];
 
 export const bookingCurrencies = ["EUR", "SGD"] as const;
+export type SharedCurrency = (typeof bookingCurrencies)[number];
 
 export type SharedReminder = {
   id: string;
@@ -41,7 +42,7 @@ export type SharedBooking = {
   location: string | null;
   bookedBy: string;
   amount: number | null;
-  currency: (typeof bookingCurrencies)[number] | null;
+  currency: SharedCurrency | null;
   notes: string | null;
   status: BookingStatus;
   createdAt: string;
@@ -61,7 +62,44 @@ export type BookingInput = {
   location?: string;
   bookedBy: string;
   amount?: number | null;
-  currency?: (typeof bookingCurrencies)[number] | null;
+  currency?: SharedCurrency | null;
   notes?: string;
   status: BookingStatus;
+};
+
+export type SharedItineraryItem = {
+  id: string;
+  travelDate: string;
+  city: string;
+  startTime: string | null;
+  endTime: string | null;
+  title: string;
+  location: string | null;
+  details: string | null;
+  transport: string | null;
+  meal: string | null;
+  costAmount: number | null;
+  currency: SharedCurrency;
+  notes: string | null;
+  mapQuery: string | null;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type ItineraryInput = {
+  travelDate: string;
+  city: string;
+  startTime?: string;
+  endTime?: string;
+  title: string;
+  location?: string;
+  details?: string;
+  transport?: string;
+  meal?: string;
+  costAmount?: number | null;
+  currency?: SharedCurrency;
+  notes?: string;
+  mapQuery?: string;
+  sortOrder?: number;
 };

@@ -25,3 +25,39 @@ button,
 select {
   font: inherit;
 }
+
+.itinerary-form,
+.itinerary-form * {
+  min-width: 0;
+}
+
+.itinerary-form input,
+.itinerary-form select,
+.itinerary-form textarea {
+  box-sizing: border-box;
+  display: block;
+  inline-size: 100%;
+  max-inline-size: 100%;
+  min-inline-size: 0;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.itinerary-form button {
+  box-sizing: border-box;
+  max-width: 100%;
+}
+
+.itinerary-form input[type="date"],
+.itinerary-form input[type="time"],
+.itinerary-form select {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.itinerary-form input[type="date"]::-webkit-date-and-time-value,
+.itinerary-form input[type="time"]::-webkit-date-and-time-value {
+  min-width: 0;
+  text-align: left;
+}

@@ -1,11 +1,13 @@
 import { randomUUID } from "crypto";
-import { bookings, tripInfo } from "@/data/tripData";
+import { bookings, itinerary, tripInfo } from "@/data/tripData";
 import {
   bookingCategories,
   bookingCurrencies,
   bookingStatuses,
+  type ItineraryInput,
   reminderPriorities,
   type BookingInput,
+  type SharedItineraryItem,
   type ReminderInput,
   type SharedBooking,
   type SharedReminder
@@ -92,10 +94,13 @@ function asString(value: unknown) {
 
 function asDateOnly(value: unknown) {
   if (value instanceof Date) {
-    return value.toISOString().slice(0, 10);
+    const year = value.getFullYear();
+    const month = String(value.getMonth() + 1).padStart(2, "0");
+    const day = String(value.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
   }
 
-  return String(value ?? "");
+  return String(value ?? "").slice(0, 10);
 }
 
 function nullableString(value: unknown) {
@@ -110,6 +115,11 @@ function nullableNumber(value: unknown) {
 
   const number = Number(value);
   return Number.isFinite(number) ? number : null;
+}
+
+function nullableTime(value: unknown) {
+  const text = String(value ?? "").trim();
+  return text.length > 0 ? text.slice(0, 5) : null;
 }
 
 function mapReminder(row: DbRow): SharedReminder {
@@ -135,6 +145,28 @@ function mapBooking(row: DbRow): SharedBooking {
     currency: nullableString(row.currency) as SharedBooking["currency"],
     notes: nullableString(row.notes),
     status: asString(row.status) as SharedBooking["status"],
+    createdAt: asString(row.created_at),
+    updatedAt: asString(row.updated_at)
+  };
+}
+
+function mapItineraryItem(row: DbRow): SharedItineraryItem {
+  return {
+    id: asString(row.id),
+    travelDate: asDateOnly(row.travel_date),
+    city: asString(row.city),
+    startTime: nullableTime(row.start_time),
+    endTime: nullableTime(row.end_time),
+    title: asString(row.title),
+    location: nullableString(row.location),
+    details: nullableString(row.details),
+    transport: nullableString(row.transport),
+    meal: nullableString(row.meal),
+    costAmount: nullableNumber(row.cost_amount),
+    currency: asString(row.currency) as SharedItineraryItem["currency"],
+    notes: nullableString(row.notes),
+    mapQuery: nullableString(row.map_query),
+    sortOrder: Number(row.sort_order ?? 0),
     createdAt: asString(row.created_at),
     updatedAt: asString(row.updated_at)
   };
@@ -193,6 +225,56 @@ async function createTables() {
       KEY idx_booking_items_filters (category, status, booked_by, booking_date)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
   `);
+
+  await pool.execute(`
+    CREATE TABLE IF NOT EXISTS itinerary_items (
+      id varchar(36) NOT NULL,
+      travel_date date NOT NULL,
+      city varchar(80) NOT NULL,
+      start_time time DEFAULT NULL,
+      end_time time DEFAULT NULL,
+      title varchar(255) NOT NULL,
+      location varchar(255) DEFAULT NULL,
+      details text,
+      transport text,
+      meal text,
+      cost_amount decimal(10,2) DEFAULT NULL,
+      currency enum('EUR', 'SGD') NOT NULL DEFAULT 'EUR',
+      notes text,
+      map_query varchar(255) DEFAULT NULL,
+      sort_order int NOT NULL DEFAULT 0,
+      created_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      PRIMARY KEY (id),
+      KEY idx_itinerary_items_order (travel_date, start_time, sort_order, id),
+      KEY idx_itinerary_items_city (city, travel_date)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `);
+}
+
+function listText(label: string, items: string[]) {
+  if (items.length === 0) {
+    return "";
+  }
+
+  return [`**${label}**`, ...items.map((item) => `- ${item}`)].join("\n");
+}
+
+function seedDetails(day: (typeof itinerary)[number]) {
+  return [
+    day.highlight,
+    listText("Morning", day.morning),
+    listText("Afternoon", day.afternoon),
+    listText("Evening", day.evening)
+  ].filter(Boolean).join("\n\n");
+}
+
+function seedNotes(day: (typeof itinerary)[number]) {
+  return [
+    day.hotel ? `Base: ${day.hotel}` : "",
+    listText("Tickets", day.tickets),
+    day.notes
+  ].filter(Boolean).join("\n\n");
 }
 
 async function seedTables() {
@@ -229,6 +311,35 @@ async function seedTables() {
           booking.currency ?? null,
           booking.notes ?? null,
           booking.status
+        ]
+      );
+    }
+  }
+
+  const [itineraryRows] = await pool.execute<DbRow[]>("SELECT COUNT(*) AS count FROM itinerary_items");
+  const itineraryCount = Number(itineraryRows[0]?.count ?? 0);
+
+  if (itineraryCount === 0) {
+    for (const day of itinerary) {
+      await pool.execute(
+        `INSERT INTO itinerary_items
+          (id, travel_date, city, title, location, details, transport, meal,
+           cost_amount, currency, notes, map_query, sort_order)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          `seed-itinerary-day-${day.day}`,
+          day.date,
+          day.city,
+          day.title,
+          day.hotel ?? null,
+          seedDetails(day),
+          day.transport.map((item) => `- ${item}`).join("\n"),
+          day.meals.map((item) => `- ${item}`).join("\n"),
+          day.estimatedCost,
+          day.currency,
+          seedNotes(day),
+          day.mapLinks[0]?.label ?? `${day.title} ${day.city}`,
+          day.day
         ]
       );
     }
@@ -319,6 +430,80 @@ export function validateBookingInput(input: Partial<BookingInput>) {
   };
 }
 
+export function validateItineraryInput(input: Partial<ItineraryInput>) {
+  const travelDate = String(input.travelDate ?? "").trim();
+  const city = String(input.city ?? "").trim();
+  const startTime = String(input.startTime ?? "").trim();
+  const endTime = String(input.endTime ?? "").trim();
+  const title = String(input.title ?? "").trim();
+  const location = String(input.location ?? "").trim();
+  const details = String(input.details ?? "").trim();
+  const transport = String(input.transport ?? "").trim();
+  const meal = String(input.meal ?? "").trim();
+  const rawCostAmount = input.costAmount as number | string | null | undefined;
+  const costAmount =
+    rawCostAmount === null || rawCostAmount === undefined || rawCostAmount === ""
+      ? null
+      : Number(rawCostAmount);
+  const currency = input.currency || "EUR";
+  const notes = String(input.notes ?? "").trim();
+  const mapQuery = String(input.mapQuery ?? "").trim();
+  const rawSortOrder = input.sortOrder as number | string | null | undefined;
+  const sortOrder =
+    rawSortOrder === null || rawSortOrder === undefined || rawSortOrder === ""
+      ? 0
+      : Number(rawSortOrder);
+
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(travelDate)) {
+    throw new Error("Travel date is required.");
+  }
+
+  if (!city) {
+    throw new Error("City is required.");
+  }
+
+  if (startTime && !/^\d{2}:\d{2}$/.test(startTime)) {
+    throw new Error("Start time must use HH:MM.");
+  }
+
+  if (endTime && !/^\d{2}:\d{2}$/.test(endTime)) {
+    throw new Error("End time must use HH:MM.");
+  }
+
+  if (!title) {
+    throw new Error("Title is required.");
+  }
+
+  if (costAmount !== null && (!Number.isFinite(costAmount) || costAmount < 0)) {
+    throw new Error("Cost amount must be zero or greater.");
+  }
+
+  if (!(bookingCurrencies as readonly string[]).includes(currency)) {
+    throw new Error("Currency is invalid.");
+  }
+
+  if (!Number.isInteger(sortOrder)) {
+    throw new Error("Sort order must be a whole number.");
+  }
+
+  return {
+    travelDate,
+    city,
+    startTime: startTime || undefined,
+    endTime: endTime || undefined,
+    title,
+    location: location || undefined,
+    details: details || undefined,
+    transport: transport || undefined,
+    meal: meal || undefined,
+    costAmount,
+    currency,
+    notes: notes || undefined,
+    mapQuery: mapQuery || undefined,
+    sortOrder
+  };
+}
+
 export async function listReminders() {
   await ensureSharedDataStore();
   const [rows] = await getAppPool().execute<DbRow[]>("SELECT * FROM reminders");
@@ -404,4 +589,75 @@ export async function updateBooking(id: string, input: BookingInput) {
 export async function deleteBooking(id: string) {
   await ensureSharedDataStore();
   await getAppPool().execute("DELETE FROM booking_items WHERE id = ?", [id]);
+}
+
+export async function listItineraryItems() {
+  await ensureSharedDataStore();
+  const [rows] = await getAppPool().execute<DbRow[]>(
+    `SELECT * FROM itinerary_items
+     ORDER BY travel_date ASC, start_time IS NULL ASC, start_time ASC, sort_order ASC, id ASC`
+  );
+  return rows.map(mapItineraryItem);
+}
+
+export async function createItineraryItem(input: ItineraryInput) {
+  await ensureSharedDataStore();
+  const id = randomUUID();
+  await getAppPool().execute(
+    `INSERT INTO itinerary_items
+      (id, travel_date, city, start_time, end_time, title, location, details,
+       transport, meal, cost_amount, currency, notes, map_query, sort_order)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      id,
+      input.travelDate,
+      input.city,
+      input.startTime || null,
+      input.endTime || null,
+      input.title,
+      input.location || null,
+      input.details || null,
+      input.transport || null,
+      input.meal || null,
+      input.costAmount ?? null,
+      input.currency ?? "EUR",
+      input.notes || null,
+      input.mapQuery || null,
+      input.sortOrder ?? 0
+    ]
+  );
+  return id;
+}
+
+export async function updateItineraryItem(id: string, input: ItineraryInput) {
+  await ensureSharedDataStore();
+  await getAppPool().execute(
+    `UPDATE itinerary_items
+     SET travel_date = ?, city = ?, start_time = ?, end_time = ?, title = ?,
+         location = ?, details = ?, transport = ?, meal = ?, cost_amount = ?,
+         currency = ?, notes = ?, map_query = ?, sort_order = ?
+     WHERE id = ?`,
+    [
+      input.travelDate,
+      input.city,
+      input.startTime || null,
+      input.endTime || null,
+      input.title,
+      input.location || null,
+      input.details || null,
+      input.transport || null,
+      input.meal || null,
+      input.costAmount ?? null,
+      input.currency ?? "EUR",
+      input.notes || null,
+      input.mapQuery || null,
+      input.sortOrder ?? 0,
+      id
+    ]
+  );
+}
+
+export async function deleteItineraryItem(id: string) {
+  await ensureSharedDataStore();
+  await getAppPool().execute("DELETE FROM itinerary_items WHERE id = ?", [id]);
 }
