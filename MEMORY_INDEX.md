@@ -11,7 +11,7 @@
 - English/Simplified Chinese switching was explored, but the user decided to postpone bilingual work until the website is closer to fully formed.
 - Food, Attractions, and Map now include Google Maps jump-out search panels for live nearby recommendations without using a Places API key.
 - Shared reminders, bookings, itinerary, and packing now use local Next API + MySQL prototype paths with CRUD and filtering.
-- Shared expense ledger foundation now exists through local Next API + MySQL, but Budget/Itinerary/Booking UI has not yet been connected to it.
+- Budget now uses the shared expense ledger for its page UI and supports miscellaneous expense CRUD; Itinerary and Booking linked expense UI has not been added yet.
 
 ## Highest Priority Task
 
@@ -26,7 +26,7 @@
 ## Important Architecture Note
 
 - Most trip pages still use static data, but reminders, bookings, itinerary, and packing now use local Next API + MySQL prototype paths.
-- Budget currently still renders the old static summary UI, while the new unified expense ledger API is ready for the next UI phase.
+- Budget renders the unified expense ledger client with summary cards, settlement suggestions, filters, expense cards, and miscellaneous expense CRUD.
 - Expense ledger uses stable traveler IDs (`person_a`, `person_b`, `person_c`, `person_d`) for payer and split values; display names should remain presentation-only.
 - Itinerary `cost_amount` and booking `amount` are reference fields only unless the user explicitly creates linked ledger expenses from them.
 - Desktop navigation shows all main pages; mobile navigation keeps core links and uses `/more` for secondary tools.

@@ -1,8 +1,7 @@
 "use client";
 
-import { BudgetSummary } from "@/components/BudgetSummary";
+import { BudgetClient } from "@/components/BudgetClient";
 import { SectionHeader } from "@/components/SectionHeader";
-import { expenses, tripInfo } from "@/data/tripData";
 import { useLanguage } from "@/lib/i18n";
 
 export default function BudgetPage() {
@@ -15,7 +14,7 @@ export default function BudgetPage() {
         title={t("page.budget.title")}
         description={t("page.budget.description")}
       />
-      <BudgetSummary expenses={expenses} participants={tripInfo.participants} />
+      <BudgetClient />
     </div>
   );
 }

@@ -2,6 +2,9 @@
 
 ## 2026-06-13
 
+- Connected the Budget page to the shared expense ledger and added miscellaneous expense CRUD without changing Dashboard, Itinerary, Booking, or linked-expense UI.
+- Added a mobile-first Budget ledger client with loading, error, retry, empty state, summary cards, settlement suggestions, filters, expense cards, and inline add/edit form.
+- Verified `npm.cmd run build`, `npm.cmd run lint`, `/budget`, `/api/expenses`, Dashboard, Itinerary, and Packing HTTP 200 responses, plus temporary miscellaneous expense create/update/delete cleanup and settlement summary delta.
 - Added the shared expense ledger foundation without changing page UI: `expenses` and `expense_splits` tables, shared expense types, MySQL store CRUD, `/api/expenses` routes, and ledger summary calculation.
 - Seeded existing static placeholder budget expenses into the ledger only when `expenses` is empty, converting display names like `Person A` to stable traveler IDs like `person_a`.
 - Confirmed itinerary `cost_amount` and booking `amount` remain reference fields only and are not automatically converted into ledger expenses.
