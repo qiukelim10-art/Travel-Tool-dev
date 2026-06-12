@@ -52,5 +52,33 @@ CREATE TABLE IF NOT EXISTS `itinerary_items` (
   `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   KEY `idx_itinerary_items_order` (`travel_date`, `start_time`, `sort_order`, `id`),
-  KEY `idx_itinerary_items_city` (`city`, `travel_date`)
+    KEY `idx_itinerary_items_city` (`city`, `travel_date`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `packing_items` (
+  `id` varchar(36) NOT NULL,
+  `name` varchar(255) NOT NULL,
+  `category` enum('Documents', 'Clothes', 'Electronics', 'Medicine', 'Toiletries', 'Travel Essentials', 'Shared Items', 'Personal Care', 'Other') NOT NULL,
+  `priority` enum('High', 'Medium', 'Low') NOT NULL DEFAULT 'Medium',
+  `notes` text,
+  `quantity` int DEFAULT NULL,
+  `sort_order` int NOT NULL DEFAULT 0,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_packing_items_grouping` (`category`, `priority`, `sort_order`, `name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `packing_item_traveler_statuses` (
+  `id` varchar(36) NOT NULL,
+  `item_id` varchar(36) NOT NULL,
+  `traveler_id` varchar(80) NOT NULL,
+  `status` enum('required', 'packed', 'not_needed') NOT NULL DEFAULT 'required',
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uniq_packing_item_traveler` (`item_id`, `traveler_id`),
+  KEY `idx_packing_traveler_status` (`traveler_id`, `status`),
+  CONSTRAINT `fk_packing_status_item`
+    FOREIGN KEY (`item_id`) REFERENCES `packing_items` (`id`)
+    ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

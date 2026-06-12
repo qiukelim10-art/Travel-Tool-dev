@@ -1,13 +1,21 @@
 import { randomUUID } from "crypto";
-import { bookings, itinerary, tripInfo } from "@/data/tripData";
+import { bookings, itinerary, packingItems, travelers, tripInfo } from "@/data/tripData";
 import {
   bookingCategories,
   bookingCurrencies,
   bookingStatuses,
+  buildDefaultPackingStatuses,
   type ItineraryInput,
+  packingCategories,
+  packingPriorities,
+  packingTravelerStatuses,
   reminderPriorities,
   type BookingInput,
+  type PackingCategory,
+  type PackingInput,
+  type PackingTravelerStatus,
   type SharedItineraryItem,
+  type SharedPackingItem,
   type ReminderInput,
   type SharedBooking,
   type SharedReminder
@@ -17,7 +25,16 @@ type DbRow = Record<string, unknown>;
 
 type MysqlPool = {
   execute<T = DbRow[]>(sql: string, values?: unknown[]): Promise<[T, unknown]>;
+  getConnection(): Promise<MysqlConnection>;
   end(): Promise<void>;
+};
+
+type MysqlConnection = {
+  execute<T = DbRow[]>(sql: string, values?: unknown[]): Promise<[T, unknown]>;
+  beginTransaction(): Promise<void>;
+  commit(): Promise<void>;
+  rollback(): Promise<void>;
+  release(): void;
 };
 
 type MysqlModule = {
@@ -172,6 +189,29 @@ function mapItineraryItem(row: DbRow): SharedItineraryItem {
   };
 }
 
+function mapPackingItem(row: DbRow, statuses: SharedPackingItem["statuses"]): SharedPackingItem {
+  return {
+    id: asString(row.id),
+    name: asString(row.name),
+    category: asString(row.category) as SharedPackingItem["category"],
+    priority: asString(row.priority) as SharedPackingItem["priority"],
+    notes: nullableString(row.notes),
+    quantity: nullableNumber(row.quantity),
+    sortOrder: Number(row.sort_order ?? 0),
+    statuses,
+    createdAt: asString(row.created_at),
+    updatedAt: asString(row.updated_at)
+  };
+}
+
+function mapPackingStatus(row: DbRow): SharedPackingItem["statuses"][number] {
+  return {
+    travelerId: asString(row.traveler_id),
+    status: asString(row.status) as PackingTravelerStatus,
+    updatedAt: row.updated_at === null || row.updated_at === undefined ? null : asString(row.updated_at)
+  };
+}
+
 function sortReminders(reminders: SharedReminder[]) {
   return reminders.sort((a, b) => {
     const priorityDiff = priorityRank[a.priority] - priorityRank[b.priority];
@@ -250,6 +290,38 @@ async function createTables() {
       KEY idx_itinerary_items_city (city, travel_date)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
   `);
+
+  await pool.execute(`
+    CREATE TABLE IF NOT EXISTS packing_items (
+      id varchar(36) NOT NULL,
+      name varchar(255) NOT NULL,
+      category enum('Documents', 'Clothes', 'Electronics', 'Medicine', 'Toiletries', 'Travel Essentials', 'Shared Items', 'Personal Care', 'Other') NOT NULL,
+      priority enum('High', 'Medium', 'Low') NOT NULL DEFAULT 'Medium',
+      notes text,
+      quantity int DEFAULT NULL,
+      sort_order int NOT NULL DEFAULT 0,
+      created_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      PRIMARY KEY (id),
+      KEY idx_packing_items_grouping (category, priority, sort_order, name)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `);
+
+  await pool.execute(`
+    CREATE TABLE IF NOT EXISTS packing_item_traveler_statuses (
+      id varchar(36) NOT NULL,
+      item_id varchar(36) NOT NULL,
+      traveler_id varchar(80) NOT NULL,
+      status enum('required', 'packed', 'not_needed') NOT NULL DEFAULT 'required',
+      updated_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      PRIMARY KEY (id),
+      UNIQUE KEY uniq_packing_item_traveler (item_id, traveler_id),
+      KEY idx_packing_traveler_status (traveler_id, status),
+      CONSTRAINT fk_packing_status_item
+        FOREIGN KEY (item_id) REFERENCES packing_items (id)
+        ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `);
 }
 
 function listText(label: string, items: string[]) {
@@ -275,6 +347,37 @@ function seedNotes(day: (typeof itinerary)[number]) {
     listText("Tickets", day.tickets),
     day.notes
   ].filter(Boolean).join("\n\n");
+}
+
+function travelerIdFromName(name: string) {
+  return travelers.find((traveler) => traveler.name === name)?.id ?? null;
+}
+
+function seedPackingStatuses(item: (typeof packingItems)[number]) {
+  if (item.owner !== "Everyone") {
+    const ownerId = travelerIdFromName(item.owner);
+    return travelers.map((traveler) => ({
+      travelerId: traveler.id,
+      status:
+        traveler.id === ownerId
+          ? item.checked
+            ? "packed"
+            : "required"
+          : "not_needed"
+    }));
+  }
+
+  if (!item.required) {
+    return travelers.map((traveler) => ({
+      travelerId: traveler.id,
+      status: "not_needed"
+    }));
+  }
+
+  return travelers.map((traveler) => ({
+    travelerId: traveler.id,
+    status: item.checked ? "packed" : "required"
+  }));
 }
 
 async function seedTables() {
@@ -342,6 +445,38 @@ async function seedTables() {
           day.day
         ]
       );
+    }
+  }
+
+  const [packingRows] = await pool.execute<DbRow[]>("SELECT COUNT(*) AS count FROM packing_items");
+  const packingCount = Number(packingRows[0]?.count ?? 0);
+
+  if (packingCount === 0) {
+    for (const [index, item] of packingItems.entries()) {
+      const id = `seed-packing-item-${index + 1}`;
+      await pool.execute(
+        `INSERT INTO packing_items
+          (id, name, category, priority, notes, quantity, sort_order)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [
+          id,
+          item.item,
+          item.category,
+          item.required ? "High" : "Medium",
+          item.owner === "Everyone" ? null : `Owner placeholder: ${item.owner}`,
+          null,
+          index + 1
+        ]
+      );
+
+      for (const status of seedPackingStatuses(item)) {
+        await pool.execute(
+          `INSERT INTO packing_item_traveler_statuses
+            (id, item_id, traveler_id, status)
+           VALUES (?, ?, ?, ?)`,
+          [randomUUID(), id, status.travelerId, status.status]
+        );
+      }
     }
   }
 }
@@ -504,6 +639,83 @@ export function validateItineraryInput(input: Partial<ItineraryInput>) {
   };
 }
 
+function normalizePackingStatuses(
+  category: PackingCategory,
+  inputStatuses: PackingInput["statuses"] | undefined
+) {
+  const allowedTravelerIds = new Set(travelers.map((traveler) => traveler.id));
+  const defaultStatuses = new Map(
+    buildDefaultPackingStatuses(category).map((status) => [status.travelerId, status.status])
+  );
+
+  for (const status of inputStatuses ?? []) {
+    if (!allowedTravelerIds.has(status.travelerId)) {
+      throw new Error("Packing traveler is invalid.");
+    }
+
+    if (!(packingTravelerStatuses as readonly string[]).includes(status.status)) {
+      throw new Error("Packing traveler status is invalid.");
+    }
+
+    defaultStatuses.set(status.travelerId, status.status);
+  }
+
+  return travelers
+    .slice()
+    .sort((a, b) => a.displayOrder - b.displayOrder)
+    .map((traveler) => ({
+      travelerId: traveler.id,
+      status: defaultStatuses.get(traveler.id) ?? "required"
+    }));
+}
+
+export function validatePackingInput(input: Partial<PackingInput>) {
+  const name = String(input.name ?? "").trim();
+  const category = input.category;
+  const priority = input.priority;
+  const notes = String(input.notes ?? "").trim();
+  const rawQuantity = input.quantity as number | string | null | undefined;
+  const quantity =
+    rawQuantity === null || rawQuantity === undefined || rawQuantity === ""
+      ? null
+      : Number(rawQuantity);
+  const rawSortOrder = input.sortOrder as number | string | null | undefined;
+  const sortOrder =
+    rawSortOrder === null || rawSortOrder === undefined || rawSortOrder === ""
+      ? 0
+      : Number(rawSortOrder);
+
+  if (!name) {
+    throw new Error("Item name is required.");
+  }
+
+  if (!category || !(packingCategories as readonly string[]).includes(category)) {
+    throw new Error("Packing category is invalid.");
+  }
+
+  if (!priority || !(packingPriorities as readonly string[]).includes(priority)) {
+    throw new Error("Packing priority is invalid.");
+  }
+
+  if (quantity !== null && (!Number.isInteger(quantity) || quantity < 0)) {
+    throw new Error("Quantity must be a whole number zero or greater.");
+  }
+
+  if (!Number.isInteger(sortOrder)) {
+    throw new Error("Sort order must be a whole number.");
+  }
+
+  return {
+    name,
+    category,
+    priority,
+    notes: notes || undefined,
+    quantity,
+    sortOrder,
+    statuses: normalizePackingStatuses(category, input.statuses)
+  };
+}
+
 export async function listReminders() {
   await ensureSharedDataStore();
   const [rows] = await getAppPool().execute<DbRow[]>("SELECT * FROM reminders");
@@ -660,4 +872,120 @@ export async function updateItineraryItem(id: string, input: ItineraryInput) {
 export async function deleteItineraryItem(id: string) {
   await ensureSharedDataStore();
   await getAppPool().execute("DELETE FROM itinerary_items WHERE id = ?", [id]);
+}
+
+export async function listPackingItems() {
+  await ensureSharedDataStore();
+  const [itemRows] = await getAppPool().execute<DbRow[]>(
+    "SELECT * FROM packing_items ORDER BY sort_order ASC, category ASC, name ASC, id ASC"
+  );
+  const [statusRows] = await getAppPool().execute<DbRow[]>(
+    "SELECT * FROM packing_item_traveler_statuses ORDER BY traveler_id ASC"
+  );
+  const statusesByItem = new Map<string, SharedPackingItem["statuses"]>();
+
+  for (const row of statusRows) {
+    const itemId = asString(row.item_id);
+    const existing = statusesByItem.get(itemId) ?? [];
+    existing.push(mapPackingStatus(row));
+    statusesByItem.set(itemId, existing);
+  }
+
+  return itemRows.map((row) => {
+    const itemStatuses = statusesByItem.get(asString(row.id)) ?? [];
+    const statusesByTraveler = new Map(itemStatuses.map((status) => [status.travelerId, status]));
+    const orderedStatuses = travelers
+      .slice()
+      .sort((a, b) => a.displayOrder - b.displayOrder)
+      .map((traveler) => statusesByTraveler.get(traveler.id) ?? {
+        travelerId: traveler.id,
+        status: "required" as PackingTravelerStatus,
+        updatedAt: null
+      });
+
+    return mapPackingItem(row, orderedStatuses);
+  });
+}
+
+async function insertPackingStatuses(
+  executor: MysqlConnection,
+  itemId: string,
+  statuses: PackingInput["statuses"]
+) {
+  for (const status of statuses) {
+    await executor.execute(
+      `INSERT INTO packing_item_traveler_statuses
+        (id, item_id, traveler_id, status)
+       VALUES (?, ?, ?, ?)`,
+      [randomUUID(), itemId, status.travelerId, status.status]
+    );
+  }
+}
+
+export async function createPackingItem(input: PackingInput) {
+  await ensureSharedDataStore();
+  const id = randomUUID();
+  const connection = await getAppPool().getConnection();
+
+  try {
+    await connection.beginTransaction();
+    await connection.execute(
+      `INSERT INTO packing_items
+        (id, name, category, priority, notes, quantity, sort_order)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [
+        id,
+        input.name,
+        input.category,
+        input.priority,
+        input.notes || null,
+        input.quantity ?? null,
+        input.sortOrder ?? 0
+      ]
+    );
+    await insertPackingStatuses(connection, id, input.statuses);
+    await connection.commit();
+    return id;
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
+  }
+}
+
+export async function updatePackingItem(id: string, input: PackingInput) {
+  await ensureSharedDataStore();
+  const connection = await getAppPool().getConnection();
+
+  try {
+    await connection.beginTransaction();
+    await connection.execute(
+      `UPDATE packing_items
+       SET name = ?, category = ?, priority = ?, notes = ?, quantity = ?, sort_order = ?
+       WHERE id = ?`,
+      [
+        input.name,
+        input.category,
+        input.priority,
+        input.notes || null,
+        input.quantity ?? null,
+        input.sortOrder ?? 0,
+        id
+      ]
+    );
+    await connection.execute("DELETE FROM packing_item_traveler_statuses WHERE item_id = ?", [id]);
+    await insertPackingStatuses(connection, id, input.statuses);
+    await connection.commit();
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
+  }
+}
+
+export async function deletePackingItem(id: string) {
+  await ensureSharedDataStore();
+  await getAppPool().execute("DELETE FROM packing_items WHERE id = ?", [id]);
 }

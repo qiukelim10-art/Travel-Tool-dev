@@ -20,6 +20,10 @@
 - Fixed itinerary `travel_date` off-by-one handling by returning MySQL DATE values as local `YYYY-MM-DD` strings, added date filtering, and verified same-day multiple-item sorting plus mobile add/edit/delete cleanup.
 - Fixed mobile itinerary Add/Edit form overflow by constraining form grids, field wrappers, and controls to the card width; verified 320px and 390px mobile viewports plus Add/Edit/Delete cleanup.
 - Added an itinerary-form scoped iOS control sizing fix for date/time/select fields after real phone testing still showed native control overflow; build, lint, LAN page/API, Add/Edit/Delete, and filter smoke checks passed.
+- Converted Packing List from static checklist to shared MySQL/API CRUD with per-traveler required/packed/not-needed statuses.
+- Added configurable placeholder travelers, packing auto-create/seed tables, `/api/packing` CRUD routes, category/priority/status filters, summary cards, page-inline add/edit form, mobile-first item cards, and delete confirmation.
+- Verified `npm.cmd run lint` and `npm.cmd run build` both pass. After copying `.env.local` into this worktree without printing secrets, verified `/packing` and `/api/packing` on port 3104, then verified full temporary packing CRUD on port 3105: seed data loaded, create/update/delete succeeded, and temporary data was removed.
+- Fixed desktop `/packing` dev loading/hydration issue by allowing local desktop dev origins and adding packing fetch timeout, response validation, error display, and retry handling. Verified desktop/LAN `/packing`, desktop/LAN `/api/packing`, temporary packing CRUD cleanup, `npm.cmd run build`, and `npm.cmd run lint`.
 
 ## 2026-06-11
 
