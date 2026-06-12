@@ -22,6 +22,7 @@ const mobileNavItems = [
   { href: "/", labelKey: "nav.dashboard", shortLabelKey: "nav.home" },
   { href: "/itinerary", labelKey: "nav.itinerary", shortLabelKey: "nav.plan" },
   { href: "/bookings", labelKey: "nav.bookings", shortLabelKey: "nav.book" },
+  { href: "/budget", labelKey: "nav.budget", shortLabelKey: "nav.money" },
   { href: "/emergency", labelKey: "nav.emergency", shortLabelKey: "nav.emergency" },
   { href: "/more", labelKey: "nav.more", shortLabelKey: "nav.more" }
 ];

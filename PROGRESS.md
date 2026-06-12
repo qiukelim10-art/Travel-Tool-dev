@@ -2,6 +2,11 @@
 
 ## 2026-06-13
 
+- Added Budget to the mobile bottom navigation so phone users can reach the unified ledger directly while reviewing itinerary linked expenses.
+- Added itinerary linked expenses using the shared expense ledger without changing the expense API schema or adding tables.
+- Itinerary cards now load and display ledger expenses where `sourceType = itinerary` and `sourceId` matches the itinerary item id, with inline add/edit/delete for those linked expenses.
+- Confirmed itinerary `costAmount` remains only an estimated/reference field; it can prefill the linked expense form but is not automatically counted in Budget.
+- Verified `npm.cmd run build`, `npm.cmd run lint`, `/itinerary`, `/budget`, `/packing`, temporary itinerary CRUD, temporary linked expense create/update/delete cleanup, and Budget ledger summary delta.
 - Connected the Budget page to the shared expense ledger and added miscellaneous expense CRUD without changing Dashboard, Itinerary, Booking, or linked-expense UI.
 - Added a mobile-first Budget ledger client with loading, error, retry, empty state, summary cards, settlement suggestions, filters, expense cards, and inline add/edit form.
 - Verified `npm.cmd run build`, `npm.cmd run lint`, `/budget`, `/api/expenses`, Dashboard, Itinerary, and Packing HTTP 200 responses, plus temporary miscellaneous expense create/update/delete cleanup and settlement summary delta.

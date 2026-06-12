@@ -4,10 +4,15 @@ import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "re
 import { formatMoney } from "@/lib/budget";
 import {
   bookingCurrencies,
+  expenseCategories,
+  type ExpenseCategory,
+  type ExpenseInput,
   type ItineraryInput,
   type SharedCurrency,
+  type SharedExpense,
   type SharedItineraryItem
 } from "@/lib/sharedDataTypes";
+import type { Traveler } from "@/data/tripData";
 
 const cityFilters = ["All", "Rome", "Vatican City", "Florence", "Venice", "Milan"] as const;
 const requestTimeoutMs = 10000;
@@ -18,6 +23,23 @@ type DateFilter = "All";
 type ItineraryApiResponse = {
   itineraryItems?: SharedItineraryItem[];
   error?: string;
+};
+type ExpensesApiResponse = {
+  expenses?: SharedExpense[];
+  travelers?: Traveler[];
+  error?: string;
+};
+
+type ExpenseFormState = {
+  title: string;
+  amount: string;
+  currency: SharedCurrency;
+  category: ExpenseCategory;
+  expenseDate: string;
+  paidByTravelerId: string;
+  splitTravelerIds: string[];
+  settled: boolean;
+  notes: string;
 };
 
 const emptyForm = (): ItineraryInput => ({
@@ -37,18 +59,41 @@ const emptyForm = (): ItineraryInput => ({
   sortOrder: 0
 });
 
+function emptyExpenseForm(item: SharedItineraryItem, travelers: Traveler[]): ExpenseFormState {
+  const orderedTravelers = orderTravelers(travelers);
+
+  return {
+    title: item.title,
+    amount: item.costAmount === null || item.costAmount === undefined ? "" : String(item.costAmount),
+    currency: item.currency ?? "EUR",
+    category: "Other",
+    expenseDate: item.travelDate,
+    paidByTravelerId: orderedTravelers[0]?.id ?? "person_a",
+    splitTravelerIds: orderedTravelers.map((traveler) => traveler.id),
+    settled: false,
+    notes: ""
+  };
+}
+
 export function ItineraryClient() {
   const [items, setItems] = useState<SharedItineraryItem[]>([]);
+  const [expenses, setExpenses] = useState<SharedExpense[]>([]);
+  const [travelers, setTravelers] = useState<Traveler[]>([]);
   const [selectedCity, setSelectedCity] = useState<CityFilter>("All");
   const [selectedDate, setSelectedDate] = useState<DateFilter | string>("All");
   const [form, setForm] = useState<ItineraryInput>(() => emptyForm());
   const [formOpen, setFormOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [expenseFormItemId, setExpenseFormItemId] = useState<string | null>(null);
+  const [editingExpenseId, setEditingExpenseId] = useState<string | null>(null);
+  const [expenseForm, setExpenseForm] = useState<ExpenseFormState | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [expenseSubmitting, setExpenseSubmitting] = useState(false);
+  const [deletingExpenseId, setDeletingExpenseId] = useState<string | null>(null);
 
   const dateOptions = useMemo(
     () => Array.from(new Set(items.map((item) => item.travelDate))).sort(),
@@ -66,6 +111,26 @@ export function ItineraryClient() {
   );
 
   const groupedItems = useMemo(() => groupByDate(visibleItems), [visibleItems]);
+  const orderedTravelers = useMemo(() => orderTravelers(travelers), [travelers]);
+  const travelerNameById = useMemo(
+    () => new Map(orderedTravelers.map((traveler) => [traveler.id, traveler.name])),
+    [orderedTravelers]
+  );
+  const linkedExpensesByItem = useMemo(() => {
+    const groups = new Map<string, SharedExpense[]>();
+
+    for (const expense of expenses) {
+      if (expense.sourceType !== "itinerary" || !expense.sourceId) {
+        continue;
+      }
+
+      const current = groups.get(expense.sourceId) ?? [];
+      current.push(expense);
+      groups.set(expense.sourceId, current);
+    }
+
+    return groups;
+  }, [expenses]);
 
   async function loadItems() {
     setLoading(true);
@@ -73,8 +138,13 @@ export function ItineraryClient() {
     setNotice(null);
 
     try {
-      const data = await fetchItineraryJson("/api/itinerary", undefined, "Unable to load itinerary.");
-      setItems(data.itineraryItems ?? []);
+      const [itineraryData, expensesData] = await Promise.all([
+        fetchItineraryJson("/api/itinerary", undefined, "Unable to load itinerary."),
+        fetchExpensesJson("/api/expenses", undefined, "Unable to load linked expenses.")
+      ]);
+      setItems(itineraryData.itineraryItems ?? []);
+      setExpenses(expensesData.expenses);
+      setTravelers(expensesData.travelers);
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : "Unable to load itinerary.");
     } finally {
@@ -90,6 +160,12 @@ export function ItineraryClient() {
     setEditingId(null);
     setForm(emptyForm());
     setFormOpen(false);
+  }
+
+  function resetExpenseForm() {
+    setExpenseFormItemId(null);
+    setEditingExpenseId(null);
+    setExpenseForm(null);
   }
 
   function openAddForm() {
@@ -119,6 +195,36 @@ export function ItineraryClient() {
     });
     setFormOpen(true);
     setNotice(null);
+  }
+
+  function openExpenseForm(item: SharedItineraryItem) {
+    setExpenseFormItemId(item.id);
+    setEditingExpenseId(null);
+    setExpenseForm(emptyExpenseForm(item, travelers));
+    setNotice(null);
+    setError(null);
+  }
+
+  function startExpenseEditing(expense: SharedExpense) {
+    if (expense.sourceType !== "itinerary" || !expense.sourceId) {
+      return;
+    }
+
+    setExpenseFormItemId(expense.sourceId);
+    setEditingExpenseId(expense.id);
+    setExpenseForm({
+      title: expense.title,
+      amount: String(expense.amount),
+      currency: expense.currency,
+      category: expense.category,
+      expenseDate: expense.expenseDate,
+      paidByTravelerId: expense.paidByTravelerId,
+      splitTravelerIds: expense.splitTravelerIds,
+      settled: expense.settled,
+      notes: expense.notes ?? ""
+    });
+    setNotice(null);
+    setError(null);
   }
 
   async function submitItem(event: FormEvent<HTMLFormElement>) {
@@ -195,6 +301,91 @@ export function ItineraryClient() {
       setError(deleteError instanceof Error ? deleteError.message : "Unable to delete itinerary item.");
     } finally {
       setDeletingId(null);
+    }
+  }
+
+  async function submitExpense(item: SharedItineraryItem, event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!expenseForm) {
+      return;
+    }
+
+    const input = buildExpenseInput(item, expenseForm);
+    if (!input.title) {
+      setError("Expense title is required.");
+      return;
+    }
+
+    if (!Number.isFinite(input.amount) || input.amount <= 0) {
+      setError("Expense amount must be greater than zero.");
+      return;
+    }
+
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(input.expenseDate)) {
+      setError("Expense date is required.");
+      return;
+    }
+
+    if (input.splitTravelerIds.length === 0) {
+      setError("Select at least one traveler to split this expense.");
+      return;
+    }
+
+    setExpenseSubmitting(true);
+    setError(null);
+    setNotice(null);
+
+    try {
+      const data = await fetchExpensesJson(
+        editingExpenseId ? `/api/expenses/${editingExpenseId}` : "/api/expenses",
+        {
+          method: editingExpenseId ? "PATCH" : "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(input)
+        },
+        editingExpenseId ? "Unable to update linked expense." : "Unable to add linked expense."
+      );
+      setExpenses(data.expenses);
+      setTravelers(data.travelers);
+      setNotice(editingExpenseId ? "Updated linked expense." : "Added linked expense.");
+      resetExpenseForm();
+    } catch (submitError) {
+      setError(submitError instanceof Error ? submitError.message : "Unable to save linked expense.");
+    } finally {
+      setExpenseSubmitting(false);
+    }
+  }
+
+  async function removeExpense(expense: SharedExpense) {
+    if (expense.sourceType !== "itinerary") {
+      return;
+    }
+
+    if (!window.confirm(`Delete "${expense.title}" from linked itinerary expenses?`)) {
+      return;
+    }
+
+    setDeletingExpenseId(expense.id);
+    setError(null);
+    setNotice(null);
+
+    try {
+      const data = await fetchExpensesJson(
+        `/api/expenses/${expense.id}`,
+        { method: "DELETE" },
+        "Unable to delete linked expense."
+      );
+      setExpenses(data.expenses);
+      setTravelers(data.travelers);
+      setNotice("Deleted linked expense.");
+      if (editingExpenseId === expense.id) {
+        resetExpenseForm();
+      }
+    } catch (deleteError) {
+      setError(deleteError instanceof Error ? deleteError.message : "Unable to delete linked expense.");
+    } finally {
+      setDeletingExpenseId(null);
     }
   }
 
@@ -425,9 +616,24 @@ export function ItineraryClient() {
                 <ItineraryCard
                   key={item.id}
                   item={item}
+                  expenses={linkedExpensesByItem.get(item.id) ?? []}
+                  travelers={orderedTravelers}
+                  travelerNameById={travelerNameById}
+                  expenseForm={expenseFormItemId === item.id ? expenseForm : null}
+                  editingExpenseId={expenseFormItemId === item.id ? editingExpenseId : null}
+                  expenseSubmitting={expenseSubmitting}
                   deletingId={deletingId}
+                  deletingExpenseId={deletingExpenseId}
                   onEdit={startEditing}
                   onDelete={removeItem}
+                  onAddExpense={openExpenseForm}
+                  onEditExpense={startExpenseEditing}
+                  onDeleteExpense={removeExpense}
+                  onSubmitExpense={submitExpense}
+                  onCancelExpense={resetExpenseForm}
+                  onExpenseFormChange={(updater) =>
+                    setExpenseForm((current) => (current ? updater(current) : current))
+                  }
                 />
               ))}
             </div>
@@ -469,6 +675,77 @@ async function fetchItineraryJson(
   }
 }
 
+async function fetchExpensesJson(
+  url: string,
+  options: RequestInit | undefined,
+  fallbackMessage: string
+): Promise<{ expenses: SharedExpense[]; travelers: Traveler[] }> {
+  const controller = new AbortController();
+  const timeoutId = window.setTimeout(() => controller.abort(), requestTimeoutMs);
+
+  try {
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal
+    });
+    const data = (await response.json()) as ExpensesApiResponse;
+
+    if (!response.ok) {
+      throw new Error(data.error ?? fallbackMessage);
+    }
+
+    if (!Array.isArray(data.expenses) || !Array.isArray(data.travelers)) {
+      throw new Error(fallbackMessage);
+    }
+
+    return {
+      expenses: data.expenses.filter(isSharedExpense),
+      travelers: data.travelers.filter(isTraveler)
+    };
+  } catch (error) {
+    if (error instanceof DOMException && error.name === "AbortError") {
+      throw new Error(`${fallbackMessage} Request timed out. Please retry.`);
+    }
+
+    throw error;
+  } finally {
+    window.clearTimeout(timeoutId);
+  }
+}
+
+function isSharedExpense(value: unknown): value is SharedExpense {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+
+  const expense = value as Partial<SharedExpense>;
+  return (
+    typeof expense.id === "string" &&
+    typeof expense.sourceType === "string" &&
+    typeof expense.title === "string" &&
+    typeof expense.category === "string" &&
+    typeof expense.amount === "number" &&
+    typeof expense.currency === "string" &&
+    typeof expense.paidByTravelerId === "string" &&
+    Array.isArray(expense.splitTravelerIds) &&
+    typeof expense.settled === "boolean" &&
+    typeof expense.expenseDate === "string"
+  );
+}
+
+function isTraveler(value: unknown): value is Traveler {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+
+  const traveler = value as Partial<Traveler>;
+  return (
+    typeof traveler.id === "string" &&
+    typeof traveler.name === "string" &&
+    typeof traveler.displayOrder === "number"
+  );
+}
+
 function groupByDate(items: SharedItineraryItem[]) {
   const groups = new Map<string, SharedItineraryItem[]>();
 
@@ -493,14 +770,40 @@ function formatDateLabel(date: string) {
 
 function ItineraryCard({
   item,
+  expenses,
+  travelers,
+  travelerNameById,
+  expenseForm,
+  editingExpenseId,
+  expenseSubmitting,
   deletingId,
+  deletingExpenseId,
   onEdit,
-  onDelete
+  onDelete,
+  onAddExpense,
+  onEditExpense,
+  onDeleteExpense,
+  onSubmitExpense,
+  onCancelExpense,
+  onExpenseFormChange
 }: {
   item: SharedItineraryItem;
+  expenses: SharedExpense[];
+  travelers: Traveler[];
+  travelerNameById: Map<string, string>;
+  expenseForm: ExpenseFormState | null;
+  editingExpenseId: string | null;
+  expenseSubmitting: boolean;
   deletingId: string | null;
+  deletingExpenseId: string | null;
   onEdit: (item: SharedItineraryItem) => void;
   onDelete: (item: SharedItineraryItem) => Promise<void>;
+  onAddExpense: (item: SharedItineraryItem) => void;
+  onEditExpense: (expense: SharedExpense) => void;
+  onDeleteExpense: (expense: SharedExpense) => Promise<void>;
+  onSubmitExpense: (item: SharedItineraryItem, event: FormEvent<HTMLFormElement>) => Promise<void>;
+  onCancelExpense: () => void;
+  onExpenseFormChange: (updater: (current: ExpenseFormState) => ExpenseFormState) => void;
 }) {
   const mapsQuery = item.mapQuery || item.location;
 
@@ -562,7 +865,290 @@ function ItineraryCard({
           ) : null}
         </aside>
       </div>
+
+      <section className="mt-4 rounded-lg border border-zinc-200 bg-white p-3">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
+            <p className="text-xs font-semibold uppercase tracking-[0.08em] text-terracotta">
+              Linked expenses
+            </p>
+            <p className="mt-1 text-sm text-zinc-600">
+              These are real ledger expenses for this itinerary item. Estimated cost stays separate.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => onAddExpense(item)}
+            className="w-full max-w-full rounded-md bg-moss px-3 py-2 text-sm font-semibold text-white sm:w-auto"
+          >
+            Add expense
+          </button>
+        </div>
+
+        {expenseForm ? (
+          <ItineraryExpenseForm
+            item={item}
+            form={expenseForm}
+            travelers={travelers}
+            editingExpenseId={editingExpenseId}
+            submitting={expenseSubmitting}
+            onSubmit={onSubmitExpense}
+            onCancel={onCancelExpense}
+            onChange={onExpenseFormChange}
+          />
+        ) : null}
+
+        <div className="mt-3 grid gap-3">
+          {expenses.length === 0 ? (
+            <p className="rounded-lg bg-zinc-50 px-3 py-4 text-sm text-zinc-600">
+              No linked expenses yet.
+            </p>
+          ) : null}
+          {expenses.map((expense) => (
+            <ItineraryExpenseCard
+              key={expense.id}
+              expense={expense}
+              travelerNameById={travelerNameById}
+              deletingExpenseId={deletingExpenseId}
+              onEdit={onEditExpense}
+              onDelete={onDeleteExpense}
+            />
+          ))}
+        </div>
+      </section>
     </article>
+  );
+}
+
+function ItineraryExpenseForm({
+  item,
+  form,
+  travelers,
+  editingExpenseId,
+  submitting,
+  onSubmit,
+  onCancel,
+  onChange
+}: {
+  item: SharedItineraryItem;
+  form: ExpenseFormState;
+  travelers: Traveler[];
+  editingExpenseId: string | null;
+  submitting: boolean;
+  onSubmit: (item: SharedItineraryItem, event: FormEvent<HTMLFormElement>) => Promise<void>;
+  onCancel: () => void;
+  onChange: (updater: (current: ExpenseFormState) => ExpenseFormState) => void;
+}) {
+  return (
+    <form
+      onSubmit={(event) => void onSubmit(item, event)}
+      className="mt-3 box-border w-full max-w-full min-w-0 overflow-hidden rounded-lg border border-zinc-200 bg-zinc-50 p-3"
+    >
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-zinc-500">
+            {editingExpenseId ? "Edit linked expense" : "Add linked expense"}
+          </p>
+          <h4 className="mt-1 text-base font-semibold text-ink">
+            {editingExpenseId ? "Update itinerary ledger item" : "Create itinerary ledger item"}
+          </h4>
+        </div>
+        {item.costAmount !== null ? (
+          <p className="rounded-md bg-white px-3 py-2 text-xs font-medium text-zinc-600">
+            Estimate: {formatMoney(item.costAmount, item.currency)}
+          </p>
+        ) : null}
+      </div>
+
+      <div className="mt-3 grid min-w-0 grid-cols-1 gap-3 md:grid-cols-2">
+        <TextField
+          label="Title"
+          value={form.title}
+          onChange={(value) => onChange((current) => ({ ...current, title: value }))}
+          placeholder={item.title}
+        />
+        <TextField
+          label="Amount"
+          type="number"
+          value={form.amount}
+          onChange={(value) => onChange((current) => ({ ...current, amount: value }))}
+          placeholder="0"
+        />
+        <SelectField
+          label="Currency"
+          value={form.currency}
+          options={bookingCurrencies}
+          onChange={(value) => onChange((current) => ({ ...current, currency: value as SharedCurrency }))}
+        />
+        <SelectField
+          label="Category"
+          value={form.category}
+          options={expenseCategories}
+          onChange={(value) => onChange((current) => ({ ...current, category: value as ExpenseCategory }))}
+        />
+        <TextField
+          label="Date"
+          type="date"
+          value={form.expenseDate}
+          onChange={(value) => onChange((current) => ({ ...current, expenseDate: value }))}
+        />
+        <SelectField
+          label="Paid by"
+          value={form.paidByTravelerId}
+          options={travelers.map((traveler) => traveler.id)}
+          optionLabels={new Map(travelers.map((traveler) => [traveler.id, traveler.name]))}
+          onChange={(value) => onChange((current) => ({ ...current, paidByTravelerId: value }))}
+        />
+      </div>
+
+      <fieldset className="mt-3 min-w-0 rounded-lg border border-zinc-200 bg-white p-3">
+        <legend className="px-1 text-sm font-semibold text-ink">Split among</legend>
+        <div className="mt-2 grid gap-2 sm:grid-cols-2">
+          {travelers.map((traveler) => (
+            <label key={traveler.id} className="flex min-w-0 items-center gap-2 text-sm text-zinc-700">
+              <input
+                type="checkbox"
+                checked={form.splitTravelerIds.includes(traveler.id)}
+                onChange={(event) =>
+                  onChange((current) => ({
+                    ...current,
+                    splitTravelerIds: event.target.checked
+                      ? [...current.splitTravelerIds, traveler.id]
+                      : current.splitTravelerIds.filter((travelerId) => travelerId !== traveler.id)
+                  }))
+                }
+                className="h-4 w-4 shrink-0 rounded border-zinc-300"
+              />
+              <span className="min-w-0 truncate">{traveler.name}</span>
+            </label>
+          ))}
+        </div>
+      </fieldset>
+
+      <label className="mt-3 flex min-w-0 items-center gap-2 text-sm font-semibold text-ink">
+        <input
+          type="checkbox"
+          checked={form.settled}
+          onChange={(event) => onChange((current) => ({ ...current, settled: event.target.checked }))}
+          className="h-4 w-4 shrink-0 rounded border-zinc-300"
+        />
+        <span>Settled</span>
+      </label>
+
+      <label className="mt-3 block w-full max-w-full min-w-0 text-sm font-semibold text-ink">
+        Notes
+        <textarea
+          value={form.notes}
+          onChange={(event) => onChange((current) => ({ ...current, notes: event.target.value }))}
+          className="mt-2 block box-border min-h-24 w-full max-w-full min-w-0 resize-y rounded-md border border-zinc-200 bg-white px-3 py-2 text-base text-zinc-700 sm:text-sm"
+          placeholder="Safe notes only. Avoid private confirmation numbers."
+        />
+      </label>
+
+      <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+        <button
+          type="submit"
+          disabled={submitting}
+          className="w-full max-w-full rounded-md bg-moss px-3 py-2 text-base font-semibold text-white disabled:opacity-60 sm:w-auto sm:text-sm"
+        >
+          {submitting ? "Saving..." : editingExpenseId ? "Save expense" : "Add expense"}
+        </button>
+        <button
+          type="button"
+          onClick={onCancel}
+          disabled={submitting}
+          className="w-full max-w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-base font-semibold text-ink disabled:opacity-60 sm:w-auto sm:text-sm"
+        >
+          Cancel
+        </button>
+      </div>
+    </form>
+  );
+}
+
+function ItineraryExpenseCard({
+  expense,
+  travelerNameById,
+  deletingExpenseId,
+  onEdit,
+  onDelete
+}: {
+  expense: SharedExpense;
+  travelerNameById: Map<string, string>;
+  deletingExpenseId: string | null;
+  onEdit: (expense: SharedExpense) => void;
+  onDelete: (expense: SharedExpense) => Promise<void>;
+}) {
+  return (
+    <article className="rounded-lg border border-zinc-200 bg-zinc-50 p-3">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="text-sm font-semibold text-ink">{expense.title}</p>
+            <ExpenseStatusPill settled={expense.settled} />
+          </div>
+          <p className="mt-1 text-xs uppercase tracking-[0.08em] text-zinc-500">
+            {expense.category} - {expense.expenseDate}
+          </p>
+        </div>
+        <p className="shrink-0 text-sm font-semibold text-ink">
+          {formatMoney(expense.amount, expense.currency)}
+        </p>
+      </div>
+      <dl className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
+        <Field
+          label="Paid by"
+          value={travelerNameById.get(expense.paidByTravelerId) ?? expense.paidByTravelerId}
+        />
+        <Field
+          label="Split among"
+          value={expense.splitTravelerIds
+            .map((travelerId) => travelerNameById.get(travelerId) ?? travelerId)
+            .join(", ")}
+        />
+      </dl>
+      {expense.notes ? <p className="mt-2 break-words text-sm leading-6 text-zinc-600">{expense.notes}</p> : null}
+      <div className="mt-3 flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={() => onEdit(expense)}
+          className="rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold text-ink"
+        >
+          Edit
+        </button>
+        <button
+          type="button"
+          onClick={() => void onDelete(expense)}
+          disabled={deletingExpenseId === expense.id}
+          className="rounded-md border border-red-200 bg-white px-3 py-2 text-sm font-semibold text-red-700 disabled:opacity-60"
+        >
+          {deletingExpenseId === expense.id ? "Deleting..." : "Delete"}
+        </button>
+      </div>
+    </article>
+  );
+}
+
+function ExpenseStatusPill({ settled }: { settled: boolean }) {
+  return (
+    <span
+      className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ${
+        settled
+          ? "bg-emerald-100 text-emerald-800 ring-emerald-200"
+          : "bg-amber-100 text-amber-800 ring-amber-200"
+      }`}
+    >
+      {settled ? "Settled" : "Outstanding"}
+    </span>
+  );
+}
+
+function Field({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="min-w-0">
+      <dt className="text-xs font-semibold uppercase tracking-[0.08em] text-zinc-500">{label}</dt>
+      <dd className="mt-1 break-words text-zinc-700">{value}</dd>
+    </div>
   );
 }
 
@@ -664,6 +1250,26 @@ function renderBold(text: string) {
   });
 }
 
+function buildExpenseInput(item: SharedItineraryItem, form: ExpenseFormState): ExpenseInput {
+  return {
+    sourceType: "itinerary",
+    sourceId: item.id,
+    title: form.title.trim(),
+    category: form.category,
+    amount: Number(form.amount),
+    currency: form.currency,
+    paidByTravelerId: form.paidByTravelerId,
+    splitTravelerIds: Array.from(new Set(form.splitTravelerIds)),
+    settled: form.settled,
+    expenseDate: form.expenseDate,
+    notes: form.notes.trim() || null
+  };
+}
+
+function orderTravelers(travelers: Traveler[]) {
+  return travelers.slice().sort((a, b) => a.displayOrder - b.displayOrder);
+}
+
 function TextField({
   label,
   value,
@@ -721,11 +1327,13 @@ function SelectField({
   label,
   value,
   options,
+  optionLabels,
   onChange
 }: {
   label: string;
   value: string;
   options: readonly string[];
+  optionLabels?: Map<string, string>;
   onChange: (value: string) => void;
 }) {
   return (
@@ -738,7 +1346,7 @@ function SelectField({
       >
         {options.map((option) => (
           <option key={option} value={option}>
-            {option}
+            {optionLabels?.get(option) ?? option}
           </option>
         ))}
       </select>

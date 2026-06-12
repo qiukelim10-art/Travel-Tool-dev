@@ -3,8 +3,9 @@
 ## Current Priority
 
 - Wait for the user's next requested improvement to the trip website.
+- Review itinerary linked expense add/edit/delete on computer and phone, including the new mobile Budget navigation path.
 - Review the Budget shared ledger UI and miscellaneous expense CRUD on computer and phone.
-- Next likely Budget step: add linked expense display/actions to Itinerary or Bookings after Budget UI review.
+- Next likely Budget step: add linked expense display/actions to Bookings after Itinerary linked expense review.
 - Review the shared reminders and bookings CRUD/filter UI on computer and phone when the user is ready.
 - Review the shared itinerary CRUD UI on computer and phone, especially long notes and card readability.
 - Review the shared packing CRUD UI on computer and phone using the active worktree configuration.
@@ -21,7 +22,7 @@
 ## Suggested Next Feature
 
 - Review Budget filters, settlement suggestions, and misc expense form ergonomics on a real phone.
-- Later, add linked expenses to Itinerary and Bookings without counting `cost_amount` or `amount` twice.
+- Add linked expenses to Bookings without counting booking `amount` twice.
 - Decide whether to add simple shared-password protection before using the shared reminders/bookings UI for real trip details.
 - Consider shared-password protection before entering real detailed itinerary notes, hotel addresses, private booking references, or sensitive location context.
 - Consider improving the mobile layout of long booking forms if it feels heavy during review.
