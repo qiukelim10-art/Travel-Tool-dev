@@ -4,6 +4,7 @@
 
 - Fixed mobile Safari behavior for Google Maps search panels by making simple searches native links and keeping geolocation as an enhancement.
 - Verified TypeScript check, production build, HTTP 200 responses for Food/Attractions/Map, and generated Google Maps fallback links.
+- Re-verified the completed Google Maps search fix with `pnpm lint`, `pnpm build`, local HTTP 200, LAN HTTP 200, and confirmed the user is currently satisfied with this feature.
 - Completed local verification for the shared reminders and bookings prototype.
 - Confirmed `mysql2` is installed and `.env.local` is present without recording any secret values.
 - Verified `npm.cmd run lint` and `npm.cmd run build` both pass.
