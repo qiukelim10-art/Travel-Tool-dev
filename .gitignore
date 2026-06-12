@@ -1,0 +1,10 @@
+node_modules
+.next
+out
+dist
+.env*
+.tools
+.pnpm-store
+*.tsbuildinfo
+.dev-server*.log
+.prod-server*.log
