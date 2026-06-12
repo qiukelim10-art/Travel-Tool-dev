@@ -1,4 +1,4 @@
-import type { Booking, BookingStatus } from "@/data/tripData";
+import { travelers, type Booking, type BookingStatus } from "@/data/tripData";
 
 export const reminderPriorities = ["High", "Medium", "Low"] as const;
 export type ReminderPriority = (typeof reminderPriorities)[number];
@@ -23,6 +23,26 @@ export const bookingStatuses = [
 ] as const satisfies readonly BookingStatus[];
 
 export const bookingCurrencies = ["EUR", "SGD"] as const;
+export type SharedCurrency = (typeof bookingCurrencies)[number];
+
+export const packingCategories = [
+  "Documents",
+  "Clothes",
+  "Electronics",
+  "Medicine",
+  "Toiletries",
+  "Travel Essentials",
+  "Shared Items",
+  "Personal Care",
+  "Other"
+] as const;
+export type PackingCategory = (typeof packingCategories)[number];
+
+export const packingPriorities = ["High", "Medium", "Low"] as const;
+export type PackingPriority = (typeof packingPriorities)[number];
+
+export const packingTravelerStatuses = ["required", "packed", "not_needed"] as const;
+export type PackingTravelerStatus = (typeof packingTravelerStatuses)[number];
 
 export type SharedReminder = {
   id: string;
@@ -41,7 +61,7 @@ export type SharedBooking = {
   location: string | null;
   bookedBy: string;
   amount: number | null;
-  currency: (typeof bookingCurrencies)[number] | null;
+  currency: SharedCurrency | null;
   notes: string | null;
   status: BookingStatus;
   createdAt: string;
@@ -61,7 +81,98 @@ export type BookingInput = {
   location?: string;
   bookedBy: string;
   amount?: number | null;
-  currency?: (typeof bookingCurrencies)[number] | null;
+  currency?: SharedCurrency | null;
   notes?: string;
   status: BookingStatus;
 };
+
+export type SharedPackingTravelerStatus = {
+  travelerId: string;
+  status: PackingTravelerStatus;
+  updatedAt: string | null;
+};
+
+export type SharedPackingItem = {
+  id: string;
+  name: string;
+  category: PackingCategory;
+  priority: PackingPriority;
+  notes: string | null;
+  quantity: number | null;
+  sortOrder: number;
+  statuses: SharedPackingTravelerStatus[];
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type PackingInput = {
+  name: string;
+  category: PackingCategory;
+  priority: PackingPriority;
+  notes?: string;
+  quantity?: number | null;
+  sortOrder?: number;
+  statuses: {
+    travelerId: string;
+    status: PackingTravelerStatus;
+  }[];
+};
+
+export type SharedItineraryItem = {
+  id: string;
+  travelDate: string;
+  city: string;
+  startTime: string | null;
+  endTime: string | null;
+  title: string;
+  location: string | null;
+  details: string | null;
+  transport: string | null;
+  meal: string | null;
+  costAmount: number | null;
+  currency: SharedCurrency;
+  notes: string | null;
+  mapQuery: string | null;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type ItineraryInput = {
+  travelDate: string;
+  city: string;
+  startTime?: string;
+  endTime?: string;
+  title: string;
+  location?: string;
+  details?: string;
+  transport?: string;
+  meal?: string;
+  costAmount?: number | null;
+  currency?: SharedCurrency;
+  notes?: string;
+  mapQuery?: string;
+  sortOrder?: number;
+};
+
+const notNeededByDefault = new Set<PackingCategory>([
+  "Medicine",
+  "Toiletries",
+  "Personal Care",
+  "Shared Items"
+]);
+
+export function defaultPackingStatusForCategory(category: PackingCategory): PackingTravelerStatus {
+  return notNeededByDefault.has(category) ? "not_needed" : "required";
+}
+
+export function buildDefaultPackingStatuses(category: PackingCategory) {
+  const status = defaultPackingStatusForCategory(category);
+  return travelers
+    .slice()
+    .sort((a, b) => a.displayOrder - b.displayOrder)
+    .map((traveler) => ({
+      travelerId: traveler.id,
+      status
+    }));
+}

@@ -11,6 +11,18 @@
 - Verified local runtime access for Dashboard and Bookings, plus `GET /api/reminders` and `GET /api/bookings`.
 - Verified temporary reminder and booking CRUD flows: create, patch, and delete all succeeded, and temporary verification data was removed.
 - User is currently satisfied with shared reminders/bookings and will request follow-up changes later.
+- Converted Itinerary from static-only display to shared MySQL/API CRUD while keeping the existing placeholder itinerary as seed data.
+- Added `itinerary_items` auto-create/seed support, `/api/itinerary` CRUD routes, city filtering, page-inline add/edit form, card display, safe lightweight Markdown-style rendering, and Google Maps search links.
+- Verified `npm.cmd run lint`, `npm.cmd run build`, `/itinerary` HTTP 200, `GET /api/itinerary`, and temporary itinerary create/update/delete on a short-lived local dev server.
+- Added the handoff rule that completed website changes must include verified desktop and phone LAN URLs, current port, page HTTP statuses, and related API status.
+- Fixed the mobile itinerary dev-server loading issue by allowing the LAN host in Next dev config and adding itinerary API timeout/error retry handling.
+- Verified the mobile itinerary fix on port 3100: desktop `/itinerary` 200, phone LAN `/itinerary` 200, `/api/itinerary` returned JSON, and mobile-width add/edit/delete smoke data was created and removed.
+- Fixed itinerary `travel_date` off-by-one handling by returning MySQL DATE values as local `YYYY-MM-DD` strings, added date filtering, and verified same-day multiple-item sorting plus mobile add/edit/delete cleanup.
+- Fixed mobile itinerary Add/Edit form overflow by constraining form grids, field wrappers, and controls to the card width; verified 320px and 390px mobile viewports plus Add/Edit/Delete cleanup.
+- Converted Packing List from static checklist to shared MySQL/API CRUD with per-traveler required/packed/not-needed statuses.
+- Added configurable placeholder travelers, packing auto-create/seed tables, `/api/packing` CRUD routes, category/priority/status filters, summary cards, page-inline add/edit form, mobile-first item cards, and delete confirmation.
+- Verified `npm.cmd run lint` and `npm.cmd run build` both pass. After copying `.env.local` into this worktree without printing secrets, verified `/packing` and `/api/packing` on port 3104, then verified full temporary packing CRUD on port 3105: seed data loaded, create/update/delete succeeded, and temporary data was removed.
+- Fixed desktop `/packing` dev loading/hydration issue by allowing local desktop dev origins and adding packing fetch timeout, response validation, error display, and retry handling. Verified desktop/LAN `/packing`, desktop/LAN `/api/packing`, temporary packing CRUD cleanup, `npm.cmd run build`, and `npm.cmd run lint`.
 
 ## 2026-06-11
 

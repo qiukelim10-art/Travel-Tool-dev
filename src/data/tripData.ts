@@ -154,10 +154,18 @@ export type PackingItem = {
     | "Medicine"
     | "Toiletries"
     | "Travel Essentials"
-    | "Shared Items";
+    | "Shared Items"
+    | "Personal Care"
+    | "Other";
   owner: string | "Everyone";
   required: boolean;
   checked: boolean;
+};
+
+export type Traveler = {
+  id: string;
+  name: string;
+  displayOrder: number;
 };
 
 export type DocumentLink = {
@@ -207,6 +215,13 @@ export const tripInfo = {
     owner: "Person A"
   }
 };
+
+export const travelers: Traveler[] = [
+  { id: "person_a", name: "Person A", displayOrder: 1 },
+  { id: "person_b", name: "Person B", displayOrder: 2 },
+  { id: "person_c", name: "Person C", displayOrder: 3 },
+  { id: "person_d", name: "Person D", displayOrder: 4 }
+];
 
 export const itinerary: ItineraryDay[] = [
   {
