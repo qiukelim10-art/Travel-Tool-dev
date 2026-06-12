@@ -1,5 +1,12 @@
 # Progress
 
+## 2026-06-13
+
+- Added the shared expense ledger foundation without changing page UI: `expenses` and `expense_splits` tables, shared expense types, MySQL store CRUD, `/api/expenses` routes, and ledger summary calculation.
+- Seeded existing static placeholder budget expenses into the ledger only when `expenses` is empty, converting display names like `Person A` to stable traveler IDs like `person_a`.
+- Confirmed itinerary `cost_amount` and booking `amount` remain reference fields only and are not automatically converted into ledger expenses.
+- Verified `npm.cmd run build`, `npm.cmd run lint`, `/api/expenses` create/update/delete cleanup, and `/api/itinerary`, `/api/bookings`, `/api/packing` HTTP 200 JSON responses on the active dev server.
+
 ## 2026-06-12
 
 - Fixed mobile Safari behavior for Google Maps search panels by making simple searches native links and keeping geolocation as an enhancement.
