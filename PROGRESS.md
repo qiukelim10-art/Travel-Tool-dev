@@ -2,6 +2,10 @@
 
 ## 2026-06-13
 
+- Added booking linked expenses using the shared expense ledger without changing the expense API schema or adding tables.
+- Booking rows/cards now load and display ledger expenses where `sourceType = booking` and `sourceId` matches the booking item id, with inline add/edit/delete for those linked expenses.
+- Confirmed booking `amount` remains only an estimated/reference field; it can prefill the linked expense form but is not automatically counted in Budget.
+- Verified `npm.cmd run build`, `npm.cmd run lint`, `/bookings`, `/budget`, `/api/bookings`, `/api/expenses`, temporary booking CRUD, temporary linked expense create/update/delete cleanup, and Budget ledger summary delta.
 - Added Budget to the mobile bottom navigation so phone users can reach the unified ledger directly while reviewing itinerary linked expenses.
 - Added itinerary linked expenses using the shared expense ledger without changing the expense API schema or adding tables.
 - Itinerary cards now load and display ledger expenses where `sourceType = itinerary` and `sourceId` matches the itinerary item id, with inline add/edit/delete for those linked expenses.
