@@ -59,6 +59,27 @@ export type PackingPriority = (typeof packingPriorities)[number];
 export const packingTravelerStatuses = ["required", "packed", "not_needed"] as const;
 export type PackingTravelerStatus = (typeof packingTravelerStatuses)[number];
 
+export const documentCategories = [
+  "Passport",
+  "Flight",
+  "Hotel",
+  "Insurance",
+  "Visa / Entry",
+  "Transport",
+  "Booking",
+  "Other"
+] as const;
+export type DocumentCategory = (typeof documentCategories)[number];
+
+export const documentPriorities = ["High", "Medium", "Low"] as const;
+export type DocumentPriority = (typeof documentPriorities)[number];
+
+export const documentStatuses = ["Needed", "Saved", "Printed", "Ready", "Not needed"] as const;
+export type DocumentStatus = (typeof documentStatuses)[number];
+
+export const documentTravelerStatuses = ["required", "saved", "not_needed"] as const;
+export type DocumentTravelerStatus = (typeof documentTravelerStatuses)[number];
+
 export type SharedReminder = {
   id: string;
   text: string;
@@ -120,6 +141,28 @@ export type SharedPackingItem = {
   updatedAt: string;
 };
 
+export type SharedDocumentTravelerStatus = {
+  travelerId: string;
+  status: DocumentTravelerStatus;
+  updatedAt: string | null;
+};
+
+export type SharedDocumentItem = {
+  id: string;
+  title: string;
+  category: DocumentCategory;
+  priority: DocumentPriority;
+  status: DocumentStatus;
+  externalUrl?: string | null;
+  hasExternalUrl: boolean;
+  requiresPasscode: boolean;
+  notes: string | null;
+  sortOrder: number;
+  statuses: SharedDocumentTravelerStatus[];
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type ExpenseSplit = {
   travelerId: string;
   createdAt?: string;
@@ -166,6 +209,22 @@ export type PackingInput = {
   statuses: {
     travelerId: string;
     status: PackingTravelerStatus;
+  }[];
+};
+
+export type DocumentInput = {
+  title: string;
+  category: DocumentCategory;
+  priority: DocumentPriority;
+  status: DocumentStatus;
+  externalUrl?: string | null;
+  requiresPasscode: boolean;
+  passcode?: string;
+  notes?: string | null;
+  sortOrder?: number;
+  statuses: {
+    travelerId: string;
+    status: DocumentTravelerStatus;
   }[];
 };
 

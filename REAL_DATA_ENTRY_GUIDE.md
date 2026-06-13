@@ -73,13 +73,16 @@ Packing data can be real as long as it avoids identity documents and private num
 
 ## Documents Page
 
-The Documents page is only for safe placeholders and access-controlled links.
+The Documents page is a shared checklist with optional private cloud folder links. It is not a file vault.
 
 - Do not store passport numbers, card numbers, complete confirmation numbers, QR codes, barcodes, or uploaded files.
 - Do not paste direct public links to private files.
-- Use short labels such as "Flight confirmation private link placeholder" until protection is added.
-- Store real files in a private cloud folder shared only with the 4 travelers.
-- If a private folder link is added later, confirm its permissions outside this repository.
+- Store real files in Google Drive, iCloud, OneDrive, or similar private storage shared only with the 4 travelers.
+- Confirm the folder permissions in the storage provider before adding a folder link to Documents.
+- Use the Documents access code only as an extra app-level gate for opening a protected folder link.
+- Do not write the access code in notes, titles, labels, screenshots, commits, or chat logs.
+- Do not commit real PDFs, screenshots, QR codes, receipts, passport scans, insurance certificates, or booking files.
+- Do not put full confirmation numbers, passport numbers, policy numbers, card numbers, or bank details into this app.
 
 ## Emergency Contacts
 

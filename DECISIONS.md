@@ -11,3 +11,8 @@
 ## 2026-06-12
 
 - Google Maps search panels should prefer native anchor links for mobile reliability. Browser geolocation is only an enhancement because iPhone Safari may block async popups and mobile geolocation requires a secure context.
+
+## 2026-06-13
+
+- For Phase 3 Documents, protect individual folder links with per-item access codes only; do not add whole-site password protection yet.
+- Store Documents access codes as salted SHA-256 hashes using Node crypto, never as plaintext, and keep real document files in permission-controlled cloud storage outside the repo.

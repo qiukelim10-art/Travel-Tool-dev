@@ -1,12 +1,19 @@
-import { randomUUID } from "crypto";
-import { bookings, expenses, itinerary, packingItems, travelers, tripInfo } from "@/data/tripData";
+import { createHash, randomBytes, randomUUID, timingSafeEqual } from "crypto";
+import { bookings, documentLinks, expenses, itinerary, packingItems, travelers, tripInfo } from "@/data/tripData";
 import {
   bookingCategories,
   bookingCurrencies,
   bookingStatuses,
   buildDefaultPackingStatuses,
+  documentCategories,
+  documentPriorities,
+  documentStatuses,
+  documentTravelerStatuses,
   expenseCategories,
   expenseSourceTypes,
+  type DocumentCategory,
+  type DocumentInput,
+  type DocumentTravelerStatus,
   type ItineraryInput,
   packingCategories,
   packingPriorities,
@@ -18,6 +25,7 @@ import {
   type PackingInput,
   type PackingTravelerStatus,
   type SharedItineraryItem,
+  type SharedDocumentItem,
   type SharedExpense,
   type SharedPackingItem,
   type ReminderInput,
@@ -239,6 +247,35 @@ function mapPackingStatus(row: DbRow): SharedPackingItem["statuses"][number] {
   };
 }
 
+function mapDocumentItem(row: DbRow, statuses: SharedDocumentItem["statuses"]): SharedDocumentItem {
+  const requiresPasscode = asBoolean(row.requires_passcode);
+  const externalUrl = nullableString(row.external_url);
+
+  return {
+    id: asString(row.id),
+    title: asString(row.title),
+    category: asString(row.category) as SharedDocumentItem["category"],
+    priority: asString(row.priority) as SharedDocumentItem["priority"],
+    status: asString(row.status) as SharedDocumentItem["status"],
+    externalUrl: requiresPasscode ? null : externalUrl,
+    hasExternalUrl: externalUrl !== null,
+    requiresPasscode,
+    notes: nullableString(row.notes),
+    sortOrder: Number(row.sort_order ?? 0),
+    statuses,
+    createdAt: asString(row.created_at),
+    updatedAt: asString(row.updated_at)
+  };
+}
+
+function mapDocumentStatus(row: DbRow): SharedDocumentItem["statuses"][number] {
+  return {
+    travelerId: asString(row.traveler_id),
+    status: asString(row.status) as DocumentTravelerStatus,
+    updatedAt: row.updated_at === null || row.updated_at === undefined ? null : asString(row.updated_at)
+  };
+}
+
 function sortReminders(reminders: SharedReminder[]) {
   return reminders.sort((a, b) => {
     const priorityDiff = priorityRank[a.priority] - priorityRank[b.priority];
@@ -386,6 +423,43 @@ async function createTables() {
         ON DELETE CASCADE
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
   `);
+
+  await pool.execute(`
+    CREATE TABLE IF NOT EXISTS document_items (
+      id varchar(36) NOT NULL,
+      title varchar(255) NOT NULL,
+      category enum('Passport', 'Flight', 'Hotel', 'Insurance', 'Visa / Entry', 'Transport', 'Booking', 'Other') NOT NULL,
+      priority enum('High', 'Medium', 'Low') NOT NULL DEFAULT 'Medium',
+      status enum('Needed', 'Saved', 'Printed', 'Ready', 'Not needed') NOT NULL DEFAULT 'Needed',
+      external_url varchar(1000) DEFAULT NULL,
+      requires_passcode tinyint(1) NOT NULL DEFAULT 0,
+      passcode_salt varchar(64) DEFAULT NULL,
+      passcode_hash varchar(128) DEFAULT NULL,
+      notes text,
+      sort_order int NOT NULL DEFAULT 0,
+      created_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      PRIMARY KEY (id),
+      KEY idx_document_items_grouping (category, priority, status, sort_order, title),
+      KEY idx_document_items_protected (requires_passcode)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `);
+
+  await pool.execute(`
+    CREATE TABLE IF NOT EXISTS document_item_traveler_statuses (
+      id varchar(36) NOT NULL,
+      item_id varchar(36) NOT NULL,
+      traveler_id varchar(80) NOT NULL,
+      status enum('required', 'saved', 'not_needed') NOT NULL DEFAULT 'required',
+      updated_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      PRIMARY KEY (id),
+      UNIQUE KEY uniq_document_item_traveler (item_id, traveler_id),
+      KEY idx_document_traveler_status (traveler_id, status),
+      CONSTRAINT fk_document_status_item
+        FOREIGN KEY (item_id) REFERENCES document_items (id)
+        ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `);
 }
 
 async function updateCurrencyEnums() {
@@ -460,6 +534,27 @@ function seedPackingStatuses(item: (typeof packingItems)[number]) {
     travelerId: traveler.id,
     status: item.checked ? "packed" : "required"
   }));
+}
+
+function seedDocumentCategory(category: (typeof documentLinks)[number]["category"]): DocumentCategory {
+  if (category === "Train") {
+    return "Transport";
+  }
+
+  if (category === "Attraction" || category === "Receipt") {
+    return "Booking";
+  }
+
+  if ((documentCategories as readonly string[]).includes(category)) {
+    return category as DocumentCategory;
+  }
+
+  return "Other";
+}
+
+function seedDocumentUrl(link: string) {
+  const trimmed = link.trim();
+  return trimmed.startsWith("http://") || trimmed.startsWith("https://") ? trimmed : null;
 }
 
 async function seedTables() {
@@ -594,6 +689,43 @@ async function seedTables() {
             (id, item_id, traveler_id, status)
            VALUES (?, ?, ?, ?)`,
           [randomUUID(), id, status.travelerId, status.status]
+        );
+      }
+    }
+  }
+
+  const [documentRows] = await pool.execute<DbRow[]>("SELECT COUNT(*) AS count FROM document_items");
+  const documentCount = Number(documentRows[0]?.count ?? 0);
+
+  if (documentCount === 0) {
+    for (const [index, document] of documentLinks.entries()) {
+      const id = `seed-document-item-${index + 1}`;
+      await pool.execute(
+        `INSERT INTO document_items
+          (id, title, category, priority, status, external_url, requires_passcode,
+           passcode_salt, passcode_hash, notes, sort_order)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          id,
+          document.title,
+          seedDocumentCategory(document.category),
+          document.sensitive ? "High" : "Medium",
+          "Needed",
+          seedDocumentUrl(document.link),
+          0,
+          null,
+          null,
+          document.notes ?? null,
+          index + 1
+        ]
+      );
+
+      for (const traveler of travelers) {
+        await pool.execute(
+          `INSERT INTO document_item_traveler_statuses
+            (id, item_id, traveler_id, status)
+           VALUES (?, ?, ?, ?)`,
+          [randomUUID(), id, traveler.id, "required"]
         );
       }
     }
@@ -909,6 +1041,115 @@ export function validatePackingInput(input: Partial<PackingInput>) {
     quantity,
     sortOrder,
     statuses: normalizePackingStatuses(category, input.statuses)
+  };
+}
+
+function normalizeDocumentStatuses(inputStatuses: DocumentInput["statuses"] | undefined) {
+  const allowedTravelerIds = new Set(travelers.map((traveler) => traveler.id));
+  const statusesByTraveler = new Map<string, DocumentTravelerStatus>(
+    travelers.map((traveler) => [traveler.id, "required"])
+  );
+
+  for (const status of inputStatuses ?? []) {
+    if (!allowedTravelerIds.has(status.travelerId)) {
+      throw new Error("Document traveler is invalid.");
+    }
+
+    if (!(documentTravelerStatuses as readonly string[]).includes(status.status)) {
+      throw new Error("Document traveler status is invalid.");
+    }
+
+    statusesByTraveler.set(status.travelerId, status.status);
+  }
+
+  return travelers
+    .slice()
+    .sort((a, b) => a.displayOrder - b.displayOrder)
+    .map((traveler) => ({
+      travelerId: traveler.id,
+      status: statusesByTraveler.get(traveler.id) ?? "required"
+    }));
+}
+
+function normalizeExternalUrl(value: unknown) {
+  const externalUrl = String(value ?? "").trim();
+
+  if (!externalUrl) {
+    return null;
+  }
+
+  try {
+    const url = new URL(externalUrl);
+    if (url.protocol !== "https:" && url.protocol !== "http:") {
+      throw new Error("External folder link must start with http:// or https://.");
+    }
+    return url.toString();
+  } catch {
+    throw new Error("External folder link must be a valid http:// or https:// URL.");
+  }
+}
+
+function hashPasscode(passcode: string) {
+  const salt = randomBytes(16).toString("hex");
+  const hash = createHash("sha256").update(`${salt}:${passcode}`).digest("hex");
+  return { salt, hash };
+}
+
+function verifyPasscode(passcode: string, salt: string, hash: string) {
+  const attemptedHash = createHash("sha256").update(`${salt}:${passcode}`).digest("hex");
+  const expected = Buffer.from(hash, "hex");
+  const attempted = Buffer.from(attemptedHash, "hex");
+
+  return expected.length === attempted.length && timingSafeEqual(expected, attempted);
+}
+
+export function validateDocumentInput(input: Partial<DocumentInput>) {
+  const title = String(input.title ?? "").trim();
+  const category = input.category;
+  const priority = input.priority;
+  const status = input.status;
+  const hasExternalUrlInput = Object.prototype.hasOwnProperty.call(input, "externalUrl");
+  const externalUrl = hasExternalUrlInput ? normalizeExternalUrl(input.externalUrl) : undefined;
+  const requiresPasscode = Boolean(input.requiresPasscode);
+  const passcode = String(input.passcode ?? "").trim();
+  const notes = String(input.notes ?? "").trim();
+  const rawSortOrder = input.sortOrder as number | string | null | undefined;
+  const sortOrder =
+    rawSortOrder === null || rawSortOrder === undefined || rawSortOrder === ""
+      ? 0
+      : Number(rawSortOrder);
+
+  if (!title) {
+    throw new Error("Document title is required.");
+  }
+
+  if (!category || !(documentCategories as readonly string[]).includes(category)) {
+    throw new Error("Document category is invalid.");
+  }
+
+  if (!priority || !(documentPriorities as readonly string[]).includes(priority)) {
+    throw new Error("Document priority is invalid.");
+  }
+
+  if (!status || !(documentStatuses as readonly string[]).includes(status)) {
+    throw new Error("Document status is invalid.");
+  }
+
+  if (!Number.isInteger(sortOrder)) {
+    throw new Error("Sort order must be a whole number.");
+  }
+
+  return {
+    title,
+    category,
+    priority,
+    status,
+    externalUrl,
+    requiresPasscode,
+    passcode,
+    notes: notes || null,
+    sortOrder,
+    statuses: normalizeDocumentStatuses(input.statuses)
   };
 }
 
@@ -1308,4 +1549,202 @@ export async function updatePackingItem(id: string, input: PackingInput) {
 export async function deletePackingItem(id: string) {
   await ensureSharedDataStore();
   await getAppPool().execute("DELETE FROM packing_items WHERE id = ?", [id]);
+}
+
+export async function listDocumentItems() {
+  await ensureSharedDataStore();
+  const [itemRows] = await getAppPool().execute<DbRow[]>(
+    "SELECT * FROM document_items ORDER BY sort_order ASC, category ASC, title ASC, id ASC"
+  );
+  const [statusRows] = await getAppPool().execute<DbRow[]>(
+    "SELECT * FROM document_item_traveler_statuses ORDER BY traveler_id ASC"
+  );
+  const statusesByItem = new Map<string, SharedDocumentItem["statuses"]>();
+
+  for (const row of statusRows) {
+    const itemId = asString(row.item_id);
+    const existing = statusesByItem.get(itemId) ?? [];
+    existing.push(mapDocumentStatus(row));
+    statusesByItem.set(itemId, existing);
+  }
+
+  return itemRows.map((row) => {
+    const itemStatuses = statusesByItem.get(asString(row.id)) ?? [];
+    const statusesByTraveler = new Map(itemStatuses.map((status) => [status.travelerId, status]));
+    const orderedStatuses = travelers
+      .slice()
+      .sort((a, b) => a.displayOrder - b.displayOrder)
+      .map((traveler) => statusesByTraveler.get(traveler.id) ?? {
+        travelerId: traveler.id,
+        status: "required" as DocumentTravelerStatus,
+        updatedAt: null
+      });
+
+    return mapDocumentItem(row, orderedStatuses);
+  });
+}
+
+async function insertDocumentStatuses(
+  executor: MysqlConnection,
+  itemId: string,
+  statuses: DocumentInput["statuses"]
+) {
+  for (const status of statuses) {
+    await executor.execute(
+      `INSERT INTO document_item_traveler_statuses
+        (id, item_id, traveler_id, status)
+       VALUES (?, ?, ?, ?)`,
+      [randomUUID(), itemId, status.travelerId, status.status]
+    );
+  }
+}
+
+export async function createDocumentItem(input: DocumentInput) {
+  await ensureSharedDataStore();
+  const id = randomUUID();
+  const passcodeParts = input.requiresPasscode
+    ? input.passcode
+      ? hashPasscode(input.passcode)
+      : null
+    : null;
+
+  if (input.requiresPasscode && !passcodeParts) {
+    throw new Error("Passcode is required for protected document links.");
+  }
+
+  const connection = await getAppPool().getConnection();
+
+  try {
+    await connection.beginTransaction();
+    await connection.execute(
+      `INSERT INTO document_items
+        (id, title, category, priority, status, external_url, requires_passcode,
+         passcode_salt, passcode_hash, notes, sort_order)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        id,
+        input.title,
+        input.category,
+        input.priority,
+        input.status,
+        input.externalUrl || null,
+        input.requiresPasscode ? 1 : 0,
+        passcodeParts?.salt ?? null,
+        passcodeParts?.hash ?? null,
+        input.notes || null,
+        input.sortOrder ?? 0
+      ]
+    );
+    await insertDocumentStatuses(connection, id, input.statuses);
+    await connection.commit();
+    return id;
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
+  }
+}
+
+export async function updateDocumentItem(id: string, input: DocumentInput) {
+  await ensureSharedDataStore();
+  const [rows] = await getAppPool().execute<DbRow[]>(
+    "SELECT external_url, passcode_salt, passcode_hash FROM document_items WHERE id = ?",
+    [id]
+  );
+  const existing = rows[0];
+
+  if (!existing) {
+    throw new Error("Document item was not found.");
+  }
+
+  let passcodeSalt: string | null = null;
+  let passcodeHash: string | null = null;
+  const externalUrl =
+    input.externalUrl === undefined ? nullableString(existing.external_url) : input.externalUrl;
+
+  if (input.requiresPasscode) {
+    if (input.passcode) {
+      const passcodeParts = hashPasscode(input.passcode);
+      passcodeSalt = passcodeParts.salt;
+      passcodeHash = passcodeParts.hash;
+    } else {
+      passcodeSalt = nullableString(existing.passcode_salt);
+      passcodeHash = nullableString(existing.passcode_hash);
+    }
+
+    if (!passcodeSalt || !passcodeHash) {
+      throw new Error("Passcode is required for protected document links.");
+    }
+  }
+
+  const connection = await getAppPool().getConnection();
+
+  try {
+    await connection.beginTransaction();
+    await connection.execute(
+      `UPDATE document_items
+       SET title = ?, category = ?, priority = ?, status = ?, external_url = ?,
+           requires_passcode = ?, passcode_salt = ?, passcode_hash = ?,
+           notes = ?, sort_order = ?
+       WHERE id = ?`,
+      [
+        input.title,
+        input.category,
+        input.priority,
+        input.status,
+        externalUrl || null,
+        input.requiresPasscode ? 1 : 0,
+        passcodeSalt,
+        passcodeHash,
+        input.notes || null,
+        input.sortOrder ?? 0,
+        id
+      ]
+    );
+    await connection.execute("DELETE FROM document_item_traveler_statuses WHERE item_id = ?", [id]);
+    await insertDocumentStatuses(connection, id, input.statuses);
+    await connection.commit();
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
+  }
+}
+
+export async function deleteDocumentItem(id: string) {
+  await ensureSharedDataStore();
+  await getAppPool().execute("DELETE FROM document_items WHERE id = ?", [id]);
+}
+
+export async function unlockDocumentItem(id: string, passcode: string) {
+  await ensureSharedDataStore();
+  const trimmedPasscode = passcode.trim();
+
+  if (!trimmedPasscode) {
+    throw new Error("Passcode is required.");
+  }
+
+  const [rows] = await getAppPool().execute<DbRow[]>(
+    `SELECT external_url, requires_passcode, passcode_salt, passcode_hash
+     FROM document_items
+     WHERE id = ?`,
+    [id]
+  );
+  const row = rows[0];
+
+  if (!row || !asBoolean(row.requires_passcode)) {
+    throw new Error("Protected document link was not found.");
+  }
+
+  const externalUrl = nullableString(row.external_url);
+  const salt = nullableString(row.passcode_salt);
+  const hash = nullableString(row.passcode_hash);
+
+  if (!externalUrl || !salt || !hash || !verifyPasscode(trimmedPasscode, salt, hash)) {
+    return null;
+  }
+
+  return externalUrl;
 }

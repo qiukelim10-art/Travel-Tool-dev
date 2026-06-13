@@ -2,6 +2,13 @@
 
 ## 2026-06-13
 
+- Completed Phase 3 Documents shared checklist: Documents now uses local Next API + MySQL CRUD with per-traveler required/saved/not-needed statuses and optional external folder links.
+- Fixed the Documents Add/Edit responsive overflow bug by exempting checkbox/radio controls from `mobile-safe-form` full-width input styling and making the access-code row wrap safely inside the form card.
+- Added protected folder links for Documents using Node crypto salted SHA-256 passcode hashes; plaintext passcodes are not stored, and protected `GET /api/documents` responses do not return `externalUrl`, hash, or salt.
+- Added `/api/documents`, `/api/documents/[id]`, and `/api/documents/[id]/unlock`, plus `document_items` and `document_item_traveler_statuses` tables with cascade delete.
+- Seeded existing safe `tripData.ts` document placeholders into `document_items` only when the table is empty, without adding real private links or files.
+- Updated real-data safety docs to allow access-controlled folder links while keeping real PDFs, screenshots, QR codes, receipts, passport scans, full confirmations, card numbers, and passcodes out of the repo and notes.
+- Verified `npm.cmd run build`, `npm.cmd run lint`, `/documents`, `/api/documents`, temporary document CRUD/unlock cleanup, LAN `/documents`, LAN `/api/documents`, and regression HTTP 200 checks for `/`, `/budget`, `/itinerary`, `/bookings`, and `/packing`.
 - Completed the second Phase 2 mobile polish pass for Bookings, Itinerary, and Budget: Booking Add/Edit is now collapsed by default, Booking and Itinerary linked expense sections show compact summaries before details, Budget filters are collapsed by default, and Budget expense card details are tucked behind a per-card details toggle.
 - Kept shared expense ledger behavior unchanged: linked expenses still use their existing `sourceType` and `sourceId`, Budget summary/settlement calculations still use the full ledger, and misc expense CRUD remains scoped to Budget.
 - Completed the first Phase 2 mobile safety polish pass for Bookings, Itinerary, and Budget: Booking item delete now confirms before calling DELETE, Booking item action buttons have larger tap targets, and shared `mobile-safe-form` protection covers Booking main/linked expense forms, Budget misc expense form, and Itinerary linked expense form.
