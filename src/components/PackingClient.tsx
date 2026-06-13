@@ -318,6 +318,7 @@ export function PackingClient({ travelers }: PackingClientProps) {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="grid flex-1 gap-3 rounded-lg border border-zinc-200 bg-white p-3 sm:grid-cols-3">
           <SelectField
+            name="packing-filter-category"
             label={t("common.category")}
             value={categoryFilter}
             options={["All", ...packingCategories]}
@@ -325,6 +326,7 @@ export function PackingClient({ travelers }: PackingClientProps) {
             onChange={(value) => setCategoryFilter(value as typeof categoryFilter)}
           />
           <SelectField
+            name="packing-filter-priority"
             label={t("common.priority")}
             value={priorityFilter}
             options={["All", ...packingPriorities]}
@@ -332,6 +334,7 @@ export function PackingClient({ travelers }: PackingClientProps) {
             onChange={(value) => setPriorityFilter(value as typeof priorityFilter)}
           />
           <SelectField
+            name="packing-filter-status"
             label={t("common.status")}
             value={statusFilter}
             options={["All", "Incomplete only", "Completed only", "Unassigned only"]}
@@ -370,12 +373,14 @@ export function PackingClient({ travelers }: PackingClientProps) {
 
           <div className="mt-4 grid min-w-0 gap-3 md:grid-cols-2">
             <TextField
+              name="packing-item-name"
               label={t("packing.form.itemName")}
               value={form.name}
               onChange={(value) => setForm((current) => ({ ...current, name: value }))}
               placeholder={t("packing.form.itemPlaceholder")}
             />
             <SelectField
+              name="packing-category"
               label={t("common.category")}
               value={form.category}
               options={packingCategories}
@@ -383,6 +388,7 @@ export function PackingClient({ travelers }: PackingClientProps) {
               onChange={(value) => changeCategory(value as PackingCategory)}
             />
             <SelectField
+              name="packing-priority"
               label={t("common.priority")}
               value={form.priority}
               options={packingPriorities}
@@ -390,6 +396,7 @@ export function PackingClient({ travelers }: PackingClientProps) {
               onChange={(value) => setForm((current) => ({ ...current, priority: value as PackingPriority }))}
             />
             <TextField
+              name="packing-quantity"
               label={t("common.quantity")}
               type="number"
               value={form.quantity === null || form.quantity === undefined ? "" : String(form.quantity)}
@@ -399,6 +406,7 @@ export function PackingClient({ travelers }: PackingClientProps) {
               placeholder="1"
             />
             <TextField
+              name="packing-sort-order"
               label={t("common.sortOrder")}
               type="number"
               value={String(form.sortOrder ?? 0)}
@@ -410,6 +418,8 @@ export function PackingClient({ travelers }: PackingClientProps) {
           <label className="mt-3 block text-sm font-semibold text-ink">
             {t("common.notes")}
             <textarea
+              name="packing-notes"
+              autoComplete="off"
               value={form.notes ?? ""}
               onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))}
               className="mt-2 min-h-24 w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-700"
@@ -437,6 +447,7 @@ export function PackingClient({ travelers }: PackingClientProps) {
               {activeTravelers.map((traveler) => (
                 <SelectField
                   key={traveler.id}
+                  name={`packing-traveler-${traveler.id}-status`}
                   label={traveler.name}
                   value={
                     form.statuses.find((status) => status.travelerId === traveler.id)?.status ??
@@ -461,7 +472,10 @@ export function PackingClient({ travelers }: PackingClientProps) {
       ) : null}
 
       {error ? (
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+        <div
+          role="alert"
+          className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
+        >
           <p>{error}</p>
           <button
             type="button"
@@ -473,7 +487,11 @@ export function PackingClient({ travelers }: PackingClientProps) {
         </div>
       ) : null}
 
-      {loading ? <p className="text-sm text-zinc-600">{t("packing.loading")}</p> : null}
+      {loading ? (
+        <p role="status" aria-live="polite" className="text-sm text-zinc-600">
+          {t("packing.loading")}
+        </p>
+      ) : null}
 
       {!loading && visibleItems.length === 0 ? (
         <p className="rounded-lg border border-zinc-200 bg-white px-4 py-8 text-sm text-zinc-600 shadow-soft">
@@ -583,12 +601,14 @@ function PackingItemCard({
 }
 
 function SelectField({
+  name,
   label,
   value,
   options,
   onChange,
   getOptionLabel
 }: {
+  name: string;
   label: string;
   value: string;
   options: readonly string[];
@@ -599,6 +619,7 @@ function SelectField({
     <label className="min-w-0 text-sm font-semibold text-ink">
       {label}
       <select
+        name={name}
         value={value}
         onChange={(event) => onChange(event.target.value)}
         className="mt-2 w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-700"
@@ -614,12 +635,14 @@ function SelectField({
 }
 
 function TextField({
+  name,
   label,
   value,
   onChange,
   placeholder,
   type = "text"
 }: {
+  name: string;
   label: string;
   value: string;
   onChange: (value: string) => void;
@@ -630,7 +653,10 @@ function TextField({
     <label className="min-w-0 text-sm font-semibold text-ink">
       {label}
       <input
+        name={name}
         type={type}
+        autoComplete="off"
+        inputMode={type === "number" ? "numeric" : undefined}
         value={value}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}

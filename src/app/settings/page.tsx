@@ -15,12 +15,12 @@ const copy = {
     eyebrow: "Trip setup",
     title: "Trip Settings",
     description: "Manage the active trip basics, travelers, route, and display defaults.",
-    loading: "Loading trip settings...",
+    loading: "Loading trip settings…",
     loadError: "Unable to load trip settings.",
     saveError: "Unable to save trip settings.",
     saved: "Trip settings saved.",
     save: "Save settings",
-    saving: "Saving...",
+    saving: "Saving…",
     noChanges: "No changes to save",
     basics: "Trip basics",
     currencies: "Defaults",
@@ -56,12 +56,12 @@ const copy = {
     eyebrow: "行程设置",
     title: "行程设置",
     description: "管理当前 active trip 的基础信息、成员、路线和默认显示。",
-    loading: "正在加载行程设置...",
+    loading: "正在加载行程设置…",
     loadError: "无法加载行程设置。",
     saveError: "无法保存行程设置。",
     saved: "行程设置已保存。",
     save: "保存设置",
-    saving: "保存中...",
+    saving: "保存中…",
     noChanges: "没有需要保存的修改",
     basics: "行程基础信息",
     currencies: "默认设置",
@@ -111,7 +111,12 @@ export default function SettingsPage() {
 
   useEffect(() => {
     const controller = new AbortController();
-    const timeoutId = window.setTimeout(() => controller.abort(), requestTimeoutMs);
+    let active = true;
+    let timedOut = false;
+    const timeoutId = window.setTimeout(() => {
+      timedOut = true;
+      controller.abort();
+    }, requestTimeoutMs);
 
     async function loadSettings() {
       setLoading(true);
@@ -129,19 +134,31 @@ export default function SettingsPage() {
         }
 
         const nextForm = responseToForm(data as TripSettingsResponse);
+        if (!active) {
+          return;
+        }
+
         setForm(nextForm);
         setSavedSnapshot(JSON.stringify(normalizeForSave(nextForm)));
+        setError(null);
       } catch (loadError) {
-        setError(loadError instanceof Error ? loadError.message : labels.loadError);
+        if (!active) {
+          return;
+        }
+
+        setError(timedOut ? labels.loadError : loadError instanceof Error ? loadError.message : labels.loadError);
       } finally {
         window.clearTimeout(timeoutId);
-        setLoading(false);
+        if (active) {
+          setLoading(false);
+        }
       }
     }
 
     void loadSettings();
 
     return () => {
+      active = false;
       window.clearTimeout(timeoutId);
       controller.abort();
     };
@@ -192,19 +209,35 @@ export default function SettingsPage() {
     <div className="w-full max-w-full min-w-0">
       <SectionHeader eyebrow={labels.eyebrow} title={labels.title} description={labels.description} />
 
-      {loading ? <p className="text-sm text-zinc-600">{labels.loading}</p> : null}
-      {error ? <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p> : null}
-      {notice ? <p className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">{notice}</p> : null}
+      {loading ? (
+        <p role="status" aria-live="polite" className="text-sm text-zinc-600">
+          {labels.loading}
+        </p>
+      ) : null}
+      {error ? (
+        <p role="alert" className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+          {error}
+        </p>
+      ) : null}
+      {notice ? (
+        <p
+          role="status"
+          aria-live="polite"
+          className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800"
+        >
+          {notice}
+        </p>
+      ) : null}
 
       {form ? (
-        <form onSubmit={submitSettings} className="mobile-safe-form space-y-4">
+        <form onSubmit={submitSettings} className="mobile-safe-form space-y-4 pb-20 md:pb-0">
           <section className="rounded-lg border border-zinc-200 bg-white p-4 shadow-soft">
             <h2 className="text-lg font-semibold text-ink">{labels.basics}</h2>
             <div className="mt-4 grid gap-3 md:grid-cols-2">
-              <TextField label={labels.name} value={form.trip.name} onChange={(value) => updateTrip(form, setForm, { name: value })} />
-              <TextField label={labels.destination} value={form.trip.destination} onChange={(value) => updateTrip(form, setForm, { destination: value })} />
-              <TextField label={labels.startDate} type="date" value={form.trip.startDate ?? ""} onChange={(value) => updateTrip(form, setForm, { startDate: value || null })} />
-              <TextField label={labels.endDate} type="date" value={form.trip.endDate ?? ""} onChange={(value) => updateTrip(form, setForm, { endDate: value || null })} />
+              <TextField name="trip-name" label={labels.name} value={form.trip.name} autoComplete="off" onChange={(value) => updateTrip(form, setForm, { name: value })} />
+              <TextField name="trip-destination" label={labels.destination} value={form.trip.destination} autoComplete="address-level1" onChange={(value) => updateTrip(form, setForm, { destination: value })} />
+              <TextField name="trip-start-date" label={labels.startDate} type="date" value={form.trip.startDate ?? ""} onChange={(value) => updateTrip(form, setForm, { startDate: value || null })} />
+              <TextField name="trip-end-date" label={labels.endDate} type="date" value={form.trip.endDate ?? ""} onChange={(value) => updateTrip(form, setForm, { endDate: value || null })} />
             </div>
           </section>
 
@@ -216,6 +249,7 @@ export default function SettingsPage() {
                 <label key={currency} className="flex items-center gap-2 rounded-md border border-zinc-200 px-3 py-2 text-sm font-semibold text-ink">
                   <input
                     type="checkbox"
+                    name="default-currencies"
                     checked={form.trip.defaultCurrencies.includes(currency)}
                     onChange={(event) => toggleCurrency(form, setForm, currency, event.target.checked)}
                     className="h-4 w-4 rounded border-zinc-300"
@@ -225,10 +259,12 @@ export default function SettingsPage() {
               ))}
             </fieldset>
             <div className="mt-4 grid gap-3 md:grid-cols-2">
-              <TextField label={labels.timezone} value={form.trip.timezone} onChange={(value) => updateTrip(form, setForm, { timezone: value })} />
+              <TextField name="trip-timezone" label={labels.timezone} value={form.trip.timezone} autoComplete="off" onChange={(value) => updateTrip(form, setForm, { timezone: value })} />
               <label className="block text-sm font-semibold text-ink">
                 {labels.notes}
                 <textarea
+                  name="trip-notes"
+                  autoComplete="off"
                   value={form.trip.notes ?? ""}
                   onChange={(event) => updateTrip(form, setForm, { notes: event.target.value || null })}
                   className="mt-2 block min-h-24 w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-base text-zinc-700 sm:text-sm"
@@ -252,14 +288,17 @@ export default function SettingsPage() {
               {form.travelers.map((traveler, index) => (
                 <div key={traveler.id ?? `new-${index}`} className="grid gap-2 rounded-md bg-zinc-50 p-3 md:grid-cols-[1fr_auto]">
                   <TextField
+                    name={`traveler-${index}-display-name`}
                     label={labels.displayName}
                     value={traveler.displayName}
+                    autoComplete="name"
                     onChange={(value) => updateTraveler(form, setForm, index, { displayName: value })}
                   />
                   <div className="flex flex-wrap items-end gap-2">
                     <label className="flex items-center gap-2 rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold text-ink">
                       <input
                         type="checkbox"
+                        name={`traveler-${index}-active`}
                         checked={traveler.isActive}
                         onChange={(event) => updateTraveler(form, setForm, index, { isActive: event.target.checked })}
                         className="h-4 w-4 rounded border-zinc-300"
@@ -294,26 +333,34 @@ export default function SettingsPage() {
               {form.routeStops.length === 0 ? <p className="text-sm text-zinc-600">{labels.routeEmpty}</p> : null}
               {form.routeStops.map((stop, index) => (
                 <div key={stop.id ?? `new-${index}`} className="grid gap-2 rounded-md bg-zinc-50 p-3 md:grid-cols-[1fr_1fr_auto]">
-                  <TextField label={labels.city} value={stop.city} onChange={(value) => updateRouteStop(form, setForm, index, { city: value })} />
-                  <TextField label={labels.country} value={stop.country ?? ""} onChange={(value) => updateRouteStop(form, setForm, index, { country: value || null })} />
+                  <TextField name={`route-stop-${index}-city`} label={labels.city} value={stop.city} autoComplete="address-level2" onChange={(value) => updateRouteStop(form, setForm, index, { city: value })} />
+                  <TextField name={`route-stop-${index}-country`} label={labels.country} value={stop.country ?? ""} autoComplete="country-name" onChange={(value) => updateRouteStop(form, setForm, index, { country: value || null })} />
                   <div className="flex flex-wrap items-end gap-2">
                     <OrderButtons index={index} length={form.routeStops.length} onMove={(direction) => moveRouteStop(form, setForm, index, direction)} labels={labels} />
                     <button type="button" onClick={() => removeRouteStop(form, setForm, index)} className="rounded-md border border-red-200 bg-white px-3 py-2 text-sm font-semibold text-red-700">
                       {labels.remove}
                     </button>
                   </div>
-                  <TextField label={labels.startDate} type="date" value={stop.startDate ?? ""} onChange={(value) => updateRouteStop(form, setForm, index, { startDate: value || null })} />
-                  <TextField label={labels.endDate} type="date" value={stop.endDate ?? ""} onChange={(value) => updateRouteStop(form, setForm, index, { endDate: value || null })} />
+                  <TextField name={`route-stop-${index}-start-date`} label={labels.startDate} type="date" value={stop.startDate ?? ""} onChange={(value) => updateRouteStop(form, setForm, index, { startDate: value || null })} />
+                  <TextField name={`route-stop-${index}-end-date`} label={labels.endDate} type="date" value={stop.endDate ?? ""} onChange={(value) => updateRouteStop(form, setForm, index, { endDate: value || null })} />
                 </div>
               ))}
             </div>
           </section>
 
-          <div className="sticky bottom-16 z-10 rounded-lg border border-zinc-200 bg-white/95 p-3 shadow-soft backdrop-blur md:bottom-4">
+          <div
+            className={`rounded-lg border border-zinc-200 bg-white/95 p-3 shadow-soft backdrop-blur ${
+              dirty || saving
+                ? "sticky bottom-[calc(5.5rem+env(safe-area-inset-bottom))] z-10 md:bottom-4"
+                : ""
+            }`}
+          >
             <button
               type="submit"
               disabled={saving || !dirty}
-              className="w-full rounded-md bg-moss px-3 py-2 text-base font-semibold text-white disabled:opacity-60 sm:w-auto sm:text-sm"
+              className={`w-full rounded-md px-3 py-2 text-base font-semibold sm:w-auto sm:text-sm ${
+                dirty ? "bg-moss text-white disabled:opacity-60" : "border border-zinc-200 bg-zinc-50 text-zinc-500"
+              }`}
             >
               {saving ? labels.saving : dirty ? labels.save : labels.noChanges}
             </button>
@@ -555,21 +602,27 @@ function OrderButtons({
 }
 
 function TextField({
+  name,
   label,
   value,
   onChange,
+  autoComplete,
   type = "text"
 }: {
+  name: string;
   label: string;
   value: string;
   onChange: (value: string) => void;
+  autoComplete?: string;
   type?: "date" | "text";
 }) {
   return (
     <label className="block min-w-0 text-sm font-semibold text-ink">
       {label}
       <input
+        name={name}
         type={type}
+        autoComplete={autoComplete}
         value={value}
         onChange={(event) => onChange(event.target.value)}
         className="mt-2 block w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-base text-zinc-700 sm:text-sm"

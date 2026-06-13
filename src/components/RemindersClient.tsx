@@ -275,12 +275,19 @@ export function RemindersClient({ participants }: RemindersClientProps) {
       ) : null}
 
       {error ? (
-        <p className="mt-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+        <p
+          role="alert"
+          className="mt-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
+        >
           {error}
         </p>
       ) : null}
 
-      {loading ? <p className="mt-4 text-sm text-zinc-600">{t("common.loading")}...</p> : null}
+      {loading ? (
+        <p role="status" aria-live="polite" className="mt-4 text-sm text-zinc-600">
+          {t("common.loading")}…
+        </p>
+      ) : null}
 
       {!loading && displayedReminders.length === 0 ? (
         <p className="mt-4 rounded-lg bg-zinc-50 px-3 py-4 text-sm text-zinc-600">

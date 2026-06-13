@@ -399,7 +399,7 @@ export function BookingsClient({ participants }: BookingsClientProps) {
 
   return (
     <div className="w-full max-w-full min-w-0 space-y-5">
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="compact-stats-strip grid grid-cols-3 gap-2 p-2">
         <SummaryPill label={t("bookings.summary.total")} value={String(bookings.length)} />
         <SummaryPill label={t("bookings.summary.needAction")} value={String(incompleteCount)} />
         <SummaryPill label={t("common.visible")} value={String(visibleBookings.length)} />
@@ -451,6 +451,7 @@ export function BookingsClient({ participants }: BookingsClientProps) {
 
           <div className="mt-4 grid min-w-0 grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
             <SelectField
+              name="booking-category"
               label={t("common.category")}
               value={form.category}
               options={bookingCategories}
@@ -458,30 +459,35 @@ export function BookingsClient({ participants }: BookingsClientProps) {
               onChange={(value) => setForm((current) => ({ ...current, category: value as BookingInput["category"] }))}
             />
             <TextField
+              name="booking-description"
               label={t("common.description")}
               value={form.description}
               onChange={(value) => setForm((current) => ({ ...current, description: value }))}
               placeholder={t("bookings.form.descriptionPlaceholder")}
             />
             <TextField
+              name="booking-date"
               label={t("common.date")}
               type="date"
               value={form.date}
               onChange={(value) => setForm((current) => ({ ...current, date: value }))}
             />
             <TextField
+              name="booking-location"
               label={t("common.location")}
               value={form.location ?? ""}
               onChange={(value) => setForm((current) => ({ ...current, location: value }))}
               placeholder="Rome"
             />
             <SelectField
+              name="booking-booked-by"
               label={t("bookings.form.bookedBy")}
               value={form.bookedBy}
               options={formParticipants}
               onChange={(value) => setForm((current) => ({ ...current, bookedBy: value }))}
             />
             <TextField
+              name="booking-amount"
               label={t("common.amount")}
               type="number"
               value={form.amount === null || form.amount === undefined ? "" : String(form.amount)}
@@ -491,12 +497,14 @@ export function BookingsClient({ participants }: BookingsClientProps) {
               placeholder="0"
             />
             <SelectField
+              name="booking-currency"
               label={t("common.currency")}
               value={form.currency ?? "EUR"}
               options={bookingCurrencies}
               onChange={(value) => setForm((current) => ({ ...current, currency: value as BookingInput["currency"] }))}
             />
             <SelectField
+              name="booking-status"
               label={t("common.status")}
               value={form.status}
               options={bookingStatuses}
@@ -508,6 +516,8 @@ export function BookingsClient({ participants }: BookingsClientProps) {
           <label className="mt-3 block w-full max-w-full min-w-0 text-sm font-semibold text-ink">
             {t("common.notes")}
             <textarea
+              name="booking-notes"
+              autoComplete="off"
               value={form.notes ?? ""}
               onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))}
               className="mt-2 block box-border min-h-24 w-full max-w-full min-w-0 rounded-md border border-zinc-200 bg-white px-3 py-2 text-base text-zinc-700 sm:text-sm"
@@ -527,6 +537,7 @@ export function BookingsClient({ participants }: BookingsClientProps) {
 
       <div className="grid gap-3 rounded-lg border border-zinc-200 bg-white p-3 sm:grid-cols-3">
         <SelectField
+          name="booking-filter-category"
           label={t("common.category")}
           value={categoryFilter}
           options={["All", ...bookingCategories]}
@@ -534,6 +545,7 @@ export function BookingsClient({ participants }: BookingsClientProps) {
           onChange={(value) => setCategoryFilter(value as typeof categoryFilter)}
         />
         <SelectField
+          name="booking-filter-status"
           label={t("common.status")}
           value={statusFilter}
           options={["All", ...bookingStatuses]}
@@ -541,6 +553,7 @@ export function BookingsClient({ participants }: BookingsClientProps) {
           onChange={(value) => setStatusFilter(value as typeof statusFilter)}
         />
         <SelectField
+          name="booking-filter-booked-by"
           label={t("bookings.form.bookedBy")}
           value={bookedByFilter}
           options={["All", ...bookingOwnerOptions]}
@@ -550,13 +563,20 @@ export function BookingsClient({ participants }: BookingsClientProps) {
       </div>
 
       {notice ? (
-        <p className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+        <p
+          role="status"
+          aria-live="polite"
+          className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800"
+        >
           {notice}
         </p>
       ) : null}
 
       {error ? (
-        <div className="flex flex-col gap-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 sm:flex-row sm:items-center sm:justify-between">
+        <div
+          role="alert"
+          className="flex flex-col gap-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 sm:flex-row sm:items-center sm:justify-between"
+        >
           <p>{error}</p>
           <button
             type="button"
@@ -569,7 +589,11 @@ export function BookingsClient({ participants }: BookingsClientProps) {
         </div>
       ) : null}
 
-      {loading ? <p className="text-sm text-zinc-600">{t("bookings.loading")}</p> : null}
+      {loading ? (
+        <p role="status" aria-live="polite" className="text-sm text-zinc-600">
+          {t("bookings.loading")}
+        </p>
+      ) : null}
 
       {!loading && visibleBookings.length === 0 ? (
         <p className="rounded-lg border border-zinc-200 bg-white px-4 py-8 text-sm text-zinc-600 shadow-soft">
@@ -951,12 +975,14 @@ function BookingExpenseForm({
 
       <div className="mt-3 grid min-w-0 grid-cols-1 gap-3 md:grid-cols-2">
         <TextField
+          name={`booking-${booking.id}-expense-title`}
           label={t("common.title")}
           value={form.title}
           onChange={(value) => onChange((current) => ({ ...current, title: value }))}
           placeholder={booking.description}
         />
         <TextField
+          name={`booking-${booking.id}-expense-amount`}
           label={t("common.amount")}
           type="number"
           value={form.amount}
@@ -964,12 +990,14 @@ function BookingExpenseForm({
           placeholder="0"
         />
         <SelectField
+          name={`booking-${booking.id}-expense-currency`}
           label={t("common.currency")}
           value={form.currency}
           options={bookingCurrencies}
           onChange={(value) => onChange((current) => ({ ...current, currency: value as SharedCurrency }))}
         />
         <SelectField
+          name={`booking-${booking.id}-expense-category`}
           label={t("common.category")}
           value={form.category}
           options={expenseCategories}
@@ -977,12 +1005,14 @@ function BookingExpenseForm({
           onChange={(value) => onChange((current) => ({ ...current, category: value as ExpenseCategory }))}
         />
         <TextField
+          name={`booking-${booking.id}-expense-date`}
           label={t("common.date")}
           type="date"
           value={form.expenseDate}
           onChange={(value) => onChange((current) => ({ ...current, expenseDate: value }))}
         />
         <SelectField
+          name={`booking-${booking.id}-expense-paid-by`}
           label={t("budget.form.paidBy")}
           value={form.paidByTravelerId}
           options={travelers.map((traveler) => traveler.id)}
@@ -998,6 +1028,7 @@ function BookingExpenseForm({
             <label key={traveler.id} className="flex min-w-0 items-center gap-2 text-sm text-zinc-700">
               <input
                 type="checkbox"
+                name={`booking-${booking.id}-expense-split-traveler`}
                 checked={form.splitTravelerIds.includes(traveler.id)}
                 onChange={(event) =>
                   onChange((current) => ({
@@ -1018,6 +1049,7 @@ function BookingExpenseForm({
       <label className="mt-3 flex min-w-0 items-center gap-2 text-sm font-semibold text-ink">
         <input
           type="checkbox"
+          name={`booking-${booking.id}-expense-settled`}
           checked={form.settled}
           onChange={(event) => onChange((current) => ({ ...current, settled: event.target.checked }))}
           className="h-4 w-4 shrink-0 rounded border-zinc-300"
@@ -1028,6 +1060,8 @@ function BookingExpenseForm({
       <label className="mt-3 block w-full max-w-full min-w-0 text-sm font-semibold text-ink">
         {t("common.notes")}
         <textarea
+          name={`booking-${booking.id}-expense-notes`}
+          autoComplete="off"
           value={form.notes}
           onChange={(event) => onChange((current) => ({ ...current, notes: event.target.value }))}
           className="mt-2 block box-border min-h-24 w-full max-w-full min-w-0 resize-y rounded-md border border-zinc-200 bg-white px-3 py-2 text-base text-zinc-700 sm:text-sm"
@@ -1123,14 +1157,15 @@ function BookingExpenseCard({
 
 function SummaryPill({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg border border-zinc-200 bg-white p-4 shadow-soft">
-      <p className="text-xs font-semibold uppercase tracking-[0.08em] text-zinc-500">{label}</p>
-      <p className="mt-1 text-2xl font-semibold text-ink">{value}</p>
+    <div className="compact-stat">
+      <p className="truncate text-xs font-semibold uppercase tracking-[0.08em] text-zinc-500">{label}</p>
+      <p className="mt-1 text-xl font-semibold text-ink sm:text-2xl">{value}</p>
     </div>
   );
 }
 
 function SelectField({
+  name,
   label,
   value,
   options,
@@ -1138,6 +1173,7 @@ function SelectField({
   formatOption,
   onChange
 }: {
+  name: string;
   label: string;
   value: string;
   options: readonly string[];
@@ -1145,12 +1181,11 @@ function SelectField({
   formatOption?: (option: string) => string;
   onChange: (value: string) => void;
 }) {
-  const { t } = useLanguage();
-
   return (
     <label className="block w-full max-w-full min-w-0 text-sm font-semibold text-ink">
       {label}
       <select
+        name={name}
         value={value}
         onChange={(event) => onChange(event.target.value)}
         className="mt-2 block box-border w-full max-w-full min-w-0 rounded-md border border-zinc-200 bg-white px-3 py-2 text-base text-zinc-700 sm:text-sm"
@@ -1166,25 +1201,28 @@ function SelectField({
 }
 
 function TextField({
+  name,
   label,
   value,
   onChange,
   placeholder,
   type = "text"
 }: {
+  name: string;
   label: string;
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
   type?: "date" | "number" | "text";
 }) {
-  const { t } = useLanguage();
-
   return (
     <label className="block w-full max-w-full min-w-0 text-sm font-semibold text-ink">
       {label}
       <input
+        name={name}
         type={type}
+        autoComplete="off"
+        inputMode={type === "number" ? "decimal" : undefined}
         value={value}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}

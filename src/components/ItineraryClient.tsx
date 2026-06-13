@@ -399,7 +399,7 @@ export function ItineraryClient() {
   return (
     <div className="w-full max-w-full min-w-0 space-y-5">
       <div className="flex w-full max-w-full min-w-0 flex-col gap-3 rounded-lg border border-zinc-200 bg-white p-3 shadow-soft md:flex-row md:items-center md:justify-between">
-        <div className="flex max-w-full min-w-0 gap-2 overflow-x-auto pb-1 md:pb-0">
+        <div className="scroll-fade-x -mx-1 flex max-w-full min-w-0 gap-2 overflow-x-auto px-1 pb-1 md:mx-0 md:pb-0">
           {cityFilters.map((city) => (
             <button
               key={city}
@@ -424,7 +424,7 @@ export function ItineraryClient() {
         </button>
       </div>
 
-      <div className="flex max-w-full min-w-0 gap-2 overflow-x-auto pb-1">
+      <div className="scroll-fade-x -mx-1 flex max-w-full min-w-0 gap-2 overflow-x-auto px-1 pb-1">
         <button
           type="button"
           onClick={() => setSelectedDate("All")}
@@ -479,42 +479,49 @@ export function ItineraryClient() {
 
           <div className="mt-4 grid min-w-0 grid-cols-1 gap-3 md:grid-cols-2">
             <TextField
+              name="itinerary-travel-date"
               label={t("common.date")}
               type="date"
               value={form.travelDate}
               onChange={(value) => setForm((current) => ({ ...current, travelDate: value }))}
             />
             <TextField
+              name="itinerary-city"
               label={t("itinerary.form.city")}
               value={form.city}
               onChange={(value) => setForm((current) => ({ ...current, city: value }))}
               placeholder="Rome"
             />
             <TextField
+              name="itinerary-start-time"
               label={t("itinerary.form.startTime")}
               type="time"
               value={form.startTime ?? ""}
               onChange={(value) => setForm((current) => ({ ...current, startTime: value }))}
             />
             <TextField
+              name="itinerary-end-time"
               label={t("itinerary.form.endTime")}
               type="time"
               value={form.endTime ?? ""}
               onChange={(value) => setForm((current) => ({ ...current, endTime: value }))}
             />
             <TextField
+              name="itinerary-title"
               label={t("common.title")}
               value={form.title}
               onChange={(value) => setForm((current) => ({ ...current, title: value }))}
               placeholder="Colosseum timed entry"
             />
             <TextField
+              name="itinerary-location"
               label={t("common.location")}
               value={form.location ?? ""}
               onChange={(value) => setForm((current) => ({ ...current, location: value }))}
               placeholder="Colosseum, Rome"
             />
             <TextField
+              name="itinerary-cost-amount"
               label={t("itinerary.form.costAmount")}
               type="number"
               value={form.costAmount === null || form.costAmount === undefined ? "" : String(form.costAmount)}
@@ -524,18 +531,21 @@ export function ItineraryClient() {
               placeholder="0"
             />
             <SelectField
+              name="itinerary-currency"
               label={t("common.currency")}
               value={form.currency ?? "EUR"}
               options={bookingCurrencies}
               onChange={(value) => setForm((current) => ({ ...current, currency: value as SharedCurrency }))}
             />
             <TextField
+              name="itinerary-map-query"
               label={t("itinerary.form.mapQuery")}
               value={form.mapQuery ?? ""}
               onChange={(value) => setForm((current) => ({ ...current, mapQuery: value }))}
               placeholder="Colosseum Rome"
             />
             <TextField
+              name="itinerary-sort-order"
               label={t("common.sortOrder")}
               type="number"
               value={String(form.sortOrder ?? 0)}
@@ -548,24 +558,28 @@ export function ItineraryClient() {
 
           <div className="mt-3 grid min-w-0 grid-cols-1 gap-3 md:grid-cols-2">
             <TextareaField
+              name="itinerary-details"
               label={t("itinerary.details")}
               value={form.details ?? ""}
               onChange={(value) => setForm((current) => ({ ...current, details: value }))}
               placeholder={t("itinerary.form.detailsPlaceholder")}
             />
             <TextareaField
+              name="itinerary-transport"
               label={t("itinerary.transport")}
               value={form.transport ?? ""}
               onChange={(value) => setForm((current) => ({ ...current, transport: value }))}
               placeholder={t("itinerary.form.transportPlaceholder")}
             />
             <TextareaField
+              name="itinerary-meal"
               label={t("itinerary.meal")}
               value={form.meal ?? ""}
               onChange={(value) => setForm((current) => ({ ...current, meal: value }))}
               placeholder={t("itinerary.form.mealPlaceholder")}
             />
             <TextareaField
+              name="itinerary-notes"
               label={t("common.notes")}
               value={form.notes ?? ""}
               onChange={(value) => setForm((current) => ({ ...current, notes: value }))}
@@ -584,13 +598,20 @@ export function ItineraryClient() {
       ) : null}
 
       {notice ? (
-        <p className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+        <p
+          role="status"
+          aria-live="polite"
+          className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800"
+        >
           {notice}
         </p>
       ) : null}
 
       {error ? (
-        <div className="flex flex-col gap-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 sm:flex-row sm:items-center sm:justify-between">
+        <div
+          role="alert"
+          className="flex flex-col gap-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 sm:flex-row sm:items-center sm:justify-between"
+        >
           <p>{error}</p>
           <button
             type="button"
@@ -603,7 +624,11 @@ export function ItineraryClient() {
         </div>
       ) : null}
 
-      {loading ? <p className="text-sm text-zinc-600">{t("itinerary.loading")}</p> : null}
+      {loading ? (
+        <p role="status" aria-live="polite" className="text-sm text-zinc-600">
+          {t("itinerary.loading")}
+        </p>
+      ) : null}
 
       {!loading && visibleItems.length === 0 ? (
         <p className="rounded-lg border border-zinc-200 bg-white px-4 py-8 text-sm text-zinc-600 shadow-soft">
@@ -1019,12 +1044,14 @@ function ItineraryExpenseForm({
 
       <div className="mt-3 grid min-w-0 grid-cols-1 gap-3 md:grid-cols-2">
         <TextField
+          name={`itinerary-${item.id}-expense-title`}
           label={t("common.title")}
           value={form.title}
           onChange={(value) => onChange((current) => ({ ...current, title: value }))}
           placeholder={item.title}
         />
         <TextField
+          name={`itinerary-${item.id}-expense-amount`}
           label={t("common.amount")}
           type="number"
           value={form.amount}
@@ -1032,12 +1059,14 @@ function ItineraryExpenseForm({
           placeholder="0"
         />
         <SelectField
+          name={`itinerary-${item.id}-expense-currency`}
           label={t("common.currency")}
           value={form.currency}
           options={bookingCurrencies}
           onChange={(value) => onChange((current) => ({ ...current, currency: value as SharedCurrency }))}
         />
         <SelectField
+          name={`itinerary-${item.id}-expense-category`}
           label={t("common.category")}
           value={form.category}
           options={expenseCategories}
@@ -1045,12 +1074,14 @@ function ItineraryExpenseForm({
           onChange={(value) => onChange((current) => ({ ...current, category: value as ExpenseCategory }))}
         />
         <TextField
+          name={`itinerary-${item.id}-expense-date`}
           label={t("common.date")}
           type="date"
           value={form.expenseDate}
           onChange={(value) => onChange((current) => ({ ...current, expenseDate: value }))}
         />
         <SelectField
+          name={`itinerary-${item.id}-expense-paid-by`}
           label={t("budget.form.paidBy")}
           value={form.paidByTravelerId}
           options={travelers.map((traveler) => traveler.id)}
@@ -1066,6 +1097,7 @@ function ItineraryExpenseForm({
             <label key={traveler.id} className="flex min-w-0 items-center gap-2 text-sm text-zinc-700">
               <input
                 type="checkbox"
+                name={`itinerary-${item.id}-expense-split-traveler`}
                 checked={form.splitTravelerIds.includes(traveler.id)}
                 onChange={(event) =>
                   onChange((current) => ({
@@ -1086,6 +1118,7 @@ function ItineraryExpenseForm({
       <label className="mt-3 flex min-w-0 items-center gap-2 text-sm font-semibold text-ink">
         <input
           type="checkbox"
+          name={`itinerary-${item.id}-expense-settled`}
           checked={form.settled}
           onChange={(event) => onChange((current) => ({ ...current, settled: event.target.checked }))}
           className="h-4 w-4 shrink-0 rounded border-zinc-300"
@@ -1096,6 +1129,8 @@ function ItineraryExpenseForm({
       <label className="mt-3 block w-full max-w-full min-w-0 text-sm font-semibold text-ink">
         {t("common.notes")}
         <textarea
+          name={`itinerary-${item.id}-expense-notes`}
+          autoComplete="off"
           value={form.notes}
           onChange={(event) => onChange((current) => ({ ...current, notes: event.target.value }))}
           className="mt-2 block box-border min-h-24 w-full max-w-full min-w-0 resize-y rounded-md border border-zinc-200 bg-white px-3 py-2 text-base text-zinc-700 sm:text-sm"
@@ -1347,12 +1382,14 @@ function mergeExpenseFormTravelers(
 }
 
 function TextField({
+  name,
   label,
   value,
   onChange,
   placeholder,
   type = "text"
 }: {
+  name: string;
   label: string;
   value: string;
   onChange: (value: string) => void;
@@ -1363,7 +1400,10 @@ function TextField({
     <label className="block w-full max-w-full min-w-0 text-sm font-semibold text-ink">
       {label}
       <input
+        name={name}
         type={type}
+        autoComplete="off"
+        inputMode={type === "number" ? "decimal" : undefined}
         value={value}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
@@ -1376,11 +1416,13 @@ function TextField({
 }
 
 function TextareaField({
+  name,
   label,
   value,
   onChange,
   placeholder
 }: {
+  name: string;
   label: string;
   value: string;
   onChange: (value: string) => void;
@@ -1390,6 +1432,8 @@ function TextareaField({
     <label className="block w-full max-w-full min-w-0 text-sm font-semibold text-ink">
       {label}
       <textarea
+        name={name}
+        autoComplete="off"
         value={value}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
@@ -1400,6 +1444,7 @@ function TextareaField({
 }
 
 function SelectField({
+  name,
   label,
   value,
   options,
@@ -1407,6 +1452,7 @@ function SelectField({
   formatOption,
   onChange
 }: {
+  name: string;
   label: string;
   value: string;
   options: readonly string[];
@@ -1418,6 +1464,7 @@ function SelectField({
     <label className="block w-full max-w-full min-w-0 text-sm font-semibold text-ink">
       {label}
       <select
+        name={name}
         value={value}
         onChange={(event) => onChange(event.target.value)}
         className="mt-2 block box-border w-full max-w-full min-w-0 rounded-md border border-zinc-200 bg-white px-3 py-2 text-base text-zinc-700 sm:text-sm"
