@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { formatMoney, summarizeExpenseLedger } from "@/lib/budget";
 import type { SharedExpense } from "@/lib/sharedDataTypes";
 import type { Traveler } from "@/data/tripData";
@@ -32,7 +32,7 @@ export function DashboardBudgetWidget() {
       summaries
         .flatMap((summary) => summary.settlements)
         .sort((a, b) => b.amount - a.amount)
-        .slice(0, 3),
+        .slice(0, 2),
     [summaries]
   );
   const recentExpenses = useMemo(
@@ -47,7 +47,7 @@ export function DashboardBudgetWidget() {
 
           return b.createdAt.localeCompare(a.createdAt);
         })
-        .slice(0, 3),
+        .slice(0, 2),
     [expenses]
   );
 
@@ -75,11 +75,11 @@ export function DashboardBudgetWidget() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
           <p className="text-xs font-semibold uppercase tracking-[0.08em] text-terracotta">
-            Budget overview
+            Money snapshot
           </p>
-          <h2 className="mt-1 text-lg font-semibold text-ink">Shared expense ledger</h2>
+          <h2 className="mt-1 text-lg font-semibold text-ink">Outstanding by currency</h2>
           <p className="mt-1 text-sm leading-6 text-zinc-600">
-            Totals come from miscellaneous, itinerary, and booking expenses.
+            Full expense details stay in Budget.
           </p>
         </div>
         <Link
@@ -110,115 +110,78 @@ export function DashboardBudgetWidget() {
         <div className="mt-4 rounded-lg bg-zinc-50 p-4">
           <p className="text-sm font-semibold text-ink">No shared expenses yet.</p>
           <p className="mt-1 text-sm leading-6 text-zinc-600">
-            Add a miscellaneous expense or link costs from Itinerary and Bookings when ready.
+            Add expenses from Budget, Itinerary, or Bookings when ready.
           </p>
         </div>
       ) : null}
 
       {!loading && !error && expenses.length > 0 ? (
         <div className="mt-4 space-y-4">
-          <div className="grid gap-3">
+          <div className="grid gap-2 sm:grid-cols-2">
             {summaries.map((summary) => (
               <article key={summary.currency} className="rounded-lg bg-zinc-50 p-3">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                  <div>
-                    <p className="text-sm font-semibold text-ink">{summary.currency}</p>
-                    <p className="mt-1 text-xl font-semibold text-ink">
-                      {formatMoney(summary.totalSpent, summary.currency)}
-                    </p>
-                    <p className="mt-1 text-xs uppercase tracking-[0.08em] text-zinc-500">
-                      Total spent
-                    </p>
-                  </div>
-                  <div className="grid gap-2 text-sm text-zinc-700 sm:min-w-48">
-                    <DashboardMetric
-                      label="Outstanding"
-                      value={formatMoney(summary.outstandingTotal, summary.currency)}
-                    />
-                    <DashboardMetric
-                      label="Settled"
-                      value={formatMoney(summary.settledTotal, summary.currency)}
-                    />
-                    <DashboardMetric
-                      label="Avg/person"
-                      value={formatMoney(
-                        summary.outstandingTotal / Math.max(orderedTravelers.length, 1),
-                        summary.currency
-                      )}
-                    />
-                  </div>
-                </div>
+                <p className="text-xs font-semibold uppercase tracking-[0.08em] text-zinc-500">
+                  {summary.currency}
+                </p>
+                <p className="mt-1 text-xl font-semibold text-ink">
+                  {formatMoney(summary.outstandingTotal, summary.currency)}
+                </p>
+                <p className="mt-1 text-xs text-zinc-500">
+                  Total spent {formatMoney(summary.totalSpent, summary.currency)}
+                </p>
               </article>
             ))}
           </div>
 
-          <div className="grid gap-3 xl:grid-cols-2">
-            <DashboardPanel title="Top settlements">
-              {settlementSuggestions.length > 0 ? (
-                <ul className="space-y-2">
-                  {settlementSuggestions.map((settlement) => (
-                    <li
-                      key={`${settlement.currency}-${settlement.fromTravelerId}-${settlement.toTravelerId}-${settlement.amount}`}
-                      className="break-words text-sm leading-6 text-zinc-700"
-                    >
-                      <span className="font-semibold text-ink">
-                        {travelerNameById.get(settlement.fromTravelerId) ?? settlement.fromTravelerId}
-                      </span>{" "}
-                      pays{" "}
-                      <span className="font-semibold text-ink">
-                        {travelerNameById.get(settlement.toTravelerId) ?? settlement.toTravelerId}
-                      </span>{" "}
-                      {formatMoney(settlement.amount, settlement.currency)}
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="text-sm leading-6 text-zinc-600">All outstanding expenses are balanced.</p>
-              )}
-            </DashboardPanel>
+          <section className="rounded-lg bg-zinc-50 p-3">
+            <h3 className="text-sm font-semibold text-ink">Top settlements</h3>
+            {settlementSuggestions.length > 0 ? (
+              <ul className="mt-2 space-y-1.5">
+                {settlementSuggestions.map((settlement) => (
+                  <li
+                    key={`${settlement.currency}-${settlement.fromTravelerId}-${settlement.toTravelerId}-${settlement.amount}`}
+                    className="break-words text-sm leading-6 text-zinc-700"
+                  >
+                    <span className="font-semibold text-ink">
+                      {travelerNameById.get(settlement.fromTravelerId) ?? settlement.fromTravelerId}
+                    </span>{" "}
+                    pays{" "}
+                    <span className="font-semibold text-ink">
+                      {travelerNameById.get(settlement.toTravelerId) ?? settlement.toTravelerId}
+                    </span>{" "}
+                    {formatMoney(settlement.amount, settlement.currency)}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="mt-2 text-sm leading-6 text-zinc-600">
+                All outstanding expenses are balanced.
+              </p>
+            )}
+          </section>
 
-            <DashboardPanel title="Recent expenses">
-              {recentExpenses.length > 0 ? (
-                <ul className="space-y-2">
-                  {recentExpenses.map((expense) => (
-                    <li key={expense.id} className="min-w-0 text-sm leading-6 text-zinc-700">
-                      <div className="flex min-w-0 items-start justify-between gap-3">
-                        <span className="min-w-0 break-words font-medium text-ink">{expense.title}</span>
-                        <span className="shrink-0 font-semibold text-ink">
-                          {formatMoney(expense.amount, expense.currency)}
-                        </span>
-                      </div>
-                      <p className="text-xs uppercase tracking-[0.08em] text-zinc-500">
-                        {sourceTypeLabel(expense.sourceType)} - {expense.expenseDate}
-                      </p>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="text-sm leading-6 text-zinc-600">No recent expenses yet.</p>
-              )}
-            </DashboardPanel>
-          </div>
+          {recentExpenses.length > 0 ? (
+            <section className="rounded-lg bg-zinc-50 p-3">
+              <h3 className="text-sm font-semibold text-ink">Recent expenses</h3>
+              <ul className="mt-2 space-y-1.5">
+                {recentExpenses.map((expense) => (
+                  <li key={expense.id} className="min-w-0 text-sm leading-6 text-zinc-700">
+                    <div className="flex min-w-0 items-start justify-between gap-3">
+                      <span className="min-w-0 break-words font-medium text-ink">{expense.title}</span>
+                      <span className="shrink-0 font-semibold text-ink">
+                        {formatMoney(expense.amount, expense.currency)}
+                      </span>
+                    </div>
+                    <p className="text-xs uppercase tracking-[0.08em] text-zinc-500">
+                      {sourceTypeLabel(expense.sourceType)} - {expense.expenseDate}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ) : null}
         </div>
       ) : null}
-    </section>
-  );
-}
-
-function DashboardMetric({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex min-w-0 justify-between gap-3">
-      <span className="min-w-0 truncate text-zinc-600">{label}</span>
-      <span className="shrink-0 font-semibold text-ink">{value}</span>
-    </div>
-  );
-}
-
-function DashboardPanel({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <section className="rounded-lg bg-zinc-50 p-3">
-      <h3 className="text-sm font-semibold text-ink">{title}</h3>
-      <div className="mt-2">{children}</div>
     </section>
   );
 }

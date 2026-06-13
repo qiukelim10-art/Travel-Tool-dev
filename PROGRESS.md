@@ -2,6 +2,10 @@
 
 ## 2026-06-13
 
+- Completed Phase 1 Dashboard information architecture simplification: the homepage now uses a compact trip header, lighter Next up itinerary summary, compressed booking attention summary, compact budget snapshot, folded reminders management, and smaller Quick actions.
+- Kept reminders CRUD on the Dashboard, but the add/edit form and full list controls are no longer expanded by default.
+- Kept Budget full ledger details on `/budget`; the Dashboard now shows only outstanding by currency, small total-spent context, top settlement suggestions, and at most two recent expenses.
+- Verified `npm.cmd run build`, `npm.cmd run lint`, desktop/LAN homepage smoke checks, requested page/API HTTP 200 checks, mobile-width no-horizontal-scroll check, SOS interaction, and reminder form expansion.
 - Fixed the mobile LAN dev loading/hydration issue for shared widgets by adding the current Wi-Fi LAN IP `192.168.0.9` to `next.config.mjs` `allowedDevOrigins`, while preserving the older hotspot IP `172.20.10.4`.
 - Confirmed the issue was not API/DB: desktop and LAN `/api/itinerary`, `/api/expenses`, `/api/reminders`, `/api/bookings`, `/api/documents`, and `/api/packing` all returned 200 JSON; the failing probe was the LAN dev resource origin check returning 403 before the config update.
 - Removed standalone Map, Food, and Attractions page entries; `/map`, `/food`, and `/attractions` now redirect to `/more`.
