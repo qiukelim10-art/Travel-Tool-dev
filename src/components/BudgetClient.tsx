@@ -149,7 +149,7 @@ export function BudgetClient() {
 
   function startEditing(expense: SharedExpense) {
     if (expense.sourceType !== "misc") {
-      setNotice("Linked expenses will be editable from their source page later.");
+      setNotice("Linked expenses are edited from the Itinerary or Bookings page.");
       return;
     }
 
@@ -226,7 +226,7 @@ export function BudgetClient() {
 
   async function removeExpense(expense: SharedExpense) {
     if (expense.sourceType !== "misc") {
-      setNotice("Linked expenses will be deleted from their source page later.");
+      setNotice("Linked expenses are deleted from the Itinerary or Bookings page.");
       return;
     }
 
@@ -370,7 +370,7 @@ function SummarySection({
             <Metric label="Outstanding" value={formatMoney(summary.outstandingTotal, summary.currency)} />
             <Metric label="Settled" value={formatMoney(summary.settledTotal, summary.currency)} />
             <Metric
-              label="Per person outstanding"
+              label="Average outstanding/person"
               value={formatMoney(summary.outstandingTotal / Math.max(travelers.length, 1), summary.currency)}
             />
           </div>
@@ -613,6 +613,9 @@ function FilterSection({
   return (
     <section className="rounded-lg border border-zinc-200 bg-white p-3 shadow-soft">
       <p className="text-xs font-semibold uppercase tracking-[0.08em] text-terracotta">Filters</p>
+      <p className="mt-1 text-sm text-zinc-600">
+        Filters only change the expense list below. Summary and settlements stay based on the full ledger.
+      </p>
       <div className="mt-3 flex max-w-full gap-2 overflow-x-auto pb-1">
         <CompactSelect
           label="Currency"
@@ -677,7 +680,7 @@ function ExpenseList({
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
                     <p className="text-xs font-semibold uppercase tracking-[0.08em] text-terracotta">
-                      {expense.sourceType}
+                      {sourceTypeLabel(expense.sourceType)}
                     </p>
                     <StatusPill settled={expense.settled} />
                   </div>
@@ -725,7 +728,7 @@ function ExpenseList({
                   </>
                 ) : (
                   <p className="rounded-md bg-zinc-100 px-3 py-2 text-sm font-medium text-zinc-600">
-                    Linked expense. Edit from source page later.
+                    Linked expense. Edit from the {sourceEditPageLabel(expense.sourceType)} page.
                   </p>
                 )}
               </div>
@@ -767,6 +770,22 @@ function StatusPill({ settled }: { settled: boolean }) {
       {settled ? "Settled" : "Outstanding"}
     </span>
   );
+}
+
+function sourceTypeLabel(sourceType: ExpenseSourceType) {
+  if (sourceType === "misc") {
+    return "Misc";
+  }
+
+  if (sourceType === "itinerary") {
+    return "Itinerary";
+  }
+
+  return "Booking";
+}
+
+function sourceEditPageLabel(sourceType: ExpenseSourceType) {
+  return sourceType === "itinerary" ? "Itinerary" : "Bookings";
 }
 
 function TextField({

@@ -2,11 +2,10 @@
 
 ## Current Priority
 
-- Review booking linked expense add/edit/delete on computer and phone.
-- Review that booking linked expenses appear in Budget summary and expense list on computer and phone.
+- Review the Budget unified expense closeout polish on computer and phone.
 - Review itinerary linked expense add/edit/delete on computer and phone, including the new mobile Budget navigation path.
 - Review the Budget shared ledger UI and miscellaneous expense CRUD on computer and phone.
-- Next likely Budget step: final review and commit Booking linked expenses after user validation.
+- Next likely Budget step: Dashboard budget widgets, if the user wants homepage budget insight.
 - Review the shared reminders and bookings CRUD/filter UI on computer and phone when the user is ready.
 - Review the shared itinerary CRUD UI on computer and phone, especially long notes and card readability.
 - Review the shared packing CRUD UI on computer and phone using the active worktree configuration.

@@ -2,6 +2,8 @@
 
 ## 2026-06-13
 
+- Completed a Budget unified expense closeout review and made small clarity fixes: Budget source labels are now display-friendly, filters explicitly apply only to the expense list, and linked expense edit/delete guidance points to Itinerary or Bookings.
+- Verified `npm.cmd run build`, `npm.cmd run lint`, desktop/LAN `/budget`, `/itinerary`, `/bookings`, `/api/expenses`, and full temporary misc/itinerary/booking expense create/edit/delete cleanup with Budget summary restore.
 - Added booking linked expenses using the shared expense ledger without changing the expense API schema or adding tables.
 - Booking rows/cards now load and display ledger expenses where `sourceType = booking` and `sourceId` matches the booking item id, with inline add/edit/delete for those linked expenses.
 - Confirmed booking `amount` remains only an estimated/reference field; it can prefill the linked expense form but is not automatically counted in Budget.
