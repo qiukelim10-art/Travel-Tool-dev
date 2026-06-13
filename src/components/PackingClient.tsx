@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { DashboardCard } from "@/components/DashboardCard";
 import type { Traveler } from "@/data/tripData";
+import { useLanguage } from "@/lib/i18n";
+import { translateOption } from "@/lib/localize";
 import {
   buildDefaultPackingStatuses,
   packingCategories,
@@ -24,18 +26,6 @@ type StatusFilter = "All" | "Incomplete only" | "Completed only" | "Unassigned o
 type OverallStatus = "Pending" | "Completed" | "Not assigned";
 
 const PACKING_FETCH_TIMEOUT_MS = 10000;
-
-const statusLabel: Record<PackingTravelerStatus, string> = {
-  required: "Required",
-  packed: "Packed",
-  not_needed: "Not needed"
-};
-
-const statusDetail: Record<PackingTravelerStatus, string> = {
-  required: "Not packed yet",
-  packed: "Packed",
-  not_needed: "Not needed"
-};
 
 const statusClass: Record<PackingTravelerStatus, string> = {
   required: "bg-amber-100 text-amber-800 ring-amber-200",
@@ -86,6 +76,7 @@ function isPackingResponse(data: unknown): data is { items: SharedPackingItem[] 
 }
 
 export function PackingClient({ travelers }: PackingClientProps) {
+  const { language, t } = useLanguage();
   const sortedTravelers = useMemo(
     () => travelers.slice().sort((a, b) => a.displayOrder - b.displayOrder),
     [travelers]
@@ -156,21 +147,21 @@ export function PackingClient({ travelers }: PackingClientProps) {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error ?? "Unable to load packing items.");
+        throw new Error(data.error ?? t("packing.errorLoad"));
       }
 
       if (!isPackingResponse(data)) {
-        throw new Error("Packing API returned an unexpected response.");
+        throw new Error(t("packing.errorUnexpected"));
       }
 
       setItems(data.items);
     } catch (loadError) {
       setError(
         loadError instanceof Error && loadError.name === "AbortError"
-          ? "Packing list request timed out. Please try again."
+          ? t("packing.errorTimeout")
           : loadError instanceof Error
             ? loadError.message
-            : "Unable to load packing items."
+            : t("packing.errorLoad")
       );
     } finally {
       window.clearTimeout(timeoutId);
@@ -248,7 +239,7 @@ export function PackingClient({ travelers }: PackingClientProps) {
     event.preventDefault();
 
     if (!form.name.trim()) {
-      setError("Item name is required.");
+      setError(t("packing.validationName"));
       return;
     }
 
@@ -264,20 +255,20 @@ export function PackingClient({ travelers }: PackingClientProps) {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error ?? "Unable to save packing item.");
+        throw new Error(data.error ?? t("packing.errorSave"));
       }
 
       setItems(data.items ?? []);
       resetForm();
     } catch (submitError) {
-      setError(submitError instanceof Error ? submitError.message : "Unable to save packing item.");
+      setError(submitError instanceof Error ? submitError.message : t("packing.errorSave"));
     } finally {
       setSubmitting(false);
     }
   }
 
   async function removeItem(item: SharedPackingItem) {
-    if (!window.confirm(`Delete "${item.name}" from the packing list?`)) {
+    if (!window.confirm(t("packing.confirmDelete"))) {
       return;
     }
 
@@ -289,7 +280,7 @@ export function PackingClient({ travelers }: PackingClientProps) {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error ?? "Unable to delete packing item.");
+        throw new Error(data.error ?? t("packing.errorDelete"));
       }
 
       setItems(data.items ?? []);
@@ -297,7 +288,7 @@ export function PackingClient({ travelers }: PackingClientProps) {
         resetForm();
       }
     } catch (deleteError) {
-      setError(deleteError instanceof Error ? deleteError.message : "Unable to delete packing item.");
+      setError(deleteError instanceof Error ? deleteError.message : t("packing.errorDelete"));
     } finally {
       setDeletingId(null);
     }
@@ -306,30 +297,33 @@ export function PackingClient({ travelers }: PackingClientProps) {
   return (
     <div className="space-y-5">
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <DashboardCard label="Total items" value={String(items.length)} />
-        <DashboardCard label="High priority items" value={String(highPriorityCount)} />
-        <DashboardCard label="Required people-items" value={String(requiredPeopleItems)} />
-        <DashboardCard label="Packed progress" value={`${packedPeopleItems} / ${requiredPeopleItems}`} />
+        <DashboardCard label={t("packing.summary.total")} value={String(items.length)} />
+        <DashboardCard label={t("packing.summary.highPriority")} value={String(highPriorityCount)} />
+        <DashboardCard label={t("packing.summary.requiredPeopleItems")} value={String(requiredPeopleItems)} />
+        <DashboardCard label={t("packing.summary.packedProgress")} value={`${packedPeopleItems} / ${requiredPeopleItems}`} />
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="grid flex-1 gap-3 rounded-lg border border-zinc-200 bg-white p-3 sm:grid-cols-3">
           <SelectField
-            label="Category"
+            label={t("common.category")}
             value={categoryFilter}
             options={["All", ...packingCategories]}
+            getOptionLabel={(value) => translateOption(language, value)}
             onChange={(value) => setCategoryFilter(value as typeof categoryFilter)}
           />
           <SelectField
-            label="Priority"
+            label={t("common.priority")}
             value={priorityFilter}
             options={["All", ...packingPriorities]}
+            getOptionLabel={(value) => translateOption(language, value)}
             onChange={(value) => setPriorityFilter(value as typeof priorityFilter)}
           />
           <SelectField
-            label="Status"
+            label={t("common.status")}
             value={statusFilter}
             options={["All", "Incomplete only", "Completed only", "Unassigned only"]}
+            getOptionLabel={(value) => translateOption(language, value)}
             onChange={(value) => setStatusFilter(value as StatusFilter)}
           />
         </div>
@@ -338,7 +332,7 @@ export function PackingClient({ travelers }: PackingClientProps) {
           onClick={openNewForm}
           className="rounded-md bg-moss px-4 py-2 text-sm font-semibold text-white"
         >
-          Add packing item
+          {t("packing.addItem")}
         </button>
       </div>
 
@@ -347,10 +341,10 @@ export function PackingClient({ travelers }: PackingClientProps) {
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.08em] text-terracotta">
-                {editingId ? "Edit packing item" : "Add packing item"}
+                {editingId ? t("packing.editItem") : t("packing.addItemEyebrow")}
               </p>
               <h2 className="mt-1 text-xl font-semibold text-ink">
-                {editingId ? "Update traveler packing statuses" : "Create a shared packing item"}
+                {editingId ? t("packing.editTitle") : t("packing.addTitle")}
               </h2>
             </div>
             <button
@@ -358,31 +352,33 @@ export function PackingClient({ travelers }: PackingClientProps) {
               onClick={resetForm}
               className="rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold text-ink"
             >
-              Cancel
+              {t("common.cancel")}
             </button>
           </div>
 
           <div className="mt-4 grid min-w-0 gap-3 md:grid-cols-2">
             <TextField
-              label="Item name"
+              label={t("packing.form.itemName")}
               value={form.name}
               onChange={(value) => setForm((current) => ({ ...current, name: value }))}
-              placeholder="Eye mask"
+              placeholder={t("packing.form.itemPlaceholder")}
             />
             <SelectField
-              label="Category"
+              label={t("common.category")}
               value={form.category}
               options={packingCategories}
+              getOptionLabel={(value) => translateOption(language, value)}
               onChange={(value) => changeCategory(value as PackingCategory)}
             />
             <SelectField
-              label="Priority"
+              label={t("common.priority")}
               value={form.priority}
               options={packingPriorities}
+              getOptionLabel={(value) => translateOption(language, value)}
               onChange={(value) => setForm((current) => ({ ...current, priority: value as PackingPriority }))}
             />
             <TextField
-              label="Quantity"
+              label={t("common.quantity")}
               type="number"
               value={form.quantity === null || form.quantity === undefined ? "" : String(form.quantity)}
               onChange={(value) =>
@@ -391,7 +387,7 @@ export function PackingClient({ travelers }: PackingClientProps) {
               placeholder="1"
             />
             <TextField
-              label="Sort order"
+              label={t("common.sortOrder")}
               type="number"
               value={String(form.sortOrder ?? 0)}
               onChange={(value) => setForm((current) => ({ ...current, sortOrder: value ? Number(value) : 0 }))}
@@ -400,21 +396,21 @@ export function PackingClient({ travelers }: PackingClientProps) {
           </div>
 
           <label className="mt-3 block text-sm font-semibold text-ink">
-            Notes
+            {t("common.notes")}
             <textarea
               value={form.notes ?? ""}
               onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))}
               className="mt-2 min-h-24 w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-700"
-              placeholder="Safe notes only. Do not paste private document details."
+              placeholder={t("packing.form.notesPlaceholder")}
             />
           </label>
 
           <div className="mt-4 rounded-lg bg-zinc-50 p-3">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <p className="text-sm font-semibold text-ink">Traveler statuses</p>
+                <p className="text-sm font-semibold text-ink">{t("packing.form.travelerStatuses")}</p>
                 <p className="mt-1 text-xs text-zinc-500">
-                  Required means not packed yet. Packed means done. Not needed excludes that traveler.
+                  {t("packing.form.travelerStatusHint")}
                 </p>
               </div>
               <button
@@ -422,7 +418,7 @@ export function PackingClient({ travelers }: PackingClientProps) {
                 onClick={applyCategoryDefault}
                 className="rounded-md border border-zinc-200 bg-white px-3 py-2 text-xs font-semibold text-ink"
               >
-                Apply category default
+                {t("packing.form.applyDefault")}
               </button>
             </div>
             <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -436,7 +432,7 @@ export function PackingClient({ travelers }: PackingClientProps) {
                   }
                   options={packingTravelerStatuses}
                   onChange={(value) => changeTravelerStatus(traveler.id, value as PackingTravelerStatus)}
-                  getOptionLabel={(value) => statusLabel[value as PackingTravelerStatus]}
+                  getOptionLabel={(value) => translateOption(language, value)}
                 />
               ))}
             </div>
@@ -447,7 +443,7 @@ export function PackingClient({ travelers }: PackingClientProps) {
             disabled={submitting}
             className="mt-4 rounded-md bg-moss px-3 py-2 text-sm font-semibold text-white disabled:opacity-60"
           >
-            {submitting ? "Saving..." : editingId ? "Save changes" : "Add item"}
+            {submitting ? t("common.saving") : editingId ? t("bookings.saveChanges") : t("packing.addButton")}
           </button>
         </form>
       ) : null}
@@ -460,23 +456,23 @@ export function PackingClient({ travelers }: PackingClientProps) {
             onClick={() => void loadItems()}
             className="rounded-md border border-red-200 bg-white px-3 py-1.5 text-xs font-semibold text-red-700"
           >
-            Retry
+            {t("common.retry")}
           </button>
         </div>
       ) : null}
 
-      {loading ? <p className="text-sm text-zinc-600">Loading packing list...</p> : null}
+      {loading ? <p className="text-sm text-zinc-600">{t("packing.loading")}</p> : null}
 
       {!loading && visibleItems.length === 0 ? (
         <p className="rounded-lg border border-zinc-200 bg-white px-4 py-8 text-sm text-zinc-600 shadow-soft">
-          No packing items match this filter yet.
+          {t("packing.empty")}
         </p>
       ) : null}
 
       <div className="space-y-5">
         {groupedItems.map((group) => (
           <section key={group.category}>
-            <h2 className="mb-3 text-lg font-semibold text-ink">{group.category}</h2>
+            <h2 className="mb-3 text-lg font-semibold text-ink">{translateOption(language, group.category)}</h2>
             <div className="grid gap-3 lg:grid-cols-2">
               {group.items.map((item) => (
                 <PackingItemCard
@@ -509,6 +505,7 @@ function PackingItemCard({
   onEdit: (item: SharedPackingItem) => void;
   onDelete: (item: SharedPackingItem) => Promise<void>;
 }) {
+  const { language, t } = useLanguage();
   const overallStatus = getOverallStatus(item);
 
   return (
@@ -517,14 +514,14 @@ function PackingItemCard({
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <span className={`rounded-full px-2 py-1 text-xs font-semibold ring-1 ${priorityClass[item.priority]}`}>
-              {item.priority}
+              {translateOption(language, item.priority)}
             </span>
             <span className={`rounded-full px-2 py-1 text-xs font-semibold ring-1 ${overallClass[overallStatus]}`}>
-              {overallStatus}
+              {translateOption(language, overallStatus)}
             </span>
           </div>
           <h3 className="mt-2 text-lg font-semibold text-ink">{item.name}</h3>
-          <p className="mt-1 text-sm text-zinc-500">{item.category}</p>
+          <p className="mt-1 text-sm text-zinc-500">{translateOption(language, item.category)}</p>
         </div>
         <div className="flex shrink-0 gap-2">
           <button
@@ -532,7 +529,7 @@ function PackingItemCard({
             onClick={() => onEdit(item)}
             className="rounded-md border border-zinc-200 bg-white px-2 py-1 text-xs font-semibold text-ink"
           >
-            Edit
+            {t("common.edit")}
           </button>
           <button
             type="button"
@@ -540,14 +537,14 @@ function PackingItemCard({
             disabled={deletingId === item.id}
             className="rounded-md border border-red-200 bg-white px-2 py-1 text-xs font-semibold text-red-700 disabled:opacity-60"
           >
-            {deletingId === item.id ? "Deleting..." : "Delete"}
+            {deletingId === item.id ? t("common.deleting") : t("common.delete")}
           </button>
         </div>
       </div>
 
       <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
-        <Field label="Quantity" value={item.quantity === null ? "TBC" : String(item.quantity)} />
-        <Field label="Sort order" value={String(item.sortOrder)} />
+        <Field label={t("common.quantity")} value={item.quantity === null ? t("common.tbc") : String(item.quantity)} />
+        <Field label={t("common.sortOrder")} value={String(item.sortOrder)} />
       </dl>
 
       {item.notes ? <p className="mt-3 text-sm leading-6 text-zinc-600">{item.notes}</p> : null}
@@ -560,10 +557,12 @@ function PackingItemCard({
                 {travelerNameById.get(status.travelerId) ?? status.travelerId}
               </p>
               <span className={`rounded-full px-2 py-1 text-xs font-semibold ring-1 ${statusClass[status.status]}`}>
-                {statusLabel[status.status]}
+                {translateOption(language, status.status)}
               </span>
             </div>
-            <p className="mt-1 text-xs text-zinc-500">{statusDetail[status.status]}</p>
+            <p className="mt-1 text-xs text-zinc-500">
+              {translateOption(language, status.status === "required" ? "Not packed yet" : status.status)}
+            </p>
           </div>
         ))}
       </div>

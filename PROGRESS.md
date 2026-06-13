@@ -2,6 +2,9 @@
 
 ## 2026-06-13
 
+- Connected Bookings, Itinerary, Packing, and Documents system UI labels to the UI-only i18n foundation, including filters, forms, buttons, status/category/priority labels, loading/error/empty states, delete confirmations, linked expense labels, and protected document unlock labels.
+- Kept user-entered content untranslated across the core pages: itinerary title/details/location/notes/map query, booking description/location/notes, expense title/notes, packing item name/notes, document title/notes/externalUrl, traveler display names, city names, and currency/amount values still render from original data.
+- Verified `npm.cmd run build`, `npm.cmd run lint`, desktop/LAN page smoke checks for Bookings, Itinerary, Packing, Documents, Budget, and Dashboard, API JSON checks for bookings/itinerary/packing/documents/expenses, EN/Chinese page switching, mobile no-horizontal-scroll checks, and temporary CRUD cleanup for bookings, itinerary, packing, documents, protected document unlock, and booking/itinerary linked expenses.
 - Connected the Budget page to the UI-only i18n foundation: Budget ledger headings, summary labels, filters, status/category/source labels, misc expense form labels, buttons, loading/error/empty states, settlement labels, and expense card labels now switch between English and Chinese.
 - Kept Budget user-entered data untranslated: expense titles, expense notes, traveler display names, currency values, and amount values still render from the original data.
 - Added the i18n foundation branch scope: `src/lib/i18n.tsx` now uses a UI-only dictionary with `trip-dashboard-language`, one-time migration from `italy-trip-language`, default English, and persisted EN/Chinese toggle state.

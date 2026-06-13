@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { DashboardCard } from "@/components/DashboardCard";
 import type { Traveler } from "@/data/tripData";
+import { useLanguage } from "@/lib/i18n";
+import { translateOption } from "@/lib/localize";
 import {
   documentCategories,
   documentPriorities,
@@ -30,12 +32,6 @@ type FilterValue = "All";
 type ProtectedFilter = "All" | "Protected" | "Open";
 
 const requestTimeoutMs = 10000;
-
-const travelerStatusLabel: Record<DocumentTravelerStatus, string> = {
-  required: "Required",
-  saved: "Saved",
-  not_needed: "Not needed"
-};
 
 const travelerStatusClass: Record<DocumentTravelerStatus, string> = {
   required: "bg-amber-100 text-amber-800 ring-amber-200",
@@ -84,6 +80,7 @@ function emptyForm(travelers: Traveler[]): DocumentInput {
 }
 
 export function DocumentsClient({ travelers: initialTravelers }: DocumentsClientProps) {
+  const { t } = useLanguage();
   const [travelers, setTravelers] = useState<Traveler[]>(initialTravelers);
   const [documents, setDocuments] = useState<SharedDocumentItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -137,12 +134,12 @@ export function DocumentsClient({ travelers: initialTravelers }: DocumentsClient
     setNotice(null);
 
     try {
-      const data = await fetchDocumentsJson("/api/documents", undefined, "Unable to load documents.");
+      const data = await fetchDocumentsJson("/api/documents", undefined, t("documents.errorLoad"));
       setDocuments(data.documents);
       setTravelers(data.travelers);
       setForm((current) => ensureFormTravelers(current, data.travelers));
     } catch (loadError) {
-      setError(loadError instanceof Error ? loadError.message : "Unable to load documents.");
+      setError(loadError instanceof Error ? loadError.message : t("documents.errorLoad"));
     } finally {
       setLoading(false);
     }
@@ -210,12 +207,12 @@ export function DocumentsClient({ travelers: initialTravelers }: DocumentsClient
     event.preventDefault();
 
     if (!form.title.trim()) {
-      setError("Document title is required.");
+      setError(t("documents.validationTitle"));
       return;
     }
 
     if (form.requiresPasscode && !editingId && !String(form.passcode ?? "").trim()) {
-      setError("Passcode is required for a protected folder link.");
+      setError(t("documents.validationPasscode"));
       return;
     }
 
@@ -250,7 +247,7 @@ export function DocumentsClient({ travelers: initialTravelers }: DocumentsClient
             notes: String(form.notes ?? "").trim()
           })
         },
-        editingId ? "Unable to update document." : "Unable to create document."
+        editingId ? t("documents.errorUpdate") : t("documents.errorCreate")
       );
 
       setDocuments(data.documents);
@@ -262,17 +259,17 @@ export function DocumentsClient({ travelers: initialTravelers }: DocumentsClient
           return next;
         });
       }
-      setNotice(editingId ? "Updated document item." : "Added document item.");
+      setNotice(editingId ? t("documents.noticeUpdated") : t("documents.noticeAdded"));
       resetForm(data.travelers);
     } catch (submitError) {
-      setError(submitError instanceof Error ? submitError.message : "Unable to save document.");
+      setError(submitError instanceof Error ? submitError.message : t("documents.errorSave"));
     } finally {
       setSubmitting(false);
     }
   }
 
   async function removeDocument(document: SharedDocumentItem) {
-    if (!window.confirm(`Delete "${document.title}" from Documents?`)) {
+    if (!window.confirm(t("documents.confirmDelete"))) {
       return;
     }
 
@@ -284,7 +281,7 @@ export function DocumentsClient({ travelers: initialTravelers }: DocumentsClient
       const data = await fetchDocumentsJson(
         `/api/documents/${document.id}`,
         { method: "DELETE" },
-        "Unable to delete document."
+        t("documents.errorDelete")
       );
       setDocuments(data.documents);
       setTravelers(data.travelers);
@@ -293,12 +290,12 @@ export function DocumentsClient({ travelers: initialTravelers }: DocumentsClient
         delete next[document.id];
         return next;
       });
-      setNotice("Deleted document item.");
+      setNotice(t("documents.noticeDeleted"));
       if (editingId === document.id) {
         resetForm(data.travelers);
       }
     } catch (deleteError) {
-      setError(deleteError instanceof Error ? deleteError.message : "Unable to delete document.");
+      setError(deleteError instanceof Error ? deleteError.message : t("documents.errorDelete"));
     } finally {
       setDeletingId(null);
     }
@@ -308,7 +305,7 @@ export function DocumentsClient({ travelers: initialTravelers }: DocumentsClient
     const passcode = String(passcodeInputs[document.id] ?? "").trim();
 
     if (!passcode) {
-      setError("Enter the folder access code first.");
+      setError(t("documents.validationUnlockCode"));
       return;
     }
 
@@ -325,14 +322,14 @@ export function DocumentsClient({ travelers: initialTravelers }: DocumentsClient
       const data = (await response.json()) as { externalUrl?: string; error?: string };
 
       if (!response.ok || !data.externalUrl) {
-        throw new Error(data.error ?? "Unable to unlock folder.");
+        throw new Error(data.error ?? t("documents.errorUnlock"));
       }
 
       setUnlockedUrls((current) => ({ ...current, [document.id]: data.externalUrl as string }));
       setPasscodeInputs((current) => ({ ...current, [document.id]: "" }));
-      setNotice("Folder link unlocked.");
+      setNotice(t("documents.noticeUnlocked"));
     } catch (unlockError) {
-      setError(unlockError instanceof Error ? unlockError.message : "Unable to unlock folder.");
+      setError(unlockError instanceof Error ? unlockError.message : t("documents.errorUnlock"));
     } finally {
       setUnlockingId(null);
     }
@@ -341,24 +338,24 @@ export function DocumentsClient({ travelers: initialTravelers }: DocumentsClient
   return (
     <div className="w-full max-w-full min-w-0 overflow-x-hidden space-y-5">
       <section className="rounded-lg border border-red-200 bg-red-50 p-4 shadow-soft">
-        <h2 className="text-lg font-semibold text-red-800">Sensitive documents stay outside the app</h2>
+        <h2 className="text-lg font-semibold text-red-800">{t("documents.warningTitle")}</h2>
         <p className="mt-2 text-sm leading-6 text-red-800">
-          Keep files in private cloud storage. This page only stores safe checklist labels and optional folder links.
+          {t("documents.warningDescription")}
         </p>
       </section>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <DashboardCard label="Total documents" value={String(documents.length)} />
-        <DashboardCard label="High priority" value={String(highPriorityCount)} />
-        <DashboardCard label="Ready / saved" value={String(readySavedCount)} />
-        <DashboardCard label="Protected links" value={String(protectedCount)} tone={protectedCount > 0 ? "warm" : "default"} />
+        <DashboardCard label={t("documents.summary.total")} value={String(documents.length)} />
+        <DashboardCard label={t("documents.summary.highPriority")} value={String(highPriorityCount)} />
+        <DashboardCard label={t("documents.summary.readySaved")} value={String(readySavedCount)} />
+        <DashboardCard label={t("documents.summary.protectedLinks")} value={String(protectedCount)} tone={protectedCount > 0 ? "warm" : "default"} />
       </div>
 
       <div className="flex flex-col gap-3 rounded-lg border border-zinc-200 bg-white p-3 shadow-soft sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
-          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-terracotta">Shared checklist</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-terracotta">{t("documents.checklist")}</p>
           <p className="mt-1 text-sm text-zinc-600">
-            {visibleDocuments.length} visible / {documents.length} total
+            {t("documents.visibleSummary", { visible: visibleDocuments.length, total: documents.length })}
           </p>
         </div>
         <button
@@ -367,7 +364,7 @@ export function DocumentsClient({ travelers: initialTravelers }: DocumentsClient
           disabled={loading}
           className="w-full max-w-full rounded-md bg-moss px-3 py-2 text-base font-semibold text-white disabled:opacity-60 sm:w-auto sm:text-sm"
         >
-          {formOpen ? "Close form" : "Add document item"}
+          {formOpen ? t("documents.closeForm") : t("documents.addItem")}
         </button>
       </div>
 
@@ -406,7 +403,7 @@ export function DocumentsClient({ travelers: initialTravelers }: DocumentsClient
             disabled={loading}
             className="rounded-md border border-red-200 bg-white px-3 py-2 text-sm font-semibold text-red-700 disabled:opacity-60"
           >
-            {loading ? "Retrying..." : "Retry"}
+            {loading ? t("common.retrying") : t("common.retry")}
           </button>
         </div>
       ) : null}
@@ -417,17 +414,17 @@ export function DocumentsClient({ travelers: initialTravelers }: DocumentsClient
         </p>
       ) : null}
 
-      {loading ? <p className="text-sm text-zinc-600">Loading documents...</p> : null}
+      {loading ? <p className="text-sm text-zinc-600">{t("documents.loading")}</p> : null}
 
       {!loading && documents.length === 0 ? (
         <p className="rounded-lg border border-zinc-200 bg-white px-4 py-8 text-sm text-zinc-600 shadow-soft">
-          No document checklist items have been added yet.
+          {t("documents.empty")}
         </p>
       ) : null}
 
       {!loading && documents.length > 0 && visibleDocuments.length === 0 ? (
         <p className="rounded-lg border border-zinc-200 bg-white px-4 py-8 text-sm text-zinc-600 shadow-soft">
-          No document items match the selected filters.
+          {t("documents.emptyFiltered")}
         </p>
       ) : null}
 
@@ -473,6 +470,8 @@ function DocumentForm({
   onChange: (updater: (current: DocumentInput) => DocumentInput) => void;
   onTravelerStatusChange: (travelerId: string, status: DocumentTravelerStatus) => void;
 }) {
+  const { language, t } = useLanguage();
+
   return (
     <form
       onSubmit={onSubmit}
@@ -481,10 +480,10 @@ function DocumentForm({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-xs font-semibold uppercase tracking-[0.08em] text-terracotta">
-            {editingId ? "Edit document item" : "Add document item"}
+            {editingId ? t("documents.editItem") : t("documents.addItemEyebrow")}
           </p>
           <h2 className="mt-1 text-xl font-semibold text-ink">
-            {editingId ? "Update checklist and folder access" : "Create a shared document checklist item"}
+            {editingId ? t("documents.editTitle") : t("documents.addTitle")}
           </h2>
         </div>
         <button
@@ -493,44 +492,47 @@ function DocumentForm({
           disabled={submitting}
           className="max-w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold text-ink disabled:opacity-60"
         >
-          Cancel
+          {t("common.cancel")}
         </button>
       </div>
 
       <div className="mt-4 grid w-full max-w-full min-w-0 grid-cols-1 gap-3 md:grid-cols-2">
         <TextField
-          label="Title"
+          label={t("common.title")}
           value={form.title}
           onChange={(value) => onChange((current) => ({ ...current, title: value }))}
           placeholder="Hotel bookings folder"
         />
         <SelectField
-          label="Category"
+          label={t("common.category")}
           value={form.category}
           options={documentCategories}
+          formatOption={(option) => translateOption(language, option)}
           onChange={(value) => onChange((current) => ({ ...current, category: value as DocumentCategory }))}
         />
         <SelectField
-          label="Priority"
+          label={t("common.priority")}
           value={form.priority}
           options={documentPriorities}
+          formatOption={(option) => translateOption(language, option)}
           onChange={(value) => onChange((current) => ({ ...current, priority: value as DocumentPriority }))}
         />
         <SelectField
-          label="Status"
+          label={t("common.status")}
           value={form.status}
           options={documentStatuses}
+          formatOption={(option) => translateOption(language, option)}
           onChange={(value) => onChange((current) => ({ ...current, status: value as DocumentStatus }))}
         />
         <TextField
-          label="External folder link"
+          label={t("documents.form.externalFolder")}
           type="url"
           value={String(form.externalUrl ?? "")}
           onChange={(value) => onChange((current) => ({ ...current, externalUrl: value }))}
           placeholder="https://drive.google.com/..."
         />
         <TextField
-          label="Sort order"
+          label={t("common.sortOrder")}
           type="number"
           value={String(form.sortOrder ?? 0)}
           onChange={(value) => onChange((current) => ({ ...current, sortOrder: value ? Number(value) : 0 }))}
@@ -548,32 +550,32 @@ function DocumentForm({
           className="mt-0.5 h-4 w-4 shrink-0 rounded border-zinc-300"
         />
         <span className="min-w-0 flex-1 break-words whitespace-normal leading-5">
-          Requires access code
+          {t("documents.form.requiresCode")}
         </span>
       </label>
 
       {form.requiresPasscode ? (
         <TextField
-          label={editingId ? "Access code (blank keeps existing)" : "Access code"}
+          label={editingId ? t("documents.form.accessCodeKeep") : t("documents.form.accessCode")}
           type="password"
           value={String(form.passcode ?? "")}
           onChange={(value) => onChange((current) => ({ ...current, passcode: value }))}
-          placeholder={editingId ? "Leave blank to keep" : "Folder access code"}
+          placeholder={editingId ? t("documents.form.accessCodeKeepPlaceholder") : t("documents.form.accessCodePlaceholder")}
         />
       ) : null}
 
       <label className="mt-3 block w-full max-w-full min-w-0 text-sm font-semibold text-ink">
-        Notes
+        {t("common.notes")}
         <textarea
           value={String(form.notes ?? "")}
           onChange={(event) => onChange((current) => ({ ...current, notes: event.target.value }))}
           className="mt-2 block box-border min-h-24 w-full max-w-full min-w-0 resize-y rounded-md border border-zinc-200 bg-white px-3 py-2 text-base text-zinc-700 sm:text-sm"
-          placeholder="Safe notes only. Do not paste access codes or document numbers."
+          placeholder={t("documents.form.notesPlaceholder")}
         />
       </label>
 
       <fieldset className="mt-4 w-full max-w-full min-w-0 overflow-hidden rounded-lg border border-zinc-200 p-3">
-        <legend className="px-1 text-sm font-semibold text-ink">Traveler statuses</legend>
+        <legend className="px-1 text-sm font-semibold text-ink">{t("documents.form.travelerStatuses")}</legend>
         <div className="mt-2 grid w-full max-w-full min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {travelers.map((traveler) => (
             <SelectField
@@ -584,7 +586,7 @@ function DocumentForm({
                 "required"
               }
               options={documentTravelerStatuses}
-              optionLabels={new Map(documentTravelerStatuses.map((status) => [status, travelerStatusLabel[status]]))}
+              formatOption={(option) => translateOption(language, option)}
               onChange={(value) => onTravelerStatusChange(traveler.id, value as DocumentTravelerStatus)}
             />
           ))}
@@ -597,7 +599,7 @@ function DocumentForm({
           disabled={submitting}
           className="w-full max-w-full rounded-md bg-moss px-3 py-2 text-base font-semibold text-white disabled:opacity-60 sm:w-auto sm:text-sm"
         >
-          {submitting ? "Saving..." : editingId ? "Save changes" : "Add document item"}
+          {submitting ? t("common.saving") : editingId ? t("bookings.saveChanges") : t("documents.addButton")}
         </button>
         <button
           type="button"
@@ -605,7 +607,7 @@ function DocumentForm({
           disabled={submitting}
           className="w-full max-w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-base font-semibold text-ink disabled:opacity-60 sm:w-auto sm:text-sm"
         >
-          Cancel
+          {t("common.cancel")}
         </button>
       </div>
     </form>
@@ -635,13 +637,15 @@ function FilterSection({
   onStatusChange: (value: FilterValue | DocumentStatus) => void;
   onProtectedChange: (value: ProtectedFilter) => void;
 }) {
+  const { language, t } = useLanguage();
+
   return (
     <section className="rounded-lg border border-zinc-200 bg-white p-3 shadow-soft">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
-          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-terracotta">Filters</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-terracotta">{t("documents.filters.title")}</p>
           <p className="mt-1 text-sm text-zinc-600">
-            {categoryFilter} / {priorityFilter} / {statusFilter} / {protectedFilter}
+            {translateOption(language, categoryFilter)} / {translateOption(language, priorityFilter)} / {translateOption(language, statusFilter)} / {translateOption(language, protectedFilter)}
           </p>
         </div>
         <button
@@ -649,34 +653,38 @@ function FilterSection({
           onClick={onToggleFilters}
           className="w-full max-w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold text-ink sm:w-auto"
         >
-          {filtersOpen ? "Hide filters" : "Filters"}
+          {filtersOpen ? t("documents.filters.hide") : t("documents.filters.title")}
         </button>
       </div>
 
       {filtersOpen ? (
         <div className="mt-3 grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
           <SelectField
-            label="Category"
+            label={t("common.category")}
             value={categoryFilter}
             options={["All", ...documentCategories]}
+            formatOption={(option) => translateOption(language, option)}
             onChange={(value) => onCategoryChange(value as FilterValue | DocumentCategory)}
           />
           <SelectField
-            label="Priority"
+            label={t("common.priority")}
             value={priorityFilter}
             options={["All", ...documentPriorities]}
+            formatOption={(option) => translateOption(language, option)}
             onChange={(value) => onPriorityChange(value as FilterValue | DocumentPriority)}
           />
           <SelectField
-            label="Status"
+            label={t("common.status")}
             value={statusFilter}
             options={["All", ...documentStatuses]}
+            formatOption={(option) => translateOption(language, option)}
             onChange={(value) => onStatusChange(value as FilterValue | DocumentStatus)}
           />
           <SelectField
-            label="Link access"
+            label={t("documents.filters.linkAccess")}
             value={protectedFilter}
             options={["All", "Protected", "Open"]}
+            formatOption={(option) => translateOption(language, option)}
             onChange={(value) => onProtectedChange(value as ProtectedFilter)}
           />
         </div>
@@ -708,6 +716,7 @@ function DocumentCard({
   onEdit: (document: SharedDocumentItem) => void;
   onDelete: (document: SharedDocumentItem) => Promise<void>;
 }) {
+  const { language, t } = useLanguage();
   const folderUrl = document.externalUrl ?? unlockedUrl ?? null;
 
   return (
@@ -716,19 +725,19 @@ function DocumentCard({
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <span className={`rounded-full px-2 py-1 text-xs font-semibold ring-1 ${priorityClass[document.priority]}`}>
-              {document.priority}
+              {translateOption(language, document.priority)}
             </span>
             <span className={`rounded-full px-2 py-1 text-xs font-semibold ring-1 ${statusClass[document.status]}`}>
-              {document.status}
+              {translateOption(language, document.status)}
             </span>
             {document.requiresPasscode ? (
               <span className="rounded-full bg-red-100 px-2 py-1 text-xs font-semibold text-red-800 ring-1 ring-red-200">
-                Protected
+                {t("documents.protected")}
               </span>
             ) : null}
           </div>
           <h3 className="mt-2 break-words text-lg font-semibold text-ink">{document.title}</h3>
-          <p className="mt-1 text-sm text-zinc-500">{document.category}</p>
+          <p className="mt-1 text-sm text-zinc-500">{translateOption(language, document.category)}</p>
         </div>
         <div className="flex shrink-0 flex-wrap gap-2">
           <button
@@ -736,7 +745,7 @@ function DocumentCard({
             onClick={() => onEdit(document)}
             className="rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold text-ink"
           >
-            Edit
+            {t("common.edit")}
           </button>
           <button
             type="button"
@@ -744,7 +753,7 @@ function DocumentCard({
             disabled={deletingId === document.id}
             className="rounded-md border border-red-200 bg-white px-3 py-2 text-sm font-semibold text-red-700 disabled:opacity-60"
           >
-            {deletingId === document.id ? "Deleting..." : "Delete"}
+            {deletingId === document.id ? t("common.deleting") : t("common.delete")}
           </button>
         </div>
       </div>
@@ -759,7 +768,7 @@ function DocumentCard({
                 {travelerNameById.get(status.travelerId) ?? status.travelerId}
               </p>
               <span className={`rounded-full px-2 py-1 text-xs font-semibold ring-1 ${travelerStatusClass[status.status]}`}>
-                {travelerStatusLabel[status.status]}
+                {translateOption(language, status.status)}
               </span>
             </div>
           </div>
@@ -774,7 +783,7 @@ function DocumentCard({
             rel="noreferrer"
             className="inline-flex w-full max-w-full justify-center rounded-md bg-moss px-3 py-2 text-sm font-semibold text-white sm:w-auto"
           >
-            Open folder
+            {t("documents.openFolder")}
           </a>
         ) : document.requiresPasscode && document.hasExternalUrl ? (
           <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
@@ -782,7 +791,7 @@ function DocumentCard({
               type="password"
               value={passcodeValue}
               onChange={(event) => onPasscodeChange(event.target.value)}
-              placeholder="Access code"
+              placeholder={t("documents.form.accessCode")}
               className="block box-border w-full max-w-full min-w-0 rounded-md border border-zinc-200 bg-white px-3 py-2 text-base text-zinc-700 sm:text-sm"
             />
             <button
@@ -791,11 +800,11 @@ function DocumentCard({
               disabled={unlockingId === document.id}
               className="w-full max-w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold text-ink disabled:opacity-60 sm:w-auto"
             >
-              {unlockingId === document.id ? "Unlocking..." : "Unlock folder"}
+              {unlockingId === document.id ? t("documents.unlocking") : t("documents.unlockFolder")}
             </button>
           </div>
         ) : (
-          <p className="text-sm text-zinc-600">No folder link added yet.</p>
+          <p className="text-sm text-zinc-600">{t("documents.noFolder")}</p>
         )}
       </div>
     </article>
@@ -836,12 +845,14 @@ function SelectField({
   value,
   options,
   optionLabels,
+  formatOption,
   onChange
 }: {
   label: string;
   value: string;
   options: readonly string[];
   optionLabels?: Map<string, string>;
+  formatOption?: (option: string) => string;
   onChange: (value: string) => void;
 }) {
   return (
@@ -854,7 +865,7 @@ function SelectField({
       >
         {options.map((option) => (
           <option key={option} value={option}>
-            {optionLabels?.get(option) ?? option}
+            {optionLabels?.get(option) ?? formatOption?.(option) ?? option}
           </option>
         ))}
       </select>

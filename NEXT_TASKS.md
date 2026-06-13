@@ -2,8 +2,8 @@
 
 ## Current Priority
 
-- Review the Budget page i18n pass on desktop and a real phone: EN/Chinese switching, filters/form/buttons/empty/loading labels, unchanged expense titles/notes/traveler names, misc expense CRUD, and no mobile horizontal scroll.
-- Continue full-page i18n one page at a time after Budget is approved; Itinerary, Bookings, Packing, and Documents are still not fully connected.
+- Review the Bookings / Itinerary / Packing / Documents i18n pass on desktop and a real phone: EN/Chinese switching, filters/forms/buttons/status labels, unchanged user-entered content, CRUD flows, protected Documents unlock, linked expenses, and no mobile horizontal scroll.
+- If approved, commit `codex/i18n-core-pages` with `Add i18n labels for core trip pages`, then merge it back to `master` in a separate safety pass.
 - Review the simplified Dashboard on desktop and a real phone: compact trip header, Next up card, Needs attention summary, Quick actions, Budget snapshot, folded reminders, and SOS access.
 - If approved, commit the Dashboard simplification before starting reusable trip dashboard data-model or i18n work.
 - Review the new shared Documents checklist on desktop and a real phone, especially protected folder unlock, Add/Edit form comfort, and card spacing.
@@ -32,7 +32,7 @@
 
 ## Suggested Next Feature
 
-- After i18n foundation approval, connect one page at a time to the UI-only dictionary without translating user-entered content.
+- After core page i18n approval, decide whether to connect the remaining secondary pages or pause i18n and move to reusable trip dashboard planning.
 - After Dashboard simplification is approved, plan reusable trip dashboard data-model work separately from UI redesign and bilingual switching.
 - After reviewing Documents, decide whether the current per-folder access code is enough for private folder links or whether a later whole-site protection layer is needed before entering more sensitive trip context.
 - Review Budget filters, settlement suggestions, lighter expense cards, and misc expense form ergonomics on a real phone.
