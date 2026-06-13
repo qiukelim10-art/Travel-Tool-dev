@@ -6,7 +6,7 @@
 - Keep real private data out of the repo unless the user later asks to add protection first.
 - Review MYR support in Budget, Itinerary linked expenses, Booking linked expenses, and Dashboard ledger widgets on computer and phone.
 - Next likely Budget step: final review and commit MYR expense ledger support after user validation.
-- Continue Phase 2 mobile polish with non-safety UX refinements only after the first safety polish commit is reviewed.
+- Review the second Phase 2 mobile polish pass on a real phone: collapsed Booking Add/Edit, compact Booking/Itinerary linked expense summaries, collapsed Budget filters, and lighter Budget expense cards.
 - Review the shared reminders and bookings CRUD/filter UI on computer and phone when the user is ready.
 - Review the shared itinerary CRUD UI on computer and phone, especially long notes and card readability.
 - Review the shared packing CRUD UI on computer and phone using the active worktree configuration.
@@ -24,11 +24,11 @@
 
 ## Suggested Next Feature
 
-- Review Budget filters, settlement suggestions, and misc expense form ergonomics on a real phone.
+- Review Budget filters, settlement suggestions, lighter expense cards, and misc expense form ergonomics on a real phone.
 - Review Booking linked expenses without counting booking `amount` twice.
 - Decide whether to add simple shared-password protection before using the shared reminders/bookings UI for real trip details.
 - Consider shared-password protection before entering real detailed itinerary notes, hotel addresses, private booking references, or sensitive location context.
-- Consider improving the mobile layout of long booking forms in a later polish pass; do not fold this into the first mobile safety commit.
+- Consider deeper visual polish only after the collapsed mobile flow is reviewed; keep the current pass focused on page weight and tap safety.
 - Consider improving packing status controls after real phone review if the four traveler selectors feel heavy on small screens.
 - Keep Google Maps jump-out search as the current restaurant/place discovery solution unless the user later requests in-page ratings and reviews through Google Places API.
 - Decide whether to replace placeholder city dates, hotels, and restaurant shortlists with safe real summaries.

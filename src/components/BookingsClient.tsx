@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useEffect, useMemo, useState, type FormEvent } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { StatusBadge } from "@/components/StatusBadge";
 import { formatMoney } from "@/lib/budget";
 import {
@@ -79,6 +79,7 @@ export function BookingsClient({ participants }: BookingsClientProps) {
   const [statusFilter, setStatusFilter] = useState<FilterValue | SharedBooking["status"]>("All");
   const [bookedByFilter, setBookedByFilter] = useState<FilterValue | string>("All");
   const [form, setForm] = useState<BookingInput>(() => emptyForm(participants[0] ?? "Person A"));
+  const [formOpen, setFormOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [expenseFormBookingId, setExpenseFormBookingId] = useState<string | null>(null);
   const [editingExpenseId, setEditingExpenseId] = useState<string | null>(null);
@@ -90,6 +91,7 @@ export function BookingsClient({ participants }: BookingsClientProps) {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [expenseSubmitting, setExpenseSubmitting] = useState(false);
   const [deletingExpenseId, setDeletingExpenseId] = useState<string | null>(null);
+  const bookingFormRef = useRef<HTMLFormElement>(null);
 
   const visibleBookings = useMemo(
     () =>
@@ -155,6 +157,7 @@ export function BookingsClient({ participants }: BookingsClientProps) {
   function resetForm() {
     setEditingId(null);
     setForm(emptyForm(participants[0] ?? "Person A"));
+    setFormOpen(false);
   }
 
   function resetExpenseForm() {
@@ -176,7 +179,19 @@ export function BookingsClient({ participants }: BookingsClientProps) {
       notes: booking.notes ?? "",
       status: booking.status
     });
+    setFormOpen(true);
     setNotice(null);
+    window.setTimeout(() => {
+      bookingFormRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 0);
+  }
+
+  function openAddForm() {
+    setEditingId(null);
+    setForm(emptyForm(participants[0] ?? "Person A"));
+    setFormOpen(true);
+    setNotice(null);
+    setError(null);
   }
 
   function openExpenseForm(booking: SharedBooking) {
@@ -371,102 +386,123 @@ export function BookingsClient({ participants }: BookingsClientProps) {
         <SummaryPill label="Visible" value={String(visibleBookings.length)} />
       </div>
 
-      <form
-        onSubmit={submitBooking}
-        className="mobile-safe-form box-border w-full max-w-full min-w-0 rounded-lg border border-zinc-200 bg-white p-4 shadow-soft"
-      >
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="min-w-0">
-            <p className="text-xs font-semibold uppercase tracking-[0.08em] text-terracotta">
-              {editingId ? "Edit booking" : "Add booking"}
-            </p>
-            <h2 className="mt-1 text-xl font-semibold text-ink">
-              {editingId ? "Update shared booking details" : "Create a shared booking item"}
-            </h2>
+      {!formOpen ? (
+        <section className="rounded-lg border border-zinc-200 bg-white p-3 shadow-soft">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
+              <p className="text-xs font-semibold uppercase tracking-[0.08em] text-terracotta">
+                Booking editor
+              </p>
+              <p className="mt-1 text-sm text-zinc-600">
+                Add or update shared booking items when there is a real change to record.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={openAddForm}
+              className="w-full max-w-full rounded-md bg-moss px-3 py-2 text-sm font-semibold text-white sm:w-auto"
+            >
+              Add booking item
+            </button>
           </div>
-          {editingId ? (
+        </section>
+      ) : (
+        <form
+          ref={bookingFormRef}
+          onSubmit={submitBooking}
+          className="mobile-safe-form box-border w-full max-w-full min-w-0 rounded-lg border border-zinc-200 bg-white p-4 shadow-soft"
+        >
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-xs font-semibold uppercase tracking-[0.08em] text-terracotta">
+                {editingId ? "Edit booking" : "Add booking"}
+              </p>
+              <h2 className="mt-1 text-xl font-semibold text-ink">
+                {editingId ? "Update shared booking details" : "Create a shared booking item"}
+              </h2>
+            </div>
             <button
               type="button"
               onClick={resetForm}
               className="rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold text-ink"
             >
-              Cancel edit
+              {editingId ? "Cancel edit" : "Close form"}
             </button>
-          ) : null}
-        </div>
+          </div>
 
-        <div className="mt-4 grid min-w-0 grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
-          <SelectField
-            label="Category"
-            value={form.category}
-            options={bookingCategories}
-            onChange={(value) => setForm((current) => ({ ...current, category: value as BookingInput["category"] }))}
-          />
-          <TextField
-            label="Description"
-            value={form.description}
-            onChange={(value) => setForm((current) => ({ ...current, description: value }))}
-            placeholder="Rome hotel booking"
-          />
-          <TextField
-            label="Date"
-            type="date"
-            value={form.date}
-            onChange={(value) => setForm((current) => ({ ...current, date: value }))}
-          />
-          <TextField
-            label="Location"
-            value={form.location ?? ""}
-            onChange={(value) => setForm((current) => ({ ...current, location: value }))}
-            placeholder="Rome"
-          />
-          <SelectField
-            label="Booked by"
-            value={form.bookedBy}
-            options={participants}
-            onChange={(value) => setForm((current) => ({ ...current, bookedBy: value }))}
-          />
-          <TextField
-            label="Amount"
-            type="number"
-            value={form.amount === null || form.amount === undefined ? "" : String(form.amount)}
-            onChange={(value) =>
-              setForm((current) => ({ ...current, amount: value ? Number(value) : null }))
-            }
-            placeholder="0"
-          />
-          <SelectField
-            label="Currency"
-            value={form.currency ?? "EUR"}
-            options={bookingCurrencies}
-            onChange={(value) => setForm((current) => ({ ...current, currency: value as BookingInput["currency"] }))}
-          />
-          <SelectField
-            label="Status"
-            value={form.status}
-            options={bookingStatuses}
-            onChange={(value) => setForm((current) => ({ ...current, status: value as BookingInput["status"] }))}
-          />
-        </div>
+          <div className="mt-4 grid min-w-0 grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+            <SelectField
+              label="Category"
+              value={form.category}
+              options={bookingCategories}
+              onChange={(value) => setForm((current) => ({ ...current, category: value as BookingInput["category"] }))}
+            />
+            <TextField
+              label="Description"
+              value={form.description}
+              onChange={(value) => setForm((current) => ({ ...current, description: value }))}
+              placeholder="Rome hotel booking"
+            />
+            <TextField
+              label="Date"
+              type="date"
+              value={form.date}
+              onChange={(value) => setForm((current) => ({ ...current, date: value }))}
+            />
+            <TextField
+              label="Location"
+              value={form.location ?? ""}
+              onChange={(value) => setForm((current) => ({ ...current, location: value }))}
+              placeholder="Rome"
+            />
+            <SelectField
+              label="Booked by"
+              value={form.bookedBy}
+              options={participants}
+              onChange={(value) => setForm((current) => ({ ...current, bookedBy: value }))}
+            />
+            <TextField
+              label="Amount"
+              type="number"
+              value={form.amount === null || form.amount === undefined ? "" : String(form.amount)}
+              onChange={(value) =>
+                setForm((current) => ({ ...current, amount: value ? Number(value) : null }))
+              }
+              placeholder="0"
+            />
+            <SelectField
+              label="Currency"
+              value={form.currency ?? "EUR"}
+              options={bookingCurrencies}
+              onChange={(value) => setForm((current) => ({ ...current, currency: value as BookingInput["currency"] }))}
+            />
+            <SelectField
+              label="Status"
+              value={form.status}
+              options={bookingStatuses}
+              onChange={(value) => setForm((current) => ({ ...current, status: value as BookingInput["status"] }))}
+            />
+          </div>
 
-        <label className="mt-3 block w-full max-w-full min-w-0 text-sm font-semibold text-ink">
-          Notes
-          <textarea
-            value={form.notes ?? ""}
-            onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))}
-            className="mt-2 block box-border min-h-24 w-full max-w-full min-w-0 rounded-md border border-zinc-200 bg-white px-3 py-2 text-base text-zinc-700 sm:text-sm"
-            placeholder="Safe notes only. Do not paste private confirmation numbers."
-          />
-        </label>
+          <label className="mt-3 block w-full max-w-full min-w-0 text-sm font-semibold text-ink">
+            Notes
+            <textarea
+              value={form.notes ?? ""}
+              onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))}
+              className="mt-2 block box-border min-h-24 w-full max-w-full min-w-0 rounded-md border border-zinc-200 bg-white px-3 py-2 text-base text-zinc-700 sm:text-sm"
+              placeholder="Safe notes only. Do not paste private confirmation numbers."
+            />
+          </label>
 
-        <button
-          type="submit"
-          disabled={submitting}
-          className="mt-4 w-full max-w-full rounded-md bg-moss px-3 py-2 text-base font-semibold text-white disabled:opacity-60 sm:w-auto sm:text-sm"
-        >
-          {submitting ? "Saving..." : editingId ? "Save changes" : "Add booking"}
-        </button>
-      </form>
+          <button
+            type="submit"
+            disabled={submitting}
+            className="mt-4 w-full max-w-full rounded-md bg-moss px-3 py-2 text-base font-semibold text-white disabled:opacity-60 sm:w-auto sm:text-sm"
+          >
+            {submitting ? "Saving..." : editingId ? "Save changes" : "Add booking"}
+          </button>
+        </form>
+      )}
 
       <div className="grid gap-3 rounded-lg border border-zinc-200 bg-white p-3 sm:grid-cols-3">
         <SelectField
@@ -742,58 +778,104 @@ function BookingExpensesSection({
   onCancelExpense: () => void;
   onExpenseFormChange: (updater: (current: ExpenseFormState) => ExpenseFormState) => void;
 }) {
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const detailsVisible = detailsOpen || Boolean(expenseForm);
+  const outstandingSummary = formatOutstandingSummary(expenses);
+
+  function handleAddExpense() {
+    setDetailsOpen(true);
+    onAddExpense(booking);
+  }
+
   return (
     <section className="mt-4 rounded-lg border border-zinc-200 bg-white p-3">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
           <p className="text-xs font-semibold uppercase tracking-[0.08em] text-terracotta">
             Linked expenses
           </p>
-          <p className="mt-1 text-sm text-zinc-600">
-            These are real ledger expenses for this booking. Booking amount stays separate.
-          </p>
+          <div className="mt-2 flex flex-wrap gap-2 text-sm text-zinc-700">
+            <span className="rounded-md bg-zinc-50 px-2.5 py-1">Expenses: {expenses.length}</span>
+            <span className="rounded-md bg-zinc-50 px-2.5 py-1">
+              Outstanding: {outstandingSummary}
+            </span>
+          </div>
         </div>
-        <button
-          type="button"
-          onClick={() => onAddExpense(booking)}
-          className="w-full max-w-full rounded-md bg-moss px-3 py-2 text-sm font-semibold text-white sm:w-auto"
-        >
-          Add expense
-        </button>
+        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+          <button
+            type="button"
+            onClick={() => setDetailsOpen((current) => !current)}
+            className="w-full max-w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold text-ink sm:w-auto"
+          >
+            {detailsVisible ? "Hide details" : "Show details"}
+          </button>
+          <button
+            type="button"
+            onClick={handleAddExpense}
+            className="w-full max-w-full rounded-md bg-moss px-3 py-2 text-sm font-semibold text-white sm:w-auto"
+          >
+            Add expense
+          </button>
+        </div>
       </div>
 
-      {expenseForm ? (
-        <BookingExpenseForm
-          booking={booking}
-          form={expenseForm}
-          travelers={travelers}
-          editingExpenseId={editingExpenseId}
-          submitting={expenseSubmitting}
-          onSubmit={onSubmitExpense}
-          onCancel={onCancelExpense}
-          onChange={onExpenseFormChange}
-        />
+      {detailsVisible ? (
+        <>
+          {expenseForm ? (
+            <BookingExpenseForm
+              booking={booking}
+              form={expenseForm}
+              travelers={travelers}
+              editingExpenseId={editingExpenseId}
+              submitting={expenseSubmitting}
+              onSubmit={onSubmitExpense}
+              onCancel={onCancelExpense}
+              onChange={onExpenseFormChange}
+            />
+          ) : null}
+
+          <div className="mt-3 grid gap-3">
+            {expenses.length === 0 ? (
+              <p className="rounded-lg bg-zinc-50 px-3 py-4 text-sm text-zinc-600">
+                No linked expenses yet.
+              </p>
+            ) : null}
+            {expenses.map((expense) => (
+              <BookingExpenseCard
+                key={expense.id}
+                expense={expense}
+                travelerNameById={travelerNameById}
+                deletingExpenseId={deletingExpenseId}
+                onEdit={onEditExpense}
+                onDelete={onDeleteExpense}
+              />
+            ))}
+          </div>
+        </>
       ) : null}
-
-      <div className="mt-3 grid gap-3">
-        {expenses.length === 0 ? (
-          <p className="rounded-lg bg-zinc-50 px-3 py-4 text-sm text-zinc-600">
-            No linked expenses yet.
-          </p>
-        ) : null}
-        {expenses.map((expense) => (
-          <BookingExpenseCard
-            key={expense.id}
-            expense={expense}
-            travelerNameById={travelerNameById}
-            deletingExpenseId={deletingExpenseId}
-            onEdit={onEditExpense}
-            onDelete={onDeleteExpense}
-          />
-        ))}
-      </div>
     </section>
   );
+}
+
+function formatOutstandingSummary(expenses: SharedExpense[]) {
+  const totals = new Map<SharedCurrency, number>();
+
+  for (const expense of expenses) {
+    if (expense.settled) {
+      continue;
+    }
+
+    totals.set(expense.currency, (totals.get(expense.currency) ?? 0) + expense.amount);
+  }
+
+  if (totals.size === 0) {
+    return "None";
+  }
+
+  return Array.from(totals.entries())
+    .sort(([leftCurrency], [rightCurrency]) => leftCurrency.localeCompare(rightCurrency))
+    .map(([currency, amount]) => formatMoney(amount, currency))
+    .join(", ");
 }
 
 function BookingExpenseForm({

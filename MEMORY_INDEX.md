@@ -12,6 +12,7 @@
 - Food, Attractions, and Map now include Google Maps jump-out search panels for live nearby recommendations without using a Places API key.
 - Shared reminders, bookings, itinerary, and packing now use local Next API + MySQL prototype paths with CRUD and filtering.
 - Budget now uses the shared expense ledger for its page UI and supports miscellaneous expense CRUD; Itinerary and Booking linked expense UI have been added.
+- Bookings, Itinerary, and Budget have a second mobile polish pass focused on collapsed sections and lighter first-screen page weight.
 - Dashboard budget overview now reads the unified expense ledger through `/api/expenses` instead of static `tripData.ts` expenses.
 - The shared expense ledger now supports EUR, SGD, and MYR.
 - Real-data preparation docs now exist: `REAL_DATA_ENTRY_GUIDE.md` and `REAL_DATA_CHECKLIST.md`.
@@ -32,10 +33,12 @@
 - Most trip pages still use static data, but reminders, bookings, itinerary, and packing now use local Next API + MySQL prototype paths.
 - Budget renders the unified expense ledger client with summary cards, settlement suggestions, filters, expense cards, and miscellaneous expense CRUD.
 - Budget filters apply only to the visible expense list; summary cards and settlement suggestions intentionally stay based on the full ledger.
+- Budget filters are collapsed by default in the mobile polish flow, and individual expense card paid/split/notes details are behind a per-card details toggle.
 - Dashboard budget widgets show full-ledger totals, outstanding/settled amounts, top settlement suggestions, and recent expenses with local loading/error handling.
 - Budget and Dashboard summarize EUR, SGD, and MYR separately; the app does not perform exchange-rate conversion.
 - Itinerary cards can display, add, edit, and delete linked ledger expenses where `sourceType = itinerary` and `sourceId` is the itinerary item id.
 - Booking rows/cards can display, add, edit, and delete linked ledger expenses where `sourceType = booking` and `sourceId` is the booking item id.
+- Booking Add/Edit is collapsed by default on the page, while Booking and Itinerary linked expense sections keep Add expense visible and move full expense lists/forms behind a details toggle.
 - Bookings, Budget, and Itinerary linked expense mobile forms use scoped `mobile-safe-form` protection to reduce iPhone Safari input/date/select overflow risk.
 - Expense ledger uses stable traveler IDs (`person_a`, `person_b`, `person_c`, `person_d`) for payer and split values; display names should remain presentation-only.
 - Itinerary `cost_amount` and booking `amount` are reference fields only unless the user explicitly creates linked ledger expenses from them.

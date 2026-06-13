@@ -2,6 +2,8 @@
 
 ## 2026-06-13
 
+- Completed the second Phase 2 mobile polish pass for Bookings, Itinerary, and Budget: Booking Add/Edit is now collapsed by default, Booking and Itinerary linked expense sections show compact summaries before details, Budget filters are collapsed by default, and Budget expense card details are tucked behind a per-card details toggle.
+- Kept shared expense ledger behavior unchanged: linked expenses still use their existing `sourceType` and `sourceId`, Budget summary/settlement calculations still use the full ledger, and misc expense CRUD remains scoped to Budget.
 - Completed the first Phase 2 mobile safety polish pass for Bookings, Itinerary, and Budget: Booking item delete now confirms before calling DELETE, Booking item action buttons have larger tap targets, and shared `mobile-safe-form` protection covers Booking main/linked expense forms, Budget misc expense form, and Itinerary linked expense form.
 - Verified `npm.cmd run build`, `npm.cmd run lint`, desktop/LAN `/bookings`, `/budget`, `/itinerary`, `/api/expenses`, `/api/bookings`, and `/api/itinerary`; the user also confirmed the mobile phone review passed.
 - Added real-data preparation docs before private trip details are entered: `REAL_DATA_ENTRY_GUIDE.md` and `REAL_DATA_CHECKLIST.md`.

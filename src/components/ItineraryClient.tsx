@@ -806,6 +806,14 @@ function ItineraryCard({
   onExpenseFormChange: (updater: (current: ExpenseFormState) => ExpenseFormState) => void;
 }) {
   const mapsQuery = item.mapQuery || item.location;
+  const [expenseDetailsOpen, setExpenseDetailsOpen] = useState(false);
+  const expenseDetailsVisible = expenseDetailsOpen || Boolean(expenseForm);
+  const outstandingSummary = formatOutstandingSummary(expenses);
+
+  function handleAddExpense() {
+    setExpenseDetailsOpen(true);
+    onAddExpense(item);
+  }
 
   return (
     <article className="rounded-lg border border-zinc-200 bg-white p-4 shadow-soft">
@@ -867,57 +875,94 @@ function ItineraryCard({
       </div>
 
       <section className="mt-4 rounded-lg border border-zinc-200 bg-white p-3">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
             <p className="text-xs font-semibold uppercase tracking-[0.08em] text-terracotta">
               Linked expenses
             </p>
-            <p className="mt-1 text-sm text-zinc-600">
-              These are real ledger expenses for this itinerary item. Estimated cost stays separate.
-            </p>
+            <div className="mt-2 flex flex-wrap gap-2 text-sm text-zinc-700">
+              <span className="rounded-md bg-zinc-50 px-2.5 py-1">Expenses: {expenses.length}</span>
+              <span className="rounded-md bg-zinc-50 px-2.5 py-1">
+                Outstanding: {outstandingSummary}
+              </span>
+            </div>
           </div>
-          <button
-            type="button"
-            onClick={() => onAddExpense(item)}
-            className="w-full max-w-full rounded-md bg-moss px-3 py-2 text-sm font-semibold text-white sm:w-auto"
-          >
-            Add expense
-          </button>
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+            <button
+              type="button"
+              onClick={() => setExpenseDetailsOpen((current) => !current)}
+              className="w-full max-w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold text-ink sm:w-auto"
+            >
+              {expenseDetailsVisible ? "Hide details" : "Show details"}
+            </button>
+            <button
+              type="button"
+              onClick={handleAddExpense}
+              className="w-full max-w-full rounded-md bg-moss px-3 py-2 text-sm font-semibold text-white sm:w-auto"
+            >
+              Add expense
+            </button>
+          </div>
         </div>
 
-        {expenseForm ? (
-          <ItineraryExpenseForm
-            item={item}
-            form={expenseForm}
-            travelers={travelers}
-            editingExpenseId={editingExpenseId}
-            submitting={expenseSubmitting}
-            onSubmit={onSubmitExpense}
-            onCancel={onCancelExpense}
-            onChange={onExpenseFormChange}
-          />
+        {expenseDetailsVisible ? (
+          <>
+            {expenseForm ? (
+              <ItineraryExpenseForm
+                item={item}
+                form={expenseForm}
+                travelers={travelers}
+                editingExpenseId={editingExpenseId}
+                submitting={expenseSubmitting}
+                onSubmit={onSubmitExpense}
+                onCancel={onCancelExpense}
+                onChange={onExpenseFormChange}
+              />
+            ) : null}
+
+            <div className="mt-3 grid gap-3">
+              {expenses.length === 0 ? (
+                <p className="rounded-lg bg-zinc-50 px-3 py-4 text-sm text-zinc-600">
+                  No linked expenses yet.
+                </p>
+              ) : null}
+              {expenses.map((expense) => (
+                <ItineraryExpenseCard
+                  key={expense.id}
+                  expense={expense}
+                  travelerNameById={travelerNameById}
+                  deletingExpenseId={deletingExpenseId}
+                  onEdit={onEditExpense}
+                  onDelete={onDeleteExpense}
+                />
+              ))}
+            </div>
+          </>
         ) : null}
-
-        <div className="mt-3 grid gap-3">
-          {expenses.length === 0 ? (
-            <p className="rounded-lg bg-zinc-50 px-3 py-4 text-sm text-zinc-600">
-              No linked expenses yet.
-            </p>
-          ) : null}
-          {expenses.map((expense) => (
-            <ItineraryExpenseCard
-              key={expense.id}
-              expense={expense}
-              travelerNameById={travelerNameById}
-              deletingExpenseId={deletingExpenseId}
-              onEdit={onEditExpense}
-              onDelete={onDeleteExpense}
-            />
-          ))}
-        </div>
       </section>
     </article>
   );
+}
+
+function formatOutstandingSummary(expenses: SharedExpense[]) {
+  const totals = new Map<SharedCurrency, number>();
+
+  for (const expense of expenses) {
+    if (expense.settled) {
+      continue;
+    }
+
+    totals.set(expense.currency, (totals.get(expense.currency) ?? 0) + expense.amount);
+  }
+
+  if (totals.size === 0) {
+    return "None";
+  }
+
+  return Array.from(totals.entries())
+    .sort(([leftCurrency], [rightCurrency]) => leftCurrency.localeCompare(rightCurrency))
+    .map(([currency, amount]) => formatMoney(amount, currency))
+    .join(", ");
 }
 
 function ItineraryExpenseForm({
