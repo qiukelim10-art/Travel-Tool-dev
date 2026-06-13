@@ -17,14 +17,15 @@
 - Dashboard budget overview now reads the unified expense ledger through `/api/expenses` instead of static `tripData.ts` expenses.
 - Dashboard information architecture has been simplified: homepage is now a compact overview with Next up, Needs attention, Quick actions, Money snapshot, folded reminders, and SOS quick access instead of page-level management detail.
 - i18n foundation now uses global language state with `trip-dashboard-language`, default English, EN/Chinese toggle in Layout, and a UI-only dictionary; user-entered trip content should remain untranslated.
+- Budget page system UI is now connected to the UI-only i18n foundation while keeping expense titles, notes, traveler names, currencies, and amounts untranslated.
 - The shared expense ledger now supports EUR, SGD, and MYR.
 - Real-data preparation docs now exist: `REAL_DATA_ENTRY_GUIDE.md` and `REAL_DATA_CHECKLIST.md`.
 
 ## Highest Priority Task
 
+- Review the Budget page i18n pass on desktop and a real phone before committing `codex/i18n-budget`.
+- Continue page-level i18n in small phases after Budget is approved.
 - Review the new shared Documents checklist and protected folder unlock flow on desktop and a real phone.
-- Review the simplified Dashboard on desktop and a real phone before committing `codex/dashboard-simplify`.
-- Review the i18n foundation branch on desktop and a real phone before expanding translation coverage to full pages.
 - Manually replace safe placeholder data with non-sensitive real trip summaries using `REAL_DATA_ENTRY_GUIDE.md` and `REAL_DATA_CHECKLIST.md`.
 
 ## Key Known Issue

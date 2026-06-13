@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { formatMoney, summarizeExpenseLedger } from "@/lib/budget";
+import { useLanguage } from "@/lib/i18n";
+import { translateOption } from "@/lib/localize";
 import {
   bookingCurrencies,
   expenseCategories,
@@ -24,6 +26,7 @@ type CurrencyFilter = "All" | SharedCurrency;
 type CategoryFilter = "All" | ExpenseCategory;
 type SourceFilter = "All" | ExpenseSourceType;
 type StatusFilter = "All" | "Outstanding" | "Settled";
+type TFunction = ReturnType<typeof useLanguage>["t"];
 
 type ExpenseFormState = {
   title: string;
@@ -64,6 +67,7 @@ function emptyForm(travelers: Traveler[]): ExpenseFormState {
 }
 
 export function BudgetClient() {
+  const { language, t } = useLanguage();
   const [expenses, setExpenses] = useState<SharedExpense[]>([]);
   const [travelers, setTravelers] = useState<Traveler[]>([]);
   const [loading, setLoading] = useState(true);
@@ -119,12 +123,12 @@ export function BudgetClient() {
     setNotice(null);
 
     try {
-      const data = await fetchExpensesJson("/api/expenses", undefined, "Unable to load expenses.");
+      const data = await fetchExpensesJson("/api/expenses", undefined, t("budget.errorLoad"), t("budget.errorTimeout"));
       setExpenses(data.expenses);
       setTravelers(data.travelers);
       setForm((current) => ensureFormTravelers(current, data.travelers));
     } catch (loadError) {
-      setError(loadError instanceof Error ? loadError.message : "Unable to load expenses.");
+      setError(loadError instanceof Error ? loadError.message : t("budget.errorLoad"));
     } finally {
       setLoading(false);
     }
@@ -150,7 +154,7 @@ export function BudgetClient() {
 
   function startEditing(expense: SharedExpense) {
     if (expense.sourceType !== "misc") {
-      setNotice("Linked expenses are edited from the Itinerary or Bookings page.");
+      setNotice(t("budget.noticeLinkedEdit"));
       return;
     }
 
@@ -176,27 +180,27 @@ export function BudgetClient() {
 
     const input = buildExpenseInput(form);
     if (!input.title) {
-      setError("Title is required.");
+      setError(t("budget.validationTitleRequired"));
       return;
     }
 
     if (!Number.isFinite(input.amount) || input.amount <= 0) {
-      setError("Amount must be greater than zero.");
+      setError(t("budget.validationAmountPositive"));
       return;
     }
 
     if (!/^\d{4}-\d{2}-\d{2}$/.test(input.expenseDate)) {
-      setError("Date is required.");
+      setError(t("budget.validationDateRequired"));
       return;
     }
 
     if (!input.paidByTravelerId) {
-      setError("Paid by is required.");
+      setError(t("budget.validationPaidByRequired"));
       return;
     }
 
     if (input.splitTravelerIds.length === 0) {
-      setError("Select at least one traveler to split this expense.");
+      setError(t("budget.validationSplitRequired"));
       return;
     }
 
@@ -212,14 +216,15 @@ export function BudgetClient() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(input)
         },
-        editingId ? "Unable to update expense." : "Unable to create expense."
+        editingId ? t("budget.errorUpdate") : t("budget.errorCreate"),
+        t("budget.errorTimeout")
       );
       setExpenses(data.expenses);
       setTravelers(data.travelers);
-      setNotice(editingId ? "Updated expense." : "Added miscellaneous expense.");
+      setNotice(editingId ? t("budget.noticeUpdated") : t("budget.noticeAdded"));
       resetForm(data.travelers);
     } catch (submitError) {
-      setError(submitError instanceof Error ? submitError.message : "Unable to save expense.");
+      setError(submitError instanceof Error ? submitError.message : t("budget.errorSave"));
     } finally {
       setSubmitting(false);
     }
@@ -227,11 +232,11 @@ export function BudgetClient() {
 
   async function removeExpense(expense: SharedExpense) {
     if (expense.sourceType !== "misc") {
-      setNotice("Linked expenses are deleted from the Itinerary or Bookings page.");
+      setNotice(t("budget.noticeLinkedDelete"));
       return;
     }
 
-    if (!window.confirm(`Delete "${expense.title}" from miscellaneous expenses?`)) {
+    if (!window.confirm(t("budget.confirmDeleteMisc"))) {
       return;
     }
 
@@ -243,16 +248,17 @@ export function BudgetClient() {
       const data = await fetchExpensesJson(
         `/api/expenses/${expense.id}`,
         { method: "DELETE" },
-        "Unable to delete expense."
+        t("budget.errorDelete"),
+        t("budget.errorTimeout")
       );
       setExpenses(data.expenses);
       setTravelers(data.travelers);
-      setNotice("Deleted expense.");
+      setNotice(t("budget.noticeDeleted"));
       if (editingId === expense.id) {
         resetForm(data.travelers);
       }
     } catch (deleteError) {
-      setError(deleteError instanceof Error ? deleteError.message : "Unable to delete expense.");
+      setError(deleteError instanceof Error ? deleteError.message : t("budget.errorDelete"));
     } finally {
       setDeletingId(null);
     }
@@ -262,9 +268,9 @@ export function BudgetClient() {
     <div className="w-full max-w-full min-w-0 overflow-x-hidden space-y-5">
       <div className="flex flex-col gap-3 rounded-lg border border-zinc-200 bg-white p-3 shadow-soft sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
-          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-terracotta">Unified ledger</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-terracotta">{t("budget.eyebrow")}</p>
           <p className="mt-1 text-sm text-zinc-600">
-            Budget totals now come from shared expenses, including miscellaneous, itinerary, and booking sources.
+            {t("budget.description")}
           </p>
         </div>
         <button
@@ -273,7 +279,7 @@ export function BudgetClient() {
           className="w-full max-w-full rounded-md bg-moss px-3 py-2 text-sm font-semibold text-white disabled:opacity-60 sm:w-auto"
           disabled={loading}
         >
-          {formOpen ? "Close form" : "Add misc expense"}
+          {formOpen ? t("budget.closeForm") : t("budget.addMiscExpense")}
         </button>
       </div>
 
@@ -286,7 +292,7 @@ export function BudgetClient() {
             disabled={loading}
             className="rounded-md border border-red-200 bg-white px-3 py-2 text-sm font-semibold text-red-700 disabled:opacity-60"
           >
-            {loading ? "Retrying..." : "Retry"}
+            {loading ? t("budget.retrying") : t("common.retry")}
           </button>
         </div>
       ) : null}
@@ -297,18 +303,18 @@ export function BudgetClient() {
         </p>
       ) : null}
 
-      {loading ? <p className="text-sm text-zinc-600">Loading budget ledger...</p> : null}
+      {loading ? <p className="text-sm text-zinc-600">{t("budget.loadingLedger")}</p> : null}
 
       {!loading && expenses.length === 0 ? (
         <p className="rounded-lg border border-zinc-200 bg-white px-4 py-8 text-sm text-zinc-600 shadow-soft">
-          No expenses have been added yet. Add a miscellaneous expense to start the shared ledger.
+          {t("budget.emptyLedger")}
         </p>
       ) : null}
 
       {!loading && expenses.length > 0 ? (
         <>
-          <SummarySection summaries={summaries} travelers={orderedTravelers} />
-          <SettlementSection summaries={summaries} travelerNameById={travelerNameById} />
+          <SummarySection summaries={summaries} travelers={orderedTravelers} t={t} />
+          <SettlementSection summaries={summaries} travelerNameById={travelerNameById} t={t} />
         </>
       ) : null}
 
@@ -321,6 +327,8 @@ export function BudgetClient() {
           onSubmit={submitExpense}
           onCancel={() => resetForm()}
           onChange={setForm}
+          language={language}
+          t={t}
         />
       ) : null}
 
@@ -332,6 +340,8 @@ export function BudgetClient() {
         statusFilter={statusFilter}
         currencies={visibleCurrencies}
         categories={visibleCategories}
+        language={language}
+        t={t}
         onToggleFilters={() => setFiltersOpen((current) => !current)}
         onCurrencyChange={setCurrencyFilter}
         onCategoryChange={setCategoryFilter}
@@ -343,6 +353,8 @@ export function BudgetClient() {
         expenses={filteredExpenses}
         travelerNameById={travelerNameById}
         deletingId={deletingId}
+        language={language}
+        t={t}
         onEdit={startEditing}
         onDelete={removeExpense}
       />
@@ -352,10 +364,12 @@ export function BudgetClient() {
 
 function SummarySection({
   summaries,
-  travelers
+  travelers,
+  t
 }: {
   summaries: ReturnType<typeof summarizeExpenseLedger>;
   travelers: Traveler[];
+  t: TFunction;
 }) {
   if (summaries.length === 0) {
     return null;
@@ -366,20 +380,20 @@ function SummarySection({
       {summaries.map((summary) => (
         <article key={summary.currency} className="rounded-lg border border-zinc-200 bg-white p-4 shadow-soft">
           <p className="text-xs font-semibold uppercase tracking-[0.08em] text-terracotta">
-            {summary.currency} summary
+            {t("budget.summary.currencySummary", { currency: summary.currency })}
           </p>
           <div className="mt-3 grid gap-3 sm:grid-cols-2">
-            <Metric label="Total spent" value={formatMoney(summary.totalSpent, summary.currency)} />
-            <Metric label="Outstanding" value={formatMoney(summary.outstandingTotal, summary.currency)} />
-            <Metric label="Settled" value={formatMoney(summary.settledTotal, summary.currency)} />
+            <Metric label={t("budget.summary.totalSpent")} value={formatMoney(summary.totalSpent, summary.currency)} />
+            <Metric label={t("budget.summary.outstanding")} value={formatMoney(summary.outstandingTotal, summary.currency)} />
+            <Metric label={t("budget.summary.settled")} value={formatMoney(summary.settledTotal, summary.currency)} />
             <Metric
-              label="Average outstanding/person"
+              label={t("budget.summary.averageOutstanding")}
               value={formatMoney(summary.outstandingTotal / Math.max(travelers.length, 1), summary.currency)}
             />
           </div>
           <div className="mt-4 rounded-lg bg-zinc-50 p-3">
             <p className="text-xs font-semibold uppercase tracking-[0.08em] text-zinc-500">
-              Outstanding share by traveler
+              {t("budget.summary.outstandingByTraveler")}
             </p>
             <dl className="mt-2 grid gap-2 text-sm text-zinc-700 sm:grid-cols-2">
               {travelers.map((traveler) => (
@@ -400,14 +414,16 @@ function SummarySection({
 
 function SettlementSection({
   summaries,
-  travelerNameById
+  travelerNameById,
+  t
 }: {
   summaries: ReturnType<typeof summarizeExpenseLedger>;
   travelerNameById: Map<string, string>;
+  t: TFunction;
 }) {
   return (
     <section className="rounded-lg border border-zinc-200 bg-white p-4 shadow-soft">
-      <h2 className="text-lg font-semibold text-ink">Settlement suggestions</h2>
+      <h2 className="text-lg font-semibold text-ink">{t("budget.settlements.title")}</h2>
       <div className="mt-3 grid gap-3 lg:grid-cols-2">
         {summaries.map((summary) => (
           <article key={summary.currency} className="rounded-lg bg-zinc-50 p-3">
@@ -424,7 +440,7 @@ function SettlementSection({
                     <span className="font-semibold text-ink">
                       {travelerNameById.get(settlement.fromTravelerId) ?? settlement.fromTravelerId}
                     </span>{" "}
-                    pays{" "}
+                    {t("budget.settlements.pays")}{" "}
                     <span className="font-semibold text-ink">
                       {travelerNameById.get(settlement.toTravelerId) ?? settlement.toTravelerId}
                     </span>{" "}
@@ -433,7 +449,7 @@ function SettlementSection({
                 ))}
               </ul>
             ) : (
-              <p className="mt-2 text-sm text-zinc-600">All settled for this currency.</p>
+              <p className="mt-2 text-sm text-zinc-600">{t("budget.settlements.allSettled")}</p>
             )}
           </article>
         ))}
@@ -449,7 +465,9 @@ function ExpenseForm({
   submitting,
   onSubmit,
   onCancel,
-  onChange
+  onChange,
+  language,
+  t
 }: {
   form: ExpenseFormState;
   travelers: Traveler[];
@@ -458,6 +476,8 @@ function ExpenseForm({
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
   onCancel: () => void;
   onChange: (updater: (current: ExpenseFormState) => ExpenseFormState) => void;
+  language: ReturnType<typeof useLanguage>["language"];
+  t: TFunction;
 }) {
   return (
     <form
@@ -467,10 +487,10 @@ function ExpenseForm({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-xs font-semibold uppercase tracking-[0.08em] text-terracotta">
-            {editingId ? "Edit misc expense" : "Add misc expense"}
+            {editingId ? t("budget.form.editEyebrow") : t("budget.form.addEyebrow")}
           </p>
           <h2 className="mt-1 text-xl font-semibold text-ink">
-            {editingId ? "Update a miscellaneous ledger item" : "Create a miscellaneous ledger item"}
+            {editingId ? t("budget.form.editTitle") : t("budget.form.addTitle")}
           </h2>
         </div>
         {editingId ? (
@@ -479,45 +499,46 @@ function ExpenseForm({
             onClick={onCancel}
             className="max-w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold text-ink"
           >
-            Cancel edit
+            {t("budget.form.cancelEdit")}
           </button>
         ) : null}
       </div>
 
       <div className="mt-4 grid min-w-0 grid-cols-1 gap-3 md:grid-cols-2">
         <TextField
-          label="Title"
+          label={t("budget.form.title")}
           value={form.title}
           onChange={(value) => onChange((current) => ({ ...current, title: value }))}
-          placeholder="Lunch near station"
+          placeholder={t("budget.form.titlePlaceholder")}
         />
         <TextField
-          label="Amount"
+          label={t("budget.form.amount")}
           type="number"
           value={form.amount}
           onChange={(value) => onChange((current) => ({ ...current, amount: value }))}
           placeholder="0"
         />
         <SelectField
-          label="Currency"
+          label={t("budget.form.currency")}
           value={form.currency}
           options={bookingCurrencies}
           onChange={(value) => onChange((current) => ({ ...current, currency: value as SharedCurrency }))}
         />
         <SelectField
-          label="Category"
+          label={t("budget.form.category")}
           value={form.category}
           options={expenseCategories}
+          formatOption={(option) => translateOption(language, option)}
           onChange={(value) => onChange((current) => ({ ...current, category: value as ExpenseCategory }))}
         />
         <TextField
-          label="Date"
+          label={t("budget.form.date")}
           type="date"
           value={form.expenseDate}
           onChange={(value) => onChange((current) => ({ ...current, expenseDate: value }))}
         />
         <SelectField
-          label="Paid by"
+          label={t("budget.form.paidBy")}
           value={form.paidByTravelerId}
           options={travelers.map((traveler) => traveler.id)}
           optionLabels={new Map(travelers.map((traveler) => [traveler.id, traveler.name]))}
@@ -526,7 +547,7 @@ function ExpenseForm({
       </div>
 
       <fieldset className="mt-3 min-w-0 rounded-lg border border-zinc-200 p-3">
-        <legend className="px-1 text-sm font-semibold text-ink">Split among</legend>
+        <legend className="px-1 text-sm font-semibold text-ink">{t("budget.form.splitAmong")}</legend>
         <div className="mt-2 grid gap-2 sm:grid-cols-2">
           {travelers.map((traveler) => (
             <label key={traveler.id} className="flex min-w-0 items-center gap-2 text-sm text-zinc-700">
@@ -556,16 +577,16 @@ function ExpenseForm({
           onChange={(event) => onChange((current) => ({ ...current, settled: event.target.checked }))}
           className="h-4 w-4 shrink-0 rounded border-zinc-300"
         />
-        <span>Settled</span>
+        <span>{t("budget.form.settled")}</span>
       </label>
 
       <label className="mt-3 block w-full max-w-full min-w-0 text-sm font-semibold text-ink">
-        Notes
+        {t("budget.form.notes")}
         <textarea
           value={form.notes}
           onChange={(event) => onChange((current) => ({ ...current, notes: event.target.value }))}
           className="mt-2 block box-border min-h-24 w-full max-w-full min-w-0 resize-y rounded-md border border-zinc-200 bg-white px-3 py-2 text-base text-zinc-700 sm:text-sm"
-          placeholder="Safe notes only. Avoid private confirmation numbers."
+          placeholder={t("budget.form.notesPlaceholder")}
         />
       </label>
 
@@ -575,7 +596,7 @@ function ExpenseForm({
           disabled={submitting}
           className="w-full max-w-full rounded-md bg-moss px-3 py-2 text-base font-semibold text-white disabled:opacity-60 sm:w-auto sm:text-sm"
         >
-          {submitting ? "Saving..." : editingId ? "Save changes" : "Add expense"}
+          {submitting ? t("budget.form.saving") : editingId ? t("budget.form.saveChanges") : t("budget.form.addExpense")}
         </button>
         <button
           type="button"
@@ -583,7 +604,7 @@ function ExpenseForm({
           disabled={submitting}
           className="w-full max-w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-base font-semibold text-ink disabled:opacity-60 sm:w-auto sm:text-sm"
         >
-          Cancel
+          {t("common.cancel")}
         </button>
       </div>
     </form>
@@ -598,6 +619,8 @@ function FilterSection({
   statusFilter,
   currencies,
   categories,
+  language,
+  t,
   onToggleFilters,
   onCurrencyChange,
   onCategoryChange,
@@ -611,58 +634,66 @@ function FilterSection({
   statusFilter: StatusFilter;
   currencies: SharedCurrency[];
   categories: ExpenseCategory[];
+  language: ReturnType<typeof useLanguage>["language"];
+  t: TFunction;
   onToggleFilters: () => void;
   onCurrencyChange: (value: CurrencyFilter) => void;
   onCategoryChange: (value: CategoryFilter) => void;
   onSourceChange: (value: SourceFilter) => void;
   onStatusChange: (value: StatusFilter) => void;
 }) {
+  const filterSummary = [currencyFilter, categoryFilter, sourceFilter, statusFilter]
+    .map((value) => formatFilterValue(language, value))
+    .join(" / ");
+
   return (
     <section className="rounded-lg border border-zinc-200 bg-white p-3 shadow-soft">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
-          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-terracotta">Filters</p>
-          <p className="mt-1 text-sm text-zinc-600">
-            {currencyFilter} / {categoryFilter} / {sourceFilter} / {statusFilter}
-          </p>
+          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-terracotta">{t("budget.filters.title")}</p>
+          <p className="mt-1 text-sm text-zinc-600">{filterSummary}</p>
         </div>
         <button
           type="button"
           onClick={onToggleFilters}
           className="w-full max-w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold text-ink sm:w-auto"
         >
-          {filtersOpen ? "Hide filters" : "Filters"}
+          {filtersOpen ? t("budget.filters.hide") : t("budget.filters.title")}
         </button>
       </div>
 
       {filtersOpen ? (
         <>
           <p className="mt-3 text-sm text-zinc-600">
-            Filters only change the expense list below. Summary and settlements stay based on the full ledger.
+            {t("budget.filters.note")}
           </p>
           <div className="mt-3 grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
             <CompactSelect
-              label="Currency"
+              label={t("budget.filters.currency")}
               value={currencyFilter}
               options={["All", ...currencies]}
+              formatOption={(option) => formatFilterValue(language, option)}
               onChange={(value) => onCurrencyChange(value as CurrencyFilter)}
             />
             <CompactSelect
-              label="Category"
+              label={t("budget.filters.category")}
               value={categoryFilter}
               options={["All", ...categories]}
+              formatOption={(option) => formatFilterValue(language, option)}
               onChange={(value) => onCategoryChange(value as CategoryFilter)}
             />
             <CompactSelect
-              label="Source"
+              label={t("budget.filters.source")}
               value={sourceFilter}
               options={["All", ...expenseSourceTypes]}
+              formatOption={(option) => formatFilterValue(language, option)}
               onChange={(value) => onSourceChange(value as SourceFilter)}
             />
             <CompactSelect
-              label="Status"
+              label={t("budget.filters.status")}
               value={statusFilter}
               options={["All", "Outstanding", "Settled"]}
+              formatOption={(option) => formatFilterValue(language, option)}
               onChange={(value) => onStatusChange(value as StatusFilter)}
             />
           </div>
@@ -676,24 +707,28 @@ function ExpenseList({
   expenses,
   travelerNameById,
   deletingId,
+  language,
+  t,
   onEdit,
   onDelete
 }: {
   expenses: SharedExpense[];
   travelerNameById: Map<string, string>;
   deletingId: string | null;
+  language: ReturnType<typeof useLanguage>["language"];
+  t: TFunction;
   onEdit: (expense: SharedExpense) => void;
   onDelete: (expense: SharedExpense) => Promise<void>;
 }) {
   return (
     <section className="space-y-3">
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-lg font-semibold text-ink">Expenses</h2>
-        <p className="text-sm text-zinc-500">{expenses.length} visible</p>
+        <h2 className="text-lg font-semibold text-ink">{t("budget.expenses.title")}</h2>
+        <p className="text-sm text-zinc-500">{t("budget.expenses.visible", { count: expenses.length })}</p>
       </div>
       {expenses.length === 0 ? (
         <p className="rounded-lg border border-zinc-200 bg-white px-4 py-8 text-sm text-zinc-600 shadow-soft">
-          No expenses match the selected filters.
+          {t("budget.expenses.emptyFiltered")}
         </p>
       ) : null}
       <div className="grid gap-3">
@@ -703,6 +738,8 @@ function ExpenseList({
             expense={expense}
             travelerNameById={travelerNameById}
             deletingId={deletingId}
+            language={language}
+            t={t}
             onEdit={onEdit}
             onDelete={onDelete}
           />
@@ -716,12 +753,16 @@ function ExpenseCard({
   expense,
   travelerNameById,
   deletingId,
+  language,
+  t,
   onEdit,
   onDelete
 }: {
   expense: SharedExpense;
   travelerNameById: Map<string, string>;
   deletingId: string | null;
+  language: ReturnType<typeof useLanguage>["language"];
+  t: TFunction;
   onEdit: (expense: SharedExpense) => void;
   onDelete: (expense: SharedExpense) => Promise<void>;
 }) {
@@ -737,13 +778,13 @@ function ExpenseCard({
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <p className="text-xs font-semibold uppercase tracking-[0.08em] text-terracotta">
-              {sourceTypeLabel(expense.sourceType)}
+              {sourceTypeLabel(t, expense.sourceType)}
             </p>
-            <StatusPill settled={expense.settled} />
+            <StatusPill settled={expense.settled} t={t} />
           </div>
           <h3 className="mt-1 break-words text-lg font-semibold text-ink">{expense.title}</h3>
           <p className="mt-1 text-sm text-zinc-600">
-            {expense.category} - {expense.expenseDate}
+            {translateOption(language, expense.category)} - {expense.expenseDate}
           </p>
         </div>
         <p className="shrink-0 text-base font-semibold text-ink">
@@ -755,10 +796,10 @@ function ExpenseCard({
         <>
           <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
             <Field
-              label="Paid by"
+              label={t("budget.form.paidBy")}
               value={travelerNameById.get(expense.paidByTravelerId) ?? expense.paidByTravelerId}
             />
-            <Field label="Split among" value={splitAmong} />
+            <Field label={t("budget.form.splitAmong")} value={splitAmong} />
           </dl>
           {expense.notes ? (
             <p className="mt-3 break-words text-sm leading-6 text-zinc-600">{expense.notes}</p>
@@ -772,7 +813,7 @@ function ExpenseCard({
           onClick={() => setDetailsOpen((current) => !current)}
           className="rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold text-ink"
         >
-          {detailsOpen ? "Hide details" : "Details"}
+          {detailsOpen ? t("budget.expenses.hideDetails") : t("budget.expenses.details")}
         </button>
         {isMisc ? (
           <>
@@ -781,7 +822,7 @@ function ExpenseCard({
               onClick={() => onEdit(expense)}
               className="rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold text-ink"
             >
-              Edit
+              {t("common.edit")}
             </button>
             <button
               type="button"
@@ -789,12 +830,12 @@ function ExpenseCard({
               disabled={deletingId === expense.id}
               className="rounded-md border border-red-200 bg-white px-3 py-2 text-sm font-semibold text-red-700 disabled:opacity-60"
             >
-              {deletingId === expense.id ? "Deleting..." : "Delete"}
+              {deletingId === expense.id ? t("budget.expenses.deleting") : t("common.delete")}
             </button>
           </>
         ) : (
           <p className="rounded-md bg-zinc-100 px-3 py-2 text-sm font-medium text-zinc-600">
-            Edit from {sourceEditPageLabel(expense.sourceType)}.
+            {t("budget.expenses.editFrom", { source: sourceEditPageLabel(t, expense.sourceType) })}
           </p>
         )}
       </div>
@@ -820,7 +861,7 @@ function Field({ label, value }: { label: string; value: string }) {
   );
 }
 
-function StatusPill({ settled }: { settled: boolean }) {
+function StatusPill({ settled, t }: { settled: boolean; t: TFunction }) {
   return (
     <span
       className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ${
@@ -829,25 +870,33 @@ function StatusPill({ settled }: { settled: boolean }) {
           : "bg-amber-100 text-amber-800 ring-amber-200"
       }`}
     >
-      {settled ? "Settled" : "Outstanding"}
+      {settled ? t("budget.summary.settled") : t("budget.summary.outstanding")}
     </span>
   );
 }
 
-function sourceTypeLabel(sourceType: ExpenseSourceType) {
+function sourceTypeLabel(t: TFunction, sourceType: ExpenseSourceType) {
   if (sourceType === "misc") {
-    return "Misc";
+    return t("budget.source.misc");
   }
 
   if (sourceType === "itinerary") {
-    return "Itinerary";
+    return t("budget.source.itinerary");
   }
 
-  return "Booking";
+  return t("budget.source.booking");
 }
 
-function sourceEditPageLabel(sourceType: ExpenseSourceType) {
-  return sourceType === "itinerary" ? "Itinerary" : "Bookings";
+function sourceEditPageLabel(t: TFunction, sourceType: ExpenseSourceType) {
+  return sourceType === "itinerary" ? t("nav.itinerary") : t("nav.bookings");
+}
+
+function formatFilterValue(language: ReturnType<typeof useLanguage>["language"], value: string) {
+  if (bookingCurrencies.includes(value as SharedCurrency)) {
+    return value;
+  }
+
+  return translateOption(language, value);
 }
 
 function TextField({
@@ -884,12 +933,14 @@ function SelectField({
   value,
   options,
   optionLabels,
+  formatOption,
   onChange
 }: {
   label: string;
   value: string;
   options: readonly string[];
   optionLabels?: Map<string, string>;
+  formatOption?: (option: string) => string;
   onChange: (value: string) => void;
 }) {
   return (
@@ -902,7 +953,7 @@ function SelectField({
       >
         {options.map((option) => (
           <option key={option} value={option}>
-            {optionLabels?.get(option) ?? option}
+            {optionLabels?.get(option) ?? formatOption?.(option) ?? option}
           </option>
         ))}
       </select>
@@ -914,11 +965,13 @@ function CompactSelect({
   label,
   value,
   options,
+  formatOption,
   onChange
 }: {
   label: string;
   value: string;
   options: readonly string[];
+  formatOption?: (option: string) => string;
   onChange: (value: string) => void;
 }) {
   return (
@@ -931,7 +984,7 @@ function CompactSelect({
       >
         {options.map((option) => (
           <option key={option} value={option}>
-            {option}
+            {formatOption?.(option) ?? option}
           </option>
         ))}
       </select>
@@ -942,7 +995,8 @@ function CompactSelect({
 async function fetchExpensesJson(
   url: string,
   options: RequestInit | undefined,
-  fallbackMessage: string
+  fallbackMessage: string,
+  timeoutMessage: string
 ): Promise<{ expenses: SharedExpense[]; travelers: Traveler[] }> {
   const controller = new AbortController();
   const timeoutId = window.setTimeout(() => controller.abort(), requestTimeoutMs);
@@ -961,7 +1015,7 @@ async function fetchExpensesJson(
     return validateExpensesResponse(data, fallbackMessage);
   } catch (error) {
     if (error instanceof DOMException && error.name === "AbortError") {
-      throw new Error(`${fallbackMessage} Request timed out. Please retry.`);
+      throw new Error(`${fallbackMessage} ${timeoutMessage}`);
     }
 
     throw error;

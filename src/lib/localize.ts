@@ -9,6 +9,8 @@ const uiValueTranslations: Record<string, { en: string; zh: string }> = {
   "Need Confirmation": { en: "Need Confirmation", zh: "需确认" },
   "Check Before Departure": { en: "Check Before Departure", zh: "出发前检查" },
   Confirmed: { en: "Confirmed", zh: "已确认" },
+  Outstanding: { en: "Outstanding", zh: "待结算" },
+  Settled: { en: "Settled", zh: "已结算" },
   High: { en: "High", zh: "高" },
   Medium: { en: "Medium", zh: "中" },
   Low: { en: "Low", zh: "低" },
@@ -19,6 +21,7 @@ const uiValueTranslations: Record<string, { en: string; zh: string }> = {
   Attraction: { en: "Attraction", zh: "景点" },
   Restaurant: { en: "Restaurant", zh: "餐厅" },
   Insurance: { en: "Insurance", zh: "保险" },
+  Shopping: { en: "Shopping", zh: "购物" },
   Other: { en: "Other", zh: "其他" },
   Accommodation: { en: "Accommodation", zh: "住宿" },
   Transport: { en: "Transport", zh: "交通" },
@@ -37,7 +40,10 @@ const uiValueTranslations: Record<string, { en: string; zh: string }> = {
   Traveller: { en: "Traveller", zh: "旅伴" },
   Bank: { en: "Bank", zh: "银行" },
   Embassy: { en: "Embassy", zh: "大使馆" },
-  Medical: { en: "Medical", zh: "医疗" }
+  Medical: { en: "Medical", zh: "医疗" },
+  itinerary: { en: "Itinerary", zh: "行程" },
+  booking: { en: "Booking", zh: "预订" },
+  misc: { en: "Misc", zh: "其他" }
 };
 
 export function translateText(language: Language, value?: string) {
