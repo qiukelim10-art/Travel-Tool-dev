@@ -74,6 +74,7 @@ export function BudgetClient() {
   const [form, setForm] = useState<ExpenseFormState>(() => emptyForm([]));
   const [submitting, setSubmitting] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [currencyFilter, setCurrencyFilter] = useState<CurrencyFilter>("All");
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>("All");
   const [sourceFilter, setSourceFilter] = useState<SourceFilter>("All");
@@ -324,12 +325,14 @@ export function BudgetClient() {
       ) : null}
 
       <FilterSection
+        filtersOpen={filtersOpen}
         currencyFilter={currencyFilter}
         categoryFilter={categoryFilter}
         sourceFilter={sourceFilter}
         statusFilter={statusFilter}
         currencies={visibleCurrencies}
         categories={visibleCategories}
+        onToggleFilters={() => setFiltersOpen((current) => !current)}
         onCurrencyChange={setCurrencyFilter}
         onCategoryChange={setCategoryFilter}
         onSourceChange={setSourceFilter}
@@ -459,7 +462,7 @@ function ExpenseForm({
   return (
     <form
       onSubmit={onSubmit}
-      className="box-border w-full max-w-full min-w-0 overflow-hidden rounded-lg border border-zinc-200 bg-white p-4 shadow-soft"
+      className="mobile-safe-form box-border w-full max-w-full min-w-0 overflow-hidden rounded-lg border border-zinc-200 bg-white p-4 shadow-soft"
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
@@ -588,23 +591,27 @@ function ExpenseForm({
 }
 
 function FilterSection({
+  filtersOpen,
   currencyFilter,
   categoryFilter,
   sourceFilter,
   statusFilter,
   currencies,
   categories,
+  onToggleFilters,
   onCurrencyChange,
   onCategoryChange,
   onSourceChange,
   onStatusChange
 }: {
+  filtersOpen: boolean;
   currencyFilter: CurrencyFilter;
   categoryFilter: CategoryFilter;
   sourceFilter: SourceFilter;
   statusFilter: StatusFilter;
   currencies: SharedCurrency[];
   categories: ExpenseCategory[];
+  onToggleFilters: () => void;
   onCurrencyChange: (value: CurrencyFilter) => void;
   onCategoryChange: (value: CategoryFilter) => void;
   onSourceChange: (value: SourceFilter) => void;
@@ -612,36 +619,55 @@ function FilterSection({
 }) {
   return (
     <section className="rounded-lg border border-zinc-200 bg-white p-3 shadow-soft">
-      <p className="text-xs font-semibold uppercase tracking-[0.08em] text-terracotta">Filters</p>
-      <p className="mt-1 text-sm text-zinc-600">
-        Filters only change the expense list below. Summary and settlements stay based on the full ledger.
-      </p>
-      <div className="mt-3 flex max-w-full gap-2 overflow-x-auto pb-1">
-        <CompactSelect
-          label="Currency"
-          value={currencyFilter}
-          options={["All", ...currencies]}
-          onChange={(value) => onCurrencyChange(value as CurrencyFilter)}
-        />
-        <CompactSelect
-          label="Category"
-          value={categoryFilter}
-          options={["All", ...categories]}
-          onChange={(value) => onCategoryChange(value as CategoryFilter)}
-        />
-        <CompactSelect
-          label="Source"
-          value={sourceFilter}
-          options={["All", ...expenseSourceTypes]}
-          onChange={(value) => onSourceChange(value as SourceFilter)}
-        />
-        <CompactSelect
-          label="Status"
-          value={statusFilter}
-          options={["All", "Outstanding", "Settled"]}
-          onChange={(value) => onStatusChange(value as StatusFilter)}
-        />
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
+          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-terracotta">Filters</p>
+          <p className="mt-1 text-sm text-zinc-600">
+            {currencyFilter} / {categoryFilter} / {sourceFilter} / {statusFilter}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={onToggleFilters}
+          className="w-full max-w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold text-ink sm:w-auto"
+        >
+          {filtersOpen ? "Hide filters" : "Filters"}
+        </button>
       </div>
+
+      {filtersOpen ? (
+        <>
+          <p className="mt-3 text-sm text-zinc-600">
+            Filters only change the expense list below. Summary and settlements stay based on the full ledger.
+          </p>
+          <div className="mt-3 grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
+            <CompactSelect
+              label="Currency"
+              value={currencyFilter}
+              options={["All", ...currencies]}
+              onChange={(value) => onCurrencyChange(value as CurrencyFilter)}
+            />
+            <CompactSelect
+              label="Category"
+              value={categoryFilter}
+              options={["All", ...categories]}
+              onChange={(value) => onCategoryChange(value as CategoryFilter)}
+            />
+            <CompactSelect
+              label="Source"
+              value={sourceFilter}
+              options={["All", ...expenseSourceTypes]}
+              onChange={(value) => onSourceChange(value as SourceFilter)}
+            />
+            <CompactSelect
+              label="Status"
+              value={statusFilter}
+              options={["All", "Outstanding", "Settled"]}
+              onChange={(value) => onStatusChange(value as StatusFilter)}
+            />
+          </div>
+        </>
+      ) : null}
     </section>
   );
 }
@@ -671,72 +697,108 @@ function ExpenseList({
         </p>
       ) : null}
       <div className="grid gap-3">
-        {expenses.map((expense) => {
-          const isMisc = expense.sourceType === "misc";
-
-          return (
-            <article key={expense.id} className="rounded-lg border border-zinc-200 bg-white p-4 shadow-soft">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <p className="text-xs font-semibold uppercase tracking-[0.08em] text-terracotta">
-                      {sourceTypeLabel(expense.sourceType)}
-                    </p>
-                    <StatusPill settled={expense.settled} />
-                  </div>
-                  <h3 className="mt-1 break-words text-lg font-semibold text-ink">{expense.title}</h3>
-                  <p className="mt-1 text-sm text-zinc-600">
-                    {expense.category} - {expense.expenseDate}
-                  </p>
-                </div>
-                <p className="shrink-0 text-base font-semibold text-ink">
-                  {formatMoney(expense.amount, expense.currency)}
-                </p>
-              </div>
-
-              <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
-                <Field
-                  label="Paid by"
-                  value={travelerNameById.get(expense.paidByTravelerId) ?? expense.paidByTravelerId}
-                />
-                <Field
-                  label="Split among"
-                  value={expense.splitTravelerIds
-                    .map((travelerId) => travelerNameById.get(travelerId) ?? travelerId)
-                    .join(", ")}
-                />
-              </dl>
-              {expense.notes ? <p className="mt-3 break-words text-sm leading-6 text-zinc-600">{expense.notes}</p> : null}
-              <div className="mt-4 flex flex-wrap gap-2">
-                {isMisc ? (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => onEdit(expense)}
-                      className="rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold text-ink"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => void onDelete(expense)}
-                      disabled={deletingId === expense.id}
-                      className="rounded-md border border-red-200 bg-white px-3 py-2 text-sm font-semibold text-red-700 disabled:opacity-60"
-                    >
-                      {deletingId === expense.id ? "Deleting..." : "Delete"}
-                    </button>
-                  </>
-                ) : (
-                  <p className="rounded-md bg-zinc-100 px-3 py-2 text-sm font-medium text-zinc-600">
-                    Linked expense. Edit from the {sourceEditPageLabel(expense.sourceType)} page.
-                  </p>
-                )}
-              </div>
-            </article>
-          );
-        })}
+        {expenses.map((expense) => (
+          <ExpenseCard
+            key={expense.id}
+            expense={expense}
+            travelerNameById={travelerNameById}
+            deletingId={deletingId}
+            onEdit={onEdit}
+            onDelete={onDelete}
+          />
+        ))}
       </div>
     </section>
+  );
+}
+
+function ExpenseCard({
+  expense,
+  travelerNameById,
+  deletingId,
+  onEdit,
+  onDelete
+}: {
+  expense: SharedExpense;
+  travelerNameById: Map<string, string>;
+  deletingId: string | null;
+  onEdit: (expense: SharedExpense) => void;
+  onDelete: (expense: SharedExpense) => Promise<void>;
+}) {
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const isMisc = expense.sourceType === "misc";
+  const splitAmong = expense.splitTravelerIds
+    .map((travelerId) => travelerNameById.get(travelerId) ?? travelerId)
+    .join(", ");
+
+  return (
+    <article className="rounded-lg border border-zinc-200 bg-white p-4 shadow-soft">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="text-xs font-semibold uppercase tracking-[0.08em] text-terracotta">
+              {sourceTypeLabel(expense.sourceType)}
+            </p>
+            <StatusPill settled={expense.settled} />
+          </div>
+          <h3 className="mt-1 break-words text-lg font-semibold text-ink">{expense.title}</h3>
+          <p className="mt-1 text-sm text-zinc-600">
+            {expense.category} - {expense.expenseDate}
+          </p>
+        </div>
+        <p className="shrink-0 text-base font-semibold text-ink">
+          {formatMoney(expense.amount, expense.currency)}
+        </p>
+      </div>
+
+      {detailsOpen ? (
+        <>
+          <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
+            <Field
+              label="Paid by"
+              value={travelerNameById.get(expense.paidByTravelerId) ?? expense.paidByTravelerId}
+            />
+            <Field label="Split among" value={splitAmong} />
+          </dl>
+          {expense.notes ? (
+            <p className="mt-3 break-words text-sm leading-6 text-zinc-600">{expense.notes}</p>
+          ) : null}
+        </>
+      ) : null}
+
+      <div className="mt-4 flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={() => setDetailsOpen((current) => !current)}
+          className="rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold text-ink"
+        >
+          {detailsOpen ? "Hide details" : "Details"}
+        </button>
+        {isMisc ? (
+          <>
+            <button
+              type="button"
+              onClick={() => onEdit(expense)}
+              className="rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold text-ink"
+            >
+              Edit
+            </button>
+            <button
+              type="button"
+              onClick={() => void onDelete(expense)}
+              disabled={deletingId === expense.id}
+              className="rounded-md border border-red-200 bg-white px-3 py-2 text-sm font-semibold text-red-700 disabled:opacity-60"
+            >
+              {deletingId === expense.id ? "Deleting..." : "Delete"}
+            </button>
+          </>
+        ) : (
+          <p className="rounded-md bg-zinc-100 px-3 py-2 text-sm font-medium text-zinc-600">
+            Edit from {sourceEditPageLabel(expense.sourceType)}.
+          </p>
+        )}
+      </div>
+    </article>
   );
 }
 
@@ -860,12 +922,12 @@ function CompactSelect({
   onChange: (value: string) => void;
 }) {
   return (
-    <label className="block w-44 shrink-0 text-sm font-semibold text-ink">
+    <label className="block w-full max-w-full min-w-0 text-sm font-semibold text-ink">
       {label}
       <select
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="mt-2 block box-border w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-base text-zinc-700 sm:text-sm"
+        className="mt-2 block box-border w-full max-w-full min-w-0 rounded-md border border-zinc-200 bg-white px-3 py-2 text-base text-zinc-700 sm:text-sm"
       >
         {options.map((option) => (
           <option key={option} value={option}>

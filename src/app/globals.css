@@ -61,3 +61,40 @@ select {
   min-width: 0;
   text-align: left;
 }
+
+.mobile-safe-form,
+.mobile-safe-form * {
+  min-width: 0;
+}
+
+.mobile-safe-form input,
+.mobile-safe-form select,
+.mobile-safe-form textarea {
+  box-sizing: border-box;
+  display: block;
+  font-size: 16px;
+  inline-size: 100%;
+  max-inline-size: 100%;
+  min-inline-size: 0;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.mobile-safe-form button {
+  box-sizing: border-box;
+  max-width: 100%;
+}
+
+.mobile-safe-form input[type="date"],
+.mobile-safe-form input[type="time"],
+.mobile-safe-form select {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.mobile-safe-form input[type="date"]::-webkit-date-and-time-value,
+.mobile-safe-form input[type="time"]::-webkit-date-and-time-value {
+  min-width: 0;
+  text-align: left;
+}
