@@ -2,6 +2,9 @@
 
 ## 2026-06-13
 
+- Added Dashboard budget widgets backed by `/api/expenses` and `summarizeExpenseLedger`, replacing the old static expense summary on the homepage while keeping the rest of Dashboard unchanged.
+- Dashboard now shows ledger total/outstanding/settled/average outstanding per person by currency, top settlement suggestions, recent expenses, loading/error/retry, empty state, and a Budget link.
+- Verified `npm.cmd run build`, `npm.cmd run lint`, desktop/LAN `/`, `/budget`, `/itinerary`, `/bookings`, `/api/expenses`, and temporary misc expense create/edit/delete cleanup with Dashboard ledger summary restore.
 - Completed a Budget unified expense closeout review and made small clarity fixes: Budget source labels are now display-friendly, filters explicitly apply only to the expense list, and linked expense edit/delete guidance points to Itinerary or Bookings.
 - Verified `npm.cmd run build`, `npm.cmd run lint`, desktop/LAN `/budget`, `/itinerary`, `/bookings`, `/api/expenses`, and full temporary misc/itinerary/booking expense create/edit/delete cleanup with Budget summary restore.
 - Added booking linked expenses using the shared expense ledger without changing the expense API schema or adding tables.
