@@ -301,6 +301,10 @@ export function BookingsClient({ participants }: BookingsClientProps) {
   }
 
   async function removeBooking(booking: SharedBooking) {
+    if (!window.confirm("Delete this booking item? This cannot be undone.")) {
+      return;
+    }
+
     setDeletingId(booking.id);
     setError(null);
     setNotice(null);
@@ -369,7 +373,7 @@ export function BookingsClient({ participants }: BookingsClientProps) {
 
       <form
         onSubmit={submitBooking}
-        className="box-border w-full max-w-full min-w-0 rounded-lg border border-zinc-200 bg-white p-4 shadow-soft"
+        className="mobile-safe-form box-border w-full max-w-full min-w-0 rounded-lg border border-zinc-200 bg-white p-4 shadow-soft"
       >
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
@@ -814,7 +818,7 @@ function BookingExpenseForm({
   return (
     <form
       onSubmit={(event) => void onSubmit(booking, event)}
-      className="mt-3 box-border w-full max-w-full min-w-0 overflow-hidden rounded-lg border border-zinc-200 bg-zinc-50 p-3"
+      className="mobile-safe-form mt-3 box-border w-full max-w-full min-w-0 overflow-hidden rounded-lg border border-zinc-200 bg-zinc-50 p-3"
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
@@ -1095,7 +1099,7 @@ function ActionButtons({
       <button
         type="button"
         onClick={() => onEdit(booking)}
-        className="rounded-md border border-zinc-200 bg-white px-2 py-1 text-xs font-semibold text-ink"
+        className="rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold text-ink"
       >
         Edit
       </button>
@@ -1103,7 +1107,7 @@ function ActionButtons({
         type="button"
         onClick={() => void onDelete(booking)}
         disabled={deletingId === booking.id}
-        className="rounded-md border border-red-200 bg-white px-2 py-1 text-xs font-semibold text-red-700 disabled:opacity-60"
+        className="rounded-md border border-red-200 bg-white px-3 py-2 text-sm font-semibold text-red-700 disabled:opacity-60"
       >
         {deletingId === booking.id ? "Deleting..." : "Delete"}
       </button>

@@ -2,6 +2,8 @@
 
 ## 2026-06-13
 
+- Completed the first Phase 2 mobile safety polish pass for Bookings, Itinerary, and Budget: Booking item delete now confirms before calling DELETE, Booking item action buttons have larger tap targets, and shared `mobile-safe-form` protection covers Booking main/linked expense forms, Budget misc expense form, and Itinerary linked expense form.
+- Verified `npm.cmd run build`, `npm.cmd run lint`, desktop/LAN `/bookings`, `/budget`, `/itinerary`, `/api/expenses`, `/api/bookings`, and `/api/itinerary`; the user also confirmed the mobile phone review passed.
 - Added real-data preparation docs before private trip details are entered: `REAL_DATA_ENTRY_GUIDE.md` and `REAL_DATA_CHECKLIST.md`.
 - Marked `src/data/tripData.ts` seed data as safe demo/placeholder data without changing data structure or CRUD logic.
 - Confirmed real passport numbers, payment card details, full confirmations, private document files, and personal contact details should still stay out of the repo unless protection is added later.

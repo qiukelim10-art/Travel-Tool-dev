@@ -459,7 +459,7 @@ function ExpenseForm({
   return (
     <form
       onSubmit={onSubmit}
-      className="box-border w-full max-w-full min-w-0 overflow-hidden rounded-lg border border-zinc-200 bg-white p-4 shadow-soft"
+      className="mobile-safe-form box-border w-full max-w-full min-w-0 overflow-hidden rounded-lg border border-zinc-200 bg-white p-4 shadow-soft"
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">

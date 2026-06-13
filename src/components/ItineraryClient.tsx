@@ -942,7 +942,7 @@ function ItineraryExpenseForm({
   return (
     <form
       onSubmit={(event) => void onSubmit(item, event)}
-      className="mt-3 box-border w-full max-w-full min-w-0 overflow-hidden rounded-lg border border-zinc-200 bg-zinc-50 p-3"
+      className="mobile-safe-form mt-3 box-border w-full max-w-full min-w-0 overflow-hidden rounded-lg border border-zinc-200 bg-zinc-50 p-3"
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
