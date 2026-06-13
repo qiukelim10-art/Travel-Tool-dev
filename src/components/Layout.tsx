@@ -23,20 +23,20 @@ const mobileNavItems = [
 ];
 
 function LanguageToggle({ compact = false }: { compact?: boolean }) {
-  const { t, toggleLanguage } = useLanguage();
+  const { language, t, toggleLanguage } = useLanguage();
 
   return (
     <button
       type="button"
       onClick={toggleLanguage}
-      className={`rounded-md border border-zinc-200 bg-white font-semibold text-ink ${
+      className={`rounded-md border border-zinc-200 bg-white font-semibold text-ink shadow-sm ${
         compact
-          ? "px-1 py-2 text-xs ring-1 ring-moss/20"
+          ? "px-3 py-2 text-xs ring-1 ring-moss/20"
           : "px-3 py-2 text-sm ring-1 ring-moss/20 hover:bg-zinc-50"
       }`}
-      aria-label={t("language.label")}
+      aria-label={`${t("language.label")}: ${language === "zh" ? "中文" : "English"}`}
     >
-      {compact ? t("language.switchShort") : t("language.switch")}
+      {t("language.toggle")}
     </button>
   );
 }
@@ -70,9 +70,18 @@ function Navigation() {
                 </Link>
               );
             })}
+            <LanguageToggle />
           </div>
         </div>
       </nav>
+      <header className="border-b border-zinc-200 bg-white/90 px-4 py-3 backdrop-blur md:hidden">
+        <div className="mx-auto flex max-w-lg items-center justify-between gap-3">
+          <Link href="/" className="min-w-0 truncate text-sm font-semibold text-ink">
+            Italy Trip 2026
+          </Link>
+          <LanguageToggle compact />
+        </div>
+      </header>
       <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-zinc-200 bg-white/95 px-2 pb-2 pt-1 backdrop-blur md:hidden">
         <div className="mx-auto grid max-w-lg grid-cols-5 gap-1">
           {mobileNavItems.map((item) => {

@@ -3,6 +3,7 @@
 import {
   createContext,
   type ReactNode,
+  useCallback,
   useContext,
   useEffect,
   useMemo,
@@ -11,10 +12,15 @@ import {
 
 export type Language = "en" | "zh";
 
-const languageStorageKey = "italy-trip-language";
+export const languageStorageKey = "trip-dashboard-language";
+
+const legacyLanguageStorageKey = "italy-trip-language";
 
 const translations = {
   en: {
+    "language.label": "Language",
+    "language.toggle": "EN / 中文",
+
     "nav.dashboard": "Dashboard",
     "nav.home": "Home",
     "nav.itinerary": "Itinerary",
@@ -23,81 +29,147 @@ const translations = {
     "nav.book": "Book",
     "nav.budget": "Budget",
     "nav.money": "Money",
-    "nav.map": "Map",
-    "nav.food": "Food",
-    "nav.attractions": "Attractions",
-    "nav.see": "See",
     "nav.packing": "Packing",
     "nav.pack": "Pack",
     "nav.documents": "Documents",
     "nav.docs": "Docs",
-    "nav.emergency": "Emergency",
     "nav.more": "More",
-    "language.switch": "Language: 中文 / EN",
-    "language.switchShort": "中/EN",
-    "language.label": "Language",
-    "common.all": "All",
-    "common.open": "Open",
+
+    "common.add": "Add",
+    "common.cancel": "Cancel",
     "common.close": "Close",
+    "common.delete": "Delete",
+    "common.edit": "Edit",
+    "common.hide": "Hide",
+    "common.loading": "Loading",
+    "common.open": "Open",
+    "common.retry": "Retry",
+    "common.save": "Save",
+    "common.show": "Show",
     "common.view": "View",
     "common.call": "Call",
     "common.map": "Map",
-    "common.openMap": "Open map",
-    "common.officialSite": "Official site",
-    "common.tbc": "TBC",
-    "common.owner": "Owner",
-    "common.day": "Day",
-    "common.date": "Date",
-    "common.location": "Location",
-    "common.amount": "Amount",
-    "common.status": "Status",
-    "common.category": "Category",
-    "common.title": "Title",
-    "common.city": "City",
+    "common.filter": "Filter",
+    "common.by": "By",
     "common.priority": "Priority",
-    "common.price": "Price",
-    "common.reservation": "Reservation",
-    "common.booking": "Booking",
-    "common.duration": "Duration",
-    "common.ticket": "Ticket",
-    "common.required": "Required",
-    "common.freeNotNeeded": "Free / not needed",
-    "common.bookedBy": "Booked by",
-    "common.privateLink": "Private link placeholder",
-    "page.dashboard.eyebrow": "Private trip dashboard",
-    "page.dashboard.tripDates": "Trip dates",
-    "page.dashboard.tripDatesValue": "Oct 8-18",
-    "page.dashboard.travellers": "travellers",
-    "page.dashboard.cities": "Cities",
-    "page.dashboard.routeDetail": "Rome, Florence, Venice, Milan route placeholder.",
-    "page.dashboard.nextDeadline": "Next deadline",
-    "page.dashboard.emergencyDetail": "Tap Emergency any time from the bottom navigation.",
-    "page.dashboard.nextItineraryDay": "Next itinerary day",
-    "page.dashboard.bookingProgress": "Booking progress",
-    "page.dashboard.itemsNeedAction": "items still need action.",
-    "page.dashboard.budgetOverview": "Budget overview",
-    "page.dashboard.perPerson": "per person",
-    "page.dashboard.openBudget": "Open budget",
-    "page.dashboard.importantReminders": "Important reminders",
+    "common.createdBy": "Created by",
+
+    "dashboard.eyebrow": "Private trip dashboard",
+    "dashboard.travellers": "travellers",
+    "dashboard.nextUp": "Next up",
+    "dashboard.day": "Day {day}",
+    "dashboard.viewItinerary": "View itinerary",
+    "dashboard.needsAttention": "Needs attention",
+    "dashboard.bookingItem": "booking item",
+    "dashboard.bookingItems": "booking items",
+    "dashboard.attentionHint": "Pending, not booked, or waiting for confirmation.",
+    "dashboard.openBookings": "Open bookings",
+    "dashboard.noBookingAttention": "No booking items need attention right now.",
+    "dashboard.quickActions": "Quick actions",
+    "dashboard.quickActionsHint": "Jump to the full tools when you need details.",
+    "dashboard.action.plan": "Plan",
+    "dashboard.action.planDetail": "Daily route",
+    "dashboard.action.bookings": "Bookings",
+    "dashboard.action.bookingsDetail": "Confirmations",
+    "dashboard.action.money": "Money",
+    "dashboard.action.moneyDetail": "Shared costs",
+    "dashboard.action.packing": "Packing",
+    "dashboard.action.packingDetail": "Checklist",
+    "dashboard.action.documents": "Documents",
+    "dashboard.action.documentsDetail": "Safe links",
+
+    "sos.button": "SOS",
+    "sos.ariaLabel": "Emergency quick access",
+    "sos.title": "Emergency",
+    "sos.description": "Choose a number, then confirm the call on your phone.",
+    "sos.close": "Close",
+    "sos.closeAria": "Close emergency quick access",
+    "sos.callNumber": "Call {number}",
+
+    "budgetWidget.eyebrow": "Money snapshot",
+    "budgetWidget.title": "Outstanding by currency",
+    "budgetWidget.description": "Full expense details stay in Budget.",
+    "budgetWidget.openBudget": "Open Budget",
+    "budgetWidget.loading": "Loading budget ledger...",
+    "budgetWidget.retrying": "Retrying...",
+    "budgetWidget.emptyTitle": "No shared expenses yet.",
+    "budgetWidget.emptyDescription": "Add expenses from Budget, Itinerary, or Bookings when ready.",
+    "budgetWidget.totalSpent": "Total spent",
+    "budgetWidget.topSettlements": "Top settlements",
+    "budgetWidget.allBalanced": "All outstanding expenses are balanced.",
+    "budgetWidget.recentExpenses": "Recent expenses",
+    "budgetWidget.pays": "pays",
+    "budgetWidget.source.misc": "Misc",
+    "budgetWidget.source.itinerary": "Itinerary",
+    "budgetWidget.source.booking": "Booking",
+    "budgetWidget.errorLoad": "Unable to load budget summary.",
+    "budgetWidget.errorTimeout": "Request timed out. Please retry.",
+
+    "reminders.eyebrow": "Important reminders",
+    "reminders.title": "Top shared notes",
+    "reminders.description": "Showing the highest priority reminders first.",
+    "reminders.add": "Add reminder",
+    "reminders.manage": "Manage",
+    "reminders.showLess": "Show less",
+    "reminders.filterAll": "All priorities",
+    "reminders.label": "Reminder",
+    "reminders.placeholder": "Example: Confirm hotel address",
+    "reminders.saveChanges": "Save changes",
+    "reminders.saving": "Saving...",
+    "reminders.deleting": "Deleting...",
+    "reminders.emptyFiltered": "No reminders match this filter yet.",
+    "reminders.empty": "No reminders yet.",
+    "reminders.showAll": "Show all {count} reminders",
+    "reminders.required": "Reminder text is required.",
+    "reminders.errorLoad": "Unable to load reminders.",
+    "reminders.errorSave": "Unable to save reminder.",
+    "reminders.errorDelete": "Unable to delete reminder.",
+    "reminders.confirmDelete": "Delete this reminder?",
+
+    "status.notBooked": "Not Booked",
+    "status.pending": "Pending",
+    "status.booked": "Booked",
+    "status.paid": "Paid",
+    "status.cancelled": "Cancelled",
+    "status.needConfirmation": "Need Confirmation",
+    "status.checkBeforeDeparture": "Check Before Departure",
+    "status.confirmed": "Confirmed",
+    "priority.high": "High",
+    "priority.medium": "Medium",
+    "priority.low": "Low",
+    "option.all": "All",
+    "category.flight": "Flight",
+    "category.hotel": "Hotel",
+    "category.train": "Train",
+    "category.attraction": "Attraction",
+    "category.restaurant": "Restaurant",
+    "category.insurance": "Insurance",
+    "category.other": "Other",
+    "category.accommodation": "Accommodation",
+    "category.transport": "Transport",
+    "category.food": "Food",
+    "category.documents": "Documents",
+    "category.clothes": "Clothes",
+    "category.electronics": "Electronics",
+    "category.medicine": "Medicine",
+    "category.toiletries": "Toiletries",
+    "category.travelEssentials": "Travel Essentials",
+    "category.sharedItems": "Shared Items",
+    "category.personalCare": "Personal Care",
+    "category.passport": "Passport",
+    "category.receipt": "Receipt",
+    "category.emergencyNumber": "Emergency Number",
+    "category.traveller": "Traveller",
+    "category.bank": "Bank",
+    "category.embassy": "Embassy",
+    "category.medical": "Medical",
+
     "page.itinerary.eyebrow": "Daily plan",
     "page.itinerary.title": "Itinerary",
     "page.itinerary.description": "Filter by city, open each day, and quickly find the plan, transport, tickets, base location, and map links.",
-    "page.itinerary.morning": "Morning",
-    "page.itinerary.afternoon": "Afternoon",
-    "page.itinerary.evening": "Evening",
-    "page.itinerary.base": "Base",
-    "page.itinerary.transport": "Transport",
-    "page.itinerary.meals": "Meals",
-    "page.itinerary.tickets": "Tickets",
-    "page.itinerary.noHotel": "No hotel set",
-    "page.itinerary.estimatedCost": "Estimated cost:",
     "page.bookings.eyebrow": "Booking center",
     "page.bookings.title": "Bookings",
     "page.bookings.description": "Track flights, hotels, trains, attractions, restaurants, insurance, and items that still need confirmation.",
-    "page.bookings.totalItems": "Total items",
-    "page.bookings.needAction": "Need action",
-    "page.bookings.visible": "Visible",
-    "page.bookings.owner": "Owner",
     "page.budget.eyebrow": "Shared costs",
     "page.budget.title": "Budget",
     "page.budget.description": "Automatically calculates total costs, per-person shares, paid amounts, and simple settlement suggestions by currency.",
@@ -112,39 +184,21 @@ const translations = {
     "page.budget.unsettledExpenses": "Unsettled expenses",
     "page.budget.paidBy": "Paid by",
     "page.budget.splitAmong": "Split among",
-    "page.emergency.eyebrow": "Quick help",
-    "page.emergency.title": "Emergency",
-    "page.emergency.description": "Use this page for urgent numbers, traveller contacts, hotel placeholders, insurance, bank, embassy, and medical links.",
-    "page.map.eyebrow": "Places and routes",
-    "page.map.title": "Map",
-    "page.map.description": "Use placeholder maps and location links for hotels, attractions, stations, restaurants, and emergency searches.",
-    "page.map.directoryEyebrow": "Directory",
-    "page.map.directoryTitle": "Important places",
-    "page.map.directoryDescription": "Filter the placeholder location list by city or category, then open the place in Google Maps.",
-    "page.food.eyebrow": "Restaurants",
-    "page.food.title": "Food",
-    "page.food.description": "Shortlist must-try, good-to-have, and backup food options with reservation status and map links.",
-    "page.attractions.eyebrow": "Sightseeing",
-    "page.attractions.title": "Attractions",
-    "page.attractions.description": "Track priority, ticket requirements, booking status, estimated duration, and map links for major sights.",
     "page.packing.eyebrow": "Checklist",
     "page.packing.title": "Packing List",
     "page.packing.description": "Shared packing checklist with traveler responsibilities, priorities, and packed status.",
-    "page.packing.totalItems": "Total items",
-    "page.packing.checked": "Checked",
     "page.documents.eyebrow": "Private links only",
     "page.documents.title": "Documents",
     "page.documents.description": "Store only private cloud link placeholders and safe summaries here. Do not upload real files into this project.",
-    "page.documents.sensitiveRule": "Sensitive document rule",
-    "page.documents.sensitiveRuleBody": "Do not store real passports, identity documents, payment card details, insurance certificates, booking confirmation files, or full receipt files in this repo. Use private Google Drive, iCloud Drive, or OneDrive links shared only with the 4 travellers.",
-    "page.documents.sensitive": "Sensitive",
-    "page.documents.standard": "Standard",
     "page.more.eyebrow": "More tools",
     "page.more.title": "More",
     "page.more.description": "Secondary trip tools are grouped here so the phone navigation stays simple during the trip.",
     "page.more.open": "Open"
   },
   zh: {
+    "language.label": "语言",
+    "language.toggle": "EN / 中文",
+
     "nav.dashboard": "总览",
     "nav.home": "首页",
     "nav.itinerary": "行程",
@@ -152,182 +206,254 @@ const translations = {
     "nav.bookings": "预订",
     "nav.book": "预订",
     "nav.budget": "预算",
-    "nav.money": "预算",
-    "nav.map": "地图",
-    "nav.food": "美食",
-    "nav.attractions": "景点",
-    "nav.see": "景点",
+    "nav.money": "费用",
     "nav.packing": "行李",
     "nav.pack": "行李",
     "nav.documents": "文件",
     "nav.docs": "文件",
-    "nav.emergency": "紧急",
     "nav.more": "更多",
-    "language.switch": "语言：中文 / EN",
-    "language.switchShort": "中/EN",
-    "language.label": "语言",
-    "common.all": "全部",
-    "common.open": "展开",
-    "common.close": "收起",
+
+    "common.add": "新增",
+    "common.cancel": "取消",
+    "common.close": "关闭",
+    "common.delete": "删除",
+    "common.edit": "编辑",
+    "common.hide": "隐藏",
+    "common.loading": "加载中",
+    "common.open": "打开",
+    "common.retry": "重试",
+    "common.save": "保存",
+    "common.show": "显示",
     "common.view": "查看",
     "common.call": "拨打",
     "common.map": "地图",
-    "common.openMap": "打开地图",
-    "common.officialSite": "官网",
-    "common.tbc": "待确认",
-    "common.owner": "负责人",
-    "common.day": "第",
-    "common.date": "日期",
-    "common.location": "地点",
-    "common.amount": "金额",
-    "common.status": "状态",
-    "common.category": "类别",
-    "common.title": "标题",
-    "common.city": "城市",
+    "common.filter": "筛选",
+    "common.by": "创建者",
     "common.priority": "优先级",
-    "common.price": "价格",
-    "common.reservation": "订位",
-    "common.booking": "预订",
-    "common.duration": "时长",
-    "common.ticket": "门票",
-    "common.required": "必备",
-    "common.freeNotNeeded": "免费 / 不需要",
-    "common.bookedBy": "预订人",
-    "common.privateLink": "私人链接占位",
-    "page.dashboard.eyebrow": "私人旅行总览",
-    "page.dashboard.tripDates": "旅行日期",
-    "page.dashboard.tripDatesValue": "10月8日-18日",
-    "page.dashboard.travellers": "位旅客",
-    "page.dashboard.cities": "城市",
-    "page.dashboard.routeDetail": "罗马、佛罗伦萨、威尼斯、米兰路线占位。",
-    "page.dashboard.nextDeadline": "下个截止日",
-    "page.dashboard.emergencyDetail": "需要时可随时从底部导航进入紧急页面。",
-    "page.dashboard.nextItineraryDay": "下一天行程",
-    "page.dashboard.bookingProgress": "预订进度",
-    "page.dashboard.itemsNeedAction": "项仍需处理。",
-    "page.dashboard.budgetOverview": "预算概览",
-    "page.dashboard.perPerson": "每人",
-    "page.dashboard.openBudget": "打开预算",
-    "page.dashboard.importantReminders": "重要提醒",
+    "common.createdBy": "创建者",
+
+    "dashboard.eyebrow": "私人旅行总览",
+    "dashboard.travellers": "位成员",
+    "dashboard.nextUp": "下一步",
+    "dashboard.day": "第 {day} 天",
+    "dashboard.viewItinerary": "查看行程",
+    "dashboard.needsAttention": "需要关注",
+    "dashboard.bookingItem": "个预订事项",
+    "dashboard.bookingItems": "个预订事项",
+    "dashboard.attentionHint": "待处理、未预订或等待确认。",
+    "dashboard.openBookings": "打开预订",
+    "dashboard.noBookingAttention": "目前没有需要关注的预订事项。",
+    "dashboard.quickActions": "快捷入口",
+    "dashboard.quickActionsHint": "需要完整功能时，从这里进入对应工具。",
+    "dashboard.action.plan": "行程",
+    "dashboard.action.planDetail": "每日路线",
+    "dashboard.action.bookings": "预订",
+    "dashboard.action.bookingsDetail": "确认事项",
+    "dashboard.action.money": "费用",
+    "dashboard.action.moneyDetail": "共同开销",
+    "dashboard.action.packing": "行李",
+    "dashboard.action.packingDetail": "清单",
+    "dashboard.action.documents": "文件",
+    "dashboard.action.documentsDetail": "安全链接",
+
+    "sos.button": "SOS",
+    "sos.ariaLabel": "紧急快速入口",
+    "sos.title": "紧急信息",
+    "sos.description": "选择号码后，在手机上确认拨打。",
+    "sos.close": "关闭",
+    "sos.closeAria": "关闭紧急快速入口",
+    "sos.callNumber": "拨打 {number}",
+
+    "budgetWidget.eyebrow": "费用快照",
+    "budgetWidget.title": "按币种显示待结算",
+    "budgetWidget.description": "完整费用明细保留在预算页面。",
+    "budgetWidget.openBudget": "打开预算",
+    "budgetWidget.loading": "正在加载费用账本...",
+    "budgetWidget.retrying": "正在重试...",
+    "budgetWidget.emptyTitle": "还没有共同费用。",
+    "budgetWidget.emptyDescription": "准备好后，可从预算、行程或预订添加费用。",
+    "budgetWidget.totalSpent": "已花费",
+    "budgetWidget.topSettlements": "主要结算建议",
+    "budgetWidget.allBalanced": "当前待结算费用已平衡。",
+    "budgetWidget.recentExpenses": "最近费用",
+    "budgetWidget.pays": "支付给",
+    "budgetWidget.source.misc": "其他",
+    "budgetWidget.source.itinerary": "行程",
+    "budgetWidget.source.booking": "预订",
+    "budgetWidget.errorLoad": "无法加载预算摘要。",
+    "budgetWidget.errorTimeout": "请求超时，请重试。",
+
+    "reminders.eyebrow": "重要提醒",
+    "reminders.title": "共享提醒",
+    "reminders.description": "优先显示最重要的提醒。",
+    "reminders.add": "新增提醒",
+    "reminders.manage": "管理",
+    "reminders.showLess": "收起",
+    "reminders.filterAll": "全部优先级",
+    "reminders.label": "提醒",
+    "reminders.placeholder": "例如：确认酒店地址",
+    "reminders.saveChanges": "保存修改",
+    "reminders.saving": "保存中...",
+    "reminders.deleting": "删除中...",
+    "reminders.emptyFiltered": "没有符合筛选的提醒。",
+    "reminders.empty": "还没有提醒。",
+    "reminders.showAll": "显示全部 {count} 条提醒",
+    "reminders.required": "请填写提醒内容。",
+    "reminders.errorLoad": "无法加载提醒。",
+    "reminders.errorSave": "无法保存提醒。",
+    "reminders.errorDelete": "无法删除提醒。",
+    "reminders.confirmDelete": "删除这条提醒？",
+
+    "status.notBooked": "未预订",
+    "status.pending": "待处理",
+    "status.booked": "已预订",
+    "status.paid": "已付款",
+    "status.cancelled": "已取消",
+    "status.needConfirmation": "需确认",
+    "status.checkBeforeDeparture": "出发前检查",
+    "status.confirmed": "已确认",
+    "priority.high": "高",
+    "priority.medium": "中",
+    "priority.low": "低",
+    "option.all": "全部",
+    "category.flight": "航班",
+    "category.hotel": "酒店",
+    "category.train": "火车",
+    "category.attraction": "景点",
+    "category.restaurant": "餐厅",
+    "category.insurance": "保险",
+    "category.other": "其他",
+    "category.accommodation": "住宿",
+    "category.transport": "交通",
+    "category.food": "餐饮",
+    "category.documents": "文件",
+    "category.clothes": "衣物",
+    "category.electronics": "电子用品",
+    "category.medicine": "药品",
+    "category.toiletries": "洗漱用品",
+    "category.travelEssentials": "旅行必需品",
+    "category.sharedItems": "共享物品",
+    "category.personalCare": "个人护理",
+    "category.passport": "护照",
+    "category.receipt": "收据",
+    "category.emergencyNumber": "紧急号码",
+    "category.traveller": "旅伴",
+    "category.bank": "银行",
+    "category.embassy": "大使馆",
+    "category.medical": "医疗",
+
     "page.itinerary.eyebrow": "每日计划",
     "page.itinerary.title": "行程",
-    "page.itinerary.description": "按城市筛选、展开每天安排，并快速查看计划、交通、门票、住宿地点和地图链接。",
-    "page.itinerary.morning": "上午",
-    "page.itinerary.afternoon": "下午",
-    "page.itinerary.evening": "晚上",
-    "page.itinerary.base": "住宿",
-    "page.itinerary.transport": "交通",
-    "page.itinerary.meals": "用餐",
-    "page.itinerary.tickets": "门票",
-    "page.itinerary.noHotel": "尚未设置酒店",
-    "page.itinerary.estimatedCost": "预计花费：",
+    "page.itinerary.description": "按城市筛选并查看每日安排、交通、票务、住宿地点和地图链接。",
     "page.bookings.eyebrow": "预订中心",
     "page.bookings.title": "预订",
-    "page.bookings.description": "追踪机票、酒店、火车、景点、餐厅、保险，以及仍需确认的事项。",
-    "page.bookings.totalItems": "总项目",
-    "page.bookings.needAction": "需处理",
-    "page.bookings.visible": "当前显示",
-    "page.bookings.owner": "负责人",
+    "page.bookings.description": "跟踪航班、酒店、火车、景点、餐厅、保险以及仍需确认的事项。",
     "page.budget.eyebrow": "共同费用",
     "page.budget.title": "预算",
-    "page.budget.description": "自动计算总费用、人均分摊、已付款金额，并按货币给出简单结算建议。",
-    "page.budget.summary": "汇总",
-    "page.budget.totalTripCost": "总旅行费用",
-    "page.budget.costPerPerson": "每人费用",
+    "page.budget.description": "按币种计算总费用、人均分摊、已付款金额和简单结算建议。",
+    "page.budget.summary": "摘要",
+    "page.budget.totalTripCost": "旅行总费用",
+    "page.budget.costPerPerson": "人均费用",
     "page.budget.paidByEachPerson": "各自已付",
     "page.budget.owedByEachPerson": "各自应付",
     "page.budget.settlementSummary": "结算摘要",
-    "page.budget.noSettlement": "此货币无需结算。",
+    "page.budget.noSettlement": "此币种无需结算。",
     "page.budget.pays": "支付给",
     "page.budget.unsettledExpenses": "未结算费用",
     "page.budget.paidBy": "付款人",
     "page.budget.splitAmong": "分摊成员",
-    "page.emergency.eyebrow": "快速求助",
-    "page.emergency.title": "紧急",
-    "page.emergency.description": "用于查看紧急号码、旅伴联系方式、酒店占位信息、保险、银行、大使馆和医疗链接。",
-    "page.map.eyebrow": "地点和路线",
-    "page.map.title": "地图",
-    "page.map.description": "使用地图和地点链接占位，集中查看酒店、景点、车站、餐厅和紧急搜索。",
-    "page.map.directoryEyebrow": "地点目录",
-    "page.map.directoryTitle": "重要地点",
-    "page.map.directoryDescription": "按城市或类别筛选地点，然后在 Google Maps 中打开。",
-    "page.food.eyebrow": "餐厅",
-    "page.food.title": "美食",
-    "page.food.description": "整理必吃、可选和备用餐厅，并追踪订位状态和地图链接。",
-    "page.attractions.eyebrow": "观光",
-    "page.attractions.title": "景点",
-    "page.attractions.description": "追踪主要景点的优先级、门票需求、预订状态、预计停留时间和地图链接。",
     "page.packing.eyebrow": "清单",
     "page.packing.title": "行李清单",
-    "page.packing.description": "共享行李清单，可记录每位旅客的责任、优先级和打包状态。",
-    "page.packing.totalItems": "总物品",
-    "page.packing.checked": "已勾选",
+    "page.packing.description": "共享行李清单，可记录成员职责、优先级和打包状态。",
     "page.documents.eyebrow": "仅私人链接",
     "page.documents.title": "文件",
-    "page.documents.description": "这里只保存私人云端链接占位和安全摘要。不要把真实文件上传到此项目。",
-    "page.documents.sensitiveRule": "敏感文件规则",
-    "page.documents.sensitiveRuleBody": "不要在此 repo 存放真实护照、身份证件、付款卡资料、保险证书、预订确认文件或完整收据。请使用只共享给 4 位旅客的私人 Google Drive、iCloud Drive 或 OneDrive 链接。",
-    "page.documents.sensitive": "敏感",
-    "page.documents.standard": "普通",
+    "page.documents.description": "这里只保存私人云端链接占位和安全摘要，不要上传真实文件到项目里。",
     "page.more.eyebrow": "更多工具",
     "page.more.title": "更多",
-    "page.more.description": "次要旅行工具集中放在这里，让手机底部导航在旅途中保持简洁。",
+    "page.more.description": "次要旅行工具集中在这里，让手机底部导航保持简洁。",
     "page.more.open": "打开"
   }
 } as const;
 
 export type TranslationKey = keyof typeof translations.en;
 
+type TranslationParams = Record<string, string | number>;
+
 type LanguageContextValue = {
   language: Language;
   setLanguage: (language: Language) => void;
   toggleLanguage: () => void;
-  t: (key: TranslationKey) => string;
+  t: (key: TranslationKey, params?: TranslationParams) => string;
 };
 
 const LanguageContext = createContext<LanguageContextValue | null>(null);
 
-function getBrowserLanguage(): Language {
-  if (typeof navigator === "undefined") {
+function normalizeLanguage(value: string | null): Language | null {
+  return value === "zh" || value === "en" ? value : null;
+}
+
+function getInitialStoredLanguage(): Language {
+  if (typeof window === "undefined") {
     return "en";
   }
 
-  return navigator.language.toLowerCase().startsWith("zh") ? "zh" : "en";
-}
-
-function getStoredLanguage(): Language | null {
-  if (typeof window === "undefined") {
-    return null;
+  const current = normalizeLanguage(window.localStorage.getItem(languageStorageKey));
+  if (current) {
+    return current;
   }
 
-  const stored = window.localStorage.getItem(languageStorageKey);
-  return stored === "zh" || stored === "en" ? stored : null;
+  const legacy = normalizeLanguage(window.localStorage.getItem(legacyLanguageStorageKey));
+  if (legacy) {
+    window.localStorage.setItem(languageStorageKey, legacy);
+    window.localStorage.removeItem(legacyLanguageStorageKey);
+    return legacy;
+  }
+
+  return "en";
+}
+
+function interpolate(value: string, params?: TranslationParams) {
+  if (!params) {
+    return value;
+  }
+
+  return value.replace(/\{(\w+)\}/g, (match, key) =>
+    Object.prototype.hasOwnProperty.call(params, key) ? String(params[key]) : match
+  );
 }
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
   const [language, setLanguageState] = useState<Language>("en");
 
   useEffect(() => {
-    setLanguageState(getStoredLanguage() ?? getBrowserLanguage());
+    setLanguageState(getInitialStoredLanguage());
   }, []);
 
   useEffect(() => {
     document.documentElement.lang = language === "zh" ? "zh-CN" : "en";
   }, [language]);
 
-  const setLanguage = (nextLanguage: Language) => {
+  const setLanguage = useCallback((nextLanguage: Language) => {
     setLanguageState(nextLanguage);
     window.localStorage.setItem(languageStorageKey, nextLanguage);
-  };
+  }, []);
+
+  const toggleLanguage = useCallback(() => {
+    setLanguageState((currentLanguage) => {
+      const nextLanguage = currentLanguage === "zh" ? "en" : "zh";
+      window.localStorage.setItem(languageStorageKey, nextLanguage);
+      return nextLanguage;
+    });
+  }, []);
 
   const value = useMemo<LanguageContextValue>(
     () => ({
       language,
       setLanguage,
-      toggleLanguage: () => setLanguage(language === "zh" ? "en" : "zh"),
-      t: (key) => translations[language][key]
+      toggleLanguage,
+      t: (key, params) => interpolate(translations[language][key] ?? translations.en[key], params)
     }),
-    [language]
+    [language, setLanguage, toggleLanguage]
   );
 
   return <LanguageContext.Provider value={value}>{children}</LanguageContext.Provider>;

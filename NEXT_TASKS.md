@@ -2,6 +2,8 @@
 
 ## Current Priority
 
+- Review the i18n foundation on desktop and a real phone: language toggle visibility, EN/Chinese persistence after refresh, Dashboard/Layout label switching, and unchanged user-entered content.
+- Defer full page translations for Budget, Itinerary, Bookings, Packing, and Documents until the foundation is approved.
 - Review the simplified Dashboard on desktop and a real phone: compact trip header, Next up card, Needs attention summary, Quick actions, Budget snapshot, folded reminders, and SOS access.
 - If approved, commit the Dashboard simplification before starting reusable trip dashboard data-model or i18n work.
 - Review the new shared Documents checklist on desktop and a real phone, especially protected folder unlock, Add/Edit form comfort, and card spacing.
@@ -30,6 +32,7 @@
 
 ## Suggested Next Feature
 
+- After i18n foundation approval, connect one page at a time to the UI-only dictionary without translating user-entered content.
 - After Dashboard simplification is approved, plan reusable trip dashboard data-model work separately from UI redesign and bilingual switching.
 - After reviewing Documents, decide whether the current per-folder access code is enough for private folder links or whether a later whole-site protection layer is needed before entering more sensitive trip context.
 - Review Budget filters, settlement suggestions, lighter expense cards, and misc expense form ergonomics on a real phone.

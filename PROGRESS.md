@@ -2,6 +2,9 @@
 
 ## 2026-06-13
 
+- Added the i18n foundation branch scope: `src/lib/i18n.tsx` now uses a UI-only dictionary with `trip-dashboard-language`, one-time migration from `italy-trip-language`, default English, and persisted EN/Chinese toggle state.
+- Added language toggle access in the Layout desktop top nav and mobile top header, and connected Layout navigation plus Dashboard, SOS, Dashboard budget snapshot, and Dashboard reminders basic UI labels.
+- Stopped using broad seed-data localization on Dashboard; itinerary titles, booking titles/descriptions, expense titles, reminder text, and traveller display names remain original user/data content.
 - Completed Phase 1 Dashboard information architecture simplification: the homepage now uses a compact trip header, lighter Next up itinerary summary, compressed booking attention summary, compact budget snapshot, folded reminders management, and smaller Quick actions.
 - Kept reminders CRUD on the Dashboard, but the add/edit form and full list controls are no longer expanded by default.
 - Kept Budget full ledger details on `/budget`; the Dashboard now shows only outstanding by currency, small total-spent context, top settlement suggestions, and at most two recent expenses.

@@ -7,6 +7,8 @@ import {
   type ReminderPriority,
   type SharedReminder
 } from "@/lib/sharedDataTypes";
+import { useLanguage } from "@/lib/i18n";
+import { translateOption } from "@/lib/localize";
 
 type RemindersClientProps = {
   participants: string[];
@@ -27,6 +29,7 @@ const priorityClass: Record<ReminderPriority, string> = {
 };
 
 export function RemindersClient({ participants }: RemindersClientProps) {
+  const { language, t } = useLanguage();
   const [reminders, setReminders] = useState<SharedReminder[]>([]);
   const [priorityFilter, setPriorityFilter] = useState<"All" | ReminderPriority>("All");
   const [form, setForm] = useState<FormState>(() => emptyForm(participants[0] ?? "Person A"));
@@ -55,12 +58,12 @@ export function RemindersClient({ participants }: RemindersClientProps) {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error ?? "Unable to load reminders.");
+        throw new Error(data.error ?? t("reminders.errorLoad"));
       }
 
       setReminders(data.reminders ?? []);
     } catch (loadError) {
-      setError(loadError instanceof Error ? loadError.message : "Unable to load reminders.");
+      setError(loadError instanceof Error ? loadError.message : t("reminders.errorLoad"));
     } finally {
       setLoading(false);
     }
@@ -94,7 +97,7 @@ export function RemindersClient({ participants }: RemindersClientProps) {
     event.preventDefault();
 
     if (!form.text.trim()) {
-      setError("Reminder text is required.");
+      setError(t("reminders.required"));
       return;
     }
 
@@ -110,20 +113,20 @@ export function RemindersClient({ participants }: RemindersClientProps) {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error ?? "Unable to save reminder.");
+        throw new Error(data.error ?? t("reminders.errorSave"));
       }
 
       setReminders(data.reminders ?? []);
       resetForm();
     } catch (submitError) {
-      setError(submitError instanceof Error ? submitError.message : "Unable to save reminder.");
+      setError(submitError instanceof Error ? submitError.message : t("reminders.errorSave"));
     } finally {
       setSubmitting(false);
     }
   }
 
   async function removeReminder(reminder: SharedReminder) {
-    if (!window.confirm(`Delete "${reminder.text}" from reminders?`)) {
+    if (!window.confirm(t("reminders.confirmDelete"))) {
       return;
     }
 
@@ -135,7 +138,7 @@ export function RemindersClient({ participants }: RemindersClientProps) {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error ?? "Unable to delete reminder.");
+        throw new Error(data.error ?? t("reminders.errorDelete"));
       }
 
       setReminders(data.reminders ?? []);
@@ -143,7 +146,7 @@ export function RemindersClient({ participants }: RemindersClientProps) {
         resetForm();
       }
     } catch (deleteError) {
-      setError(deleteError instanceof Error ? deleteError.message : "Unable to delete reminder.");
+      setError(deleteError instanceof Error ? deleteError.message : t("reminders.errorDelete"));
     } finally {
       setDeletingId(null);
     }
@@ -154,11 +157,11 @@ export function RemindersClient({ participants }: RemindersClientProps) {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
           <p className="text-xs font-semibold uppercase tracking-[0.08em] text-terracotta">
-            Important reminders
+            {t("reminders.eyebrow")}
           </p>
-          <h2 className="mt-1 text-lg font-semibold text-ink">Top shared notes</h2>
+          <h2 className="mt-1 text-lg font-semibold text-ink">{t("reminders.title")}</h2>
           <p className="mt-1 text-sm leading-6 text-zinc-600">
-            Showing the highest priority reminders first.
+            {t("reminders.description")}
           </p>
         </div>
         <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
@@ -167,14 +170,14 @@ export function RemindersClient({ participants }: RemindersClientProps) {
             onClick={startAdding}
             className="w-full rounded-md bg-moss px-3 py-2 text-sm font-semibold text-white sm:w-auto"
           >
-            Add reminder
+            {t("reminders.add")}
           </button>
           <button
             type="button"
             onClick={() => setExpanded((current) => !current)}
             className="w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold text-ink sm:w-auto"
           >
-            {expanded ? "Show less" : "Manage"}
+            {expanded ? t("reminders.showLess") : t("reminders.manage")}
           </button>
         </div>
       </div>
@@ -183,16 +186,16 @@ export function RemindersClient({ participants }: RemindersClientProps) {
         <>
           <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <label className="text-sm font-semibold text-ink">
-              Filter
+              {t("common.filter")}
               <select
                 value={priorityFilter}
                 onChange={(event) => setPriorityFilter(event.target.value as "All" | ReminderPriority)}
                 className="ml-2 rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-700"
               >
-                <option value="All">All priorities</option>
+                <option value="All">{t("reminders.filterAll")}</option>
                 {reminderPriorities.map((priority) => (
                   <option key={priority} value={priority}>
-                    {priority}
+                    {translateOption(language, priority)}
                   </option>
                 ))}
               </select>
@@ -201,17 +204,17 @@ export function RemindersClient({ participants }: RemindersClientProps) {
 
           <form onSubmit={submitReminder} className="mt-3 grid gap-3 rounded-lg bg-zinc-50 p-3">
             <label className="text-sm font-semibold text-ink">
-              Reminder
+              {t("reminders.label")}
               <input
                 value={form.text}
                 onChange={(event) => setForm((current) => ({ ...current, text: event.target.value }))}
                 className="mt-2 w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-700"
-                placeholder="Example: Confirm hotel address"
+                placeholder={t("reminders.placeholder")}
               />
             </label>
             <div className="grid gap-3 sm:grid-cols-3">
               <label className="text-sm font-semibold text-ink">
-                Priority
+                {t("common.priority")}
                 <select
                   value={form.priority}
                   onChange={(event) =>
@@ -221,13 +224,13 @@ export function RemindersClient({ participants }: RemindersClientProps) {
                 >
                   {reminderPriorities.map((priority) => (
                     <option key={priority} value={priority}>
-                      {priority}
+                      {translateOption(language, priority)}
                     </option>
                   ))}
                 </select>
               </label>
               <label className="text-sm font-semibold text-ink">
-                Created by
+                {t("common.createdBy")}
                 <select
                   value={form.createdBy}
                   onChange={(event) => setForm((current) => ({ ...current, createdBy: event.target.value }))}
@@ -246,7 +249,11 @@ export function RemindersClient({ participants }: RemindersClientProps) {
                   disabled={submitting}
                   className="rounded-md bg-moss px-3 py-2 text-sm font-semibold text-white disabled:opacity-60"
                 >
-                  {submitting ? "Saving..." : editingId ? "Save changes" : "Add reminder"}
+                  {submitting
+                    ? t("reminders.saving")
+                    : editingId
+                      ? t("reminders.saveChanges")
+                      : t("reminders.add")}
                 </button>
                 {editingId ? (
                   <button
@@ -254,7 +261,7 @@ export function RemindersClient({ participants }: RemindersClientProps) {
                     onClick={resetForm}
                     className="rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold text-ink"
                   >
-                    Cancel
+                    {t("common.cancel")}
                   </button>
                 ) : null}
               </div>
@@ -269,11 +276,11 @@ export function RemindersClient({ participants }: RemindersClientProps) {
         </p>
       ) : null}
 
-      {loading ? <p className="mt-4 text-sm text-zinc-600">Loading reminders...</p> : null}
+      {loading ? <p className="mt-4 text-sm text-zinc-600">{t("common.loading")}...</p> : null}
 
       {!loading && displayedReminders.length === 0 ? (
         <p className="mt-4 rounded-lg bg-zinc-50 px-3 py-4 text-sm text-zinc-600">
-          {expanded ? "No reminders match this filter yet." : "No reminders yet."}
+          {expanded ? t("reminders.emptyFiltered") : t("reminders.empty")}
         </p>
       ) : null}
 
@@ -284,9 +291,11 @@ export function RemindersClient({ participants }: RemindersClientProps) {
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className={`rounded-full px-2 py-1 text-xs font-semibold ${priorityClass[reminder.priority]}`}>
-                    {reminder.priority}
+                    {translateOption(language, reminder.priority)}
                   </span>
-                  <span className="text-xs text-zinc-500">By {reminder.createdBy}</span>
+                  <span className="text-xs text-zinc-500">
+                    {t("common.by")} {reminder.createdBy}
+                  </span>
                 </div>
                 <p className="mt-2 break-words leading-6 text-ink">{reminder.text}</p>
               </div>
@@ -296,7 +305,7 @@ export function RemindersClient({ participants }: RemindersClientProps) {
                   onClick={() => startEditing(reminder)}
                   className="rounded-md border border-zinc-200 bg-white px-2 py-1 text-xs font-semibold text-ink"
                 >
-                  Edit
+                  {t("common.edit")}
                 </button>
                 <button
                   type="button"
@@ -304,7 +313,7 @@ export function RemindersClient({ participants }: RemindersClientProps) {
                   disabled={deletingId === reminder.id}
                   className="rounded-md border border-red-200 bg-white px-2 py-1 text-xs font-semibold text-red-700 disabled:opacity-60"
                 >
-                  {deletingId === reminder.id ? "Deleting..." : "Delete"}
+                  {deletingId === reminder.id ? t("reminders.deleting") : t("common.delete")}
                 </button>
               </div>
             </div>
@@ -318,7 +327,7 @@ export function RemindersClient({ participants }: RemindersClientProps) {
           onClick={() => setExpanded(true)}
           className="mt-3 w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold text-ink"
         >
-          Show all {reminders.length} reminders
+          {t("reminders.showAll", { count: reminders.length })}
         </button>
       ) : null}
     </section>
