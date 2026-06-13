@@ -22,7 +22,7 @@ export const bookingStatuses = [
   "Need Confirmation"
 ] as const satisfies readonly BookingStatus[];
 
-export const bookingCurrencies = ["EUR", "SGD"] as const;
+export const bookingCurrencies = ["EUR", "SGD", "MYR"] as const;
 export type SharedCurrency = (typeof bookingCurrencies)[number];
 
 export const expenseSourceTypes = ["itinerary", "booking", "misc"] as const;

@@ -2,6 +2,7 @@
 
 ## 2026-06-13
 
+- Added MYR support across the shared expense ledger currency model, validation path, MySQL currency enums, money formatting, Budget/Itinerary/Bookings forms, and Dashboard ledger widgets without adding exchange-rate conversion.
 - Added Dashboard budget widgets backed by `/api/expenses` and `summarizeExpenseLedger`, replacing the old static expense summary on the homepage while keeping the rest of Dashboard unchanged.
 - Dashboard now shows ledger total/outstanding/settled/average outstanding per person by currency, top settlement suggestions, recent expenses, loading/error/retry, empty state, and a Budget link.
 - Verified `npm.cmd run build`, `npm.cmd run lint`, desktop/LAN `/`, `/budget`, `/itinerary`, `/bookings`, `/api/expenses`, and temporary misc expense create/edit/delete cleanup with Dashboard ledger summary restore.

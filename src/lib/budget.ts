@@ -2,7 +2,7 @@ import type { Expense } from "@/data/tripData";
 import type { SharedCurrency, SharedExpense } from "@/lib/sharedDataTypes";
 
 export type CurrencySummary = {
-  currency: "EUR" | "SGD";
+  currency: SharedCurrency;
   total: number;
   costPerPerson: number;
   paidByPerson: Record<string, number>;
@@ -12,7 +12,7 @@ export type CurrencySummary = {
     from: string;
     to: string;
     amount: number;
-    currency: "EUR" | "SGD";
+    currency: SharedCurrency;
   }[];
 };
 
@@ -36,7 +36,7 @@ export type LedgerCurrencySummary = {
 
 const roundMoney = (value: number) => Math.round(value * 100) / 100;
 
-export function formatMoney(amount: number, currency: "EUR" | "SGD") {
+export function formatMoney(amount: number, currency: SharedCurrency) {
   return new Intl.NumberFormat("en-SG", {
     style: "currency",
     currency,

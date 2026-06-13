@@ -4,6 +4,7 @@ import type { Expense } from "@/data/tripData";
 import { formatMoney, summarizeBudget } from "@/lib/budget";
 import { useLanguage } from "@/lib/i18n";
 import { translateText } from "@/lib/localize";
+import type { SharedCurrency } from "@/lib/sharedDataTypes";
 
 type BudgetSummaryProps = {
   expenses: Expense[];
@@ -102,7 +103,7 @@ function PersonList({
 }: {
   title: string;
   values: Record<string, number>;
-  currency: "EUR" | "SGD";
+  currency: SharedCurrency;
 }) {
   const { language } = useLanguage();
 

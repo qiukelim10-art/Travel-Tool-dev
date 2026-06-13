@@ -283,7 +283,7 @@ async function createTables() {
       location varchar(255) DEFAULT NULL,
       booked_by varchar(80) NOT NULL,
       amount decimal(10,2) DEFAULT NULL,
-      currency enum('EUR', 'SGD') DEFAULT NULL,
+      currency enum('EUR', 'SGD', 'MYR') DEFAULT NULL,
       notes text,
       status enum('Not Booked', 'Pending', 'Booked', 'Paid', 'Cancelled', 'Need Confirmation') NOT NULL DEFAULT 'Pending',
       created_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -306,7 +306,7 @@ async function createTables() {
       transport text,
       meal text,
       cost_amount decimal(10,2) DEFAULT NULL,
-      currency enum('EUR', 'SGD') NOT NULL DEFAULT 'EUR',
+      currency enum('EUR', 'SGD', 'MYR') NOT NULL DEFAULT 'EUR',
       notes text,
       map_query varchar(255) DEFAULT NULL,
       sort_order int NOT NULL DEFAULT 0,
@@ -326,7 +326,7 @@ async function createTables() {
       title varchar(255) NOT NULL,
       category enum('Flight', 'Accommodation', 'Transport', 'Food', 'Attraction', 'Insurance', 'Shopping', 'Other') NOT NULL,
       amount decimal(10,2) NOT NULL,
-      currency enum('EUR', 'SGD') NOT NULL,
+      currency enum('EUR', 'SGD', 'MYR') NOT NULL,
       paid_by_traveler_id varchar(80) NOT NULL,
       settled tinyint(1) NOT NULL DEFAULT 0,
       expense_date date NOT NULL,
@@ -386,6 +386,14 @@ async function createTables() {
         ON DELETE CASCADE
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
   `);
+}
+
+async function updateCurrencyEnums() {
+  const pool = getAppPool();
+
+  await pool.execute("ALTER TABLE booking_items MODIFY currency enum('EUR', 'SGD', 'MYR') DEFAULT NULL");
+  await pool.execute("ALTER TABLE itinerary_items MODIFY currency enum('EUR', 'SGD', 'MYR') NOT NULL DEFAULT 'EUR'");
+  await pool.execute("ALTER TABLE expenses MODIFY currency enum('EUR', 'SGD', 'MYR') NOT NULL");
 }
 
 function listText(label: string, items: string[]) {
@@ -599,6 +607,7 @@ export async function ensureSharedDataStore() {
 
   await ensureDatabase();
   await createTables();
+  await updateCurrencyEnums();
   await seedTables();
   initialized = true;
 }
