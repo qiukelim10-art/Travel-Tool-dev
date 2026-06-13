@@ -22,8 +22,23 @@ export const bookingStatuses = [
   "Need Confirmation"
 ] as const satisfies readonly BookingStatus[];
 
-export const bookingCurrencies = ["EUR", "SGD"] as const;
+export const bookingCurrencies = ["EUR", "SGD", "MYR"] as const;
 export type SharedCurrency = (typeof bookingCurrencies)[number];
+
+export const expenseSourceTypes = ["itinerary", "booking", "misc"] as const;
+export type ExpenseSourceType = (typeof expenseSourceTypes)[number];
+
+export const expenseCategories = [
+  "Flight",
+  "Accommodation",
+  "Transport",
+  "Food",
+  "Attraction",
+  "Insurance",
+  "Shopping",
+  "Other"
+] as const;
+export type ExpenseCategory = (typeof expenseCategories)[number];
 
 export const packingCategories = [
   "Documents",
@@ -103,6 +118,42 @@ export type SharedPackingItem = {
   statuses: SharedPackingTravelerStatus[];
   createdAt: string;
   updatedAt: string;
+};
+
+export type ExpenseSplit = {
+  travelerId: string;
+  createdAt?: string;
+};
+
+export type SharedExpense = {
+  id: string;
+  sourceType: ExpenseSourceType;
+  sourceId: string | null;
+  title: string;
+  category: ExpenseCategory;
+  amount: number;
+  currency: SharedCurrency;
+  paidByTravelerId: string;
+  splitTravelerIds: string[];
+  settled: boolean;
+  expenseDate: string;
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type ExpenseInput = {
+  sourceType: ExpenseSourceType;
+  sourceId?: string | null;
+  title: string;
+  category: ExpenseCategory;
+  amount: number;
+  currency: SharedCurrency;
+  paidByTravelerId: string;
+  splitTravelerIds: string[];
+  settled: boolean;
+  expenseDate: string;
+  notes?: string | null;
 };
 
 export type PackingInput = {

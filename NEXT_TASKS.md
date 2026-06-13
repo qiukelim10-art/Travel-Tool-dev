@@ -2,7 +2,8 @@
 
 ## Current Priority
 
-- Wait for the user's next requested improvement to the trip website.
+- Review MYR support in Budget, Itinerary linked expenses, Booking linked expenses, and Dashboard ledger widgets on computer and phone.
+- Next likely Budget step: final review and commit MYR expense ledger support after user validation.
 - Review the shared reminders and bookings CRUD/filter UI on computer and phone when the user is ready.
 - Review the shared itinerary CRUD UI on computer and phone, especially long notes and card readability.
 - Review the shared packing CRUD UI on computer and phone using the active worktree configuration.
@@ -18,6 +19,8 @@
 
 ## Suggested Next Feature
 
+- Review Budget filters, settlement suggestions, and misc expense form ergonomics on a real phone.
+- Review Booking linked expenses without counting booking `amount` twice.
 - Decide whether to add simple shared-password protection before using the shared reminders/bookings UI for real trip details.
 - Consider shared-password protection before entering real detailed itinerary notes, hotel addresses, private booking references, or sensitive location context.
 - Consider improving the mobile layout of long booking forms if it feels heavy during review.

@@ -1,19 +1,18 @@
 "use client";
 
 import Link from "next/link";
+import { DashboardBudgetWidget } from "@/components/DashboardBudgetWidget";
 import { DashboardCard } from "@/components/DashboardCard";
 import { RemindersClient } from "@/components/RemindersClient";
 import { SectionHeader } from "@/components/SectionHeader";
 import { StatusBadge } from "@/components/StatusBadge";
-import { bookings, expenses, itinerary, tripInfo } from "@/data/tripData";
+import { bookings, itinerary, tripInfo } from "@/data/tripData";
 import { useLanguage } from "@/lib/i18n";
-import { formatMoney, summarizeBudget } from "@/lib/budget";
 import { localizeItem, translateText } from "@/lib/localize";
 
 export default function DashboardPage() {
   const { language, t } = useLanguage();
   const nextDay = localizeItem(language, itinerary[0]);
-  const budgetSummaries = summarizeBudget(expenses, tripInfo.participants);
   const pendingBookings = bookings.filter((booking) =>
     ["Not Booked", "Pending", "Need Confirmation"].includes(booking.status)
   );
@@ -101,30 +100,7 @@ export default function DashboardPage() {
       </div>
 
       <div className="mt-6 grid gap-5 lg:grid-cols-2">
-        <section className="rounded-lg border border-zinc-200 bg-white p-4 shadow-soft">
-          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-terracotta">
-            {t("page.dashboard.budgetOverview")}
-          </p>
-          <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            {budgetSummaries.map((summary) => (
-              <div key={summary.currency} className="rounded-lg bg-zinc-50 p-3">
-                <p className="text-sm font-semibold text-ink">{summary.currency}</p>
-                <p className="mt-1 text-xl font-semibold text-ink">
-                  {formatMoney(summary.total, summary.currency)}
-                </p>
-                <p className="mt-1 text-sm text-zinc-600">
-                  {formatMoney(summary.costPerPerson, summary.currency)} {t("page.dashboard.perPerson")}
-                </p>
-              </div>
-            ))}
-          </div>
-          <Link
-            href="/budget"
-            className="mt-4 inline-flex rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold text-ink"
-          >
-            {t("page.dashboard.openBudget")}
-          </Link>
-        </section>
+        <DashboardBudgetWidget />
 
         <RemindersClient participants={tripInfo.participants} />
       </div>

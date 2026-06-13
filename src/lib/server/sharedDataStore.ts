@@ -1,20 +1,24 @@
 import { randomUUID } from "crypto";
-import { bookings, itinerary, packingItems, travelers, tripInfo } from "@/data/tripData";
+import { bookings, expenses, itinerary, packingItems, travelers, tripInfo } from "@/data/tripData";
 import {
   bookingCategories,
   bookingCurrencies,
   bookingStatuses,
   buildDefaultPackingStatuses,
+  expenseCategories,
+  expenseSourceTypes,
   type ItineraryInput,
   packingCategories,
   packingPriorities,
   packingTravelerStatuses,
   reminderPriorities,
   type BookingInput,
+  type ExpenseInput,
   type PackingCategory,
   type PackingInput,
   type PackingTravelerStatus,
   type SharedItineraryItem,
+  type SharedExpense,
   type SharedPackingItem,
   type ReminderInput,
   type SharedBooking,
@@ -139,6 +143,10 @@ function nullableTime(value: unknown) {
   return text.length > 0 ? text.slice(0, 5) : null;
 }
 
+function asBoolean(value: unknown) {
+  return value === true || value === 1 || value === "1";
+}
+
 function mapReminder(row: DbRow): SharedReminder {
   return {
     id: asString(row.id),
@@ -184,6 +192,25 @@ function mapItineraryItem(row: DbRow): SharedItineraryItem {
     notes: nullableString(row.notes),
     mapQuery: nullableString(row.map_query),
     sortOrder: Number(row.sort_order ?? 0),
+    createdAt: asString(row.created_at),
+    updatedAt: asString(row.updated_at)
+  };
+}
+
+function mapExpense(row: DbRow, splitTravelerIds: string[]): SharedExpense {
+  return {
+    id: asString(row.id),
+    sourceType: asString(row.source_type) as SharedExpense["sourceType"],
+    sourceId: nullableString(row.source_id),
+    title: asString(row.title),
+    category: asString(row.category) as SharedExpense["category"],
+    amount: Number(row.amount ?? 0),
+    currency: asString(row.currency) as SharedExpense["currency"],
+    paidByTravelerId: asString(row.paid_by_traveler_id),
+    splitTravelerIds,
+    settled: asBoolean(row.settled),
+    expenseDate: asDateOnly(row.expense_date),
+    notes: nullableString(row.notes),
     createdAt: asString(row.created_at),
     updatedAt: asString(row.updated_at)
   };
@@ -256,7 +283,7 @@ async function createTables() {
       location varchar(255) DEFAULT NULL,
       booked_by varchar(80) NOT NULL,
       amount decimal(10,2) DEFAULT NULL,
-      currency enum('EUR', 'SGD') DEFAULT NULL,
+      currency enum('EUR', 'SGD', 'MYR') DEFAULT NULL,
       notes text,
       status enum('Not Booked', 'Pending', 'Booked', 'Paid', 'Cancelled', 'Need Confirmation') NOT NULL DEFAULT 'Pending',
       created_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -279,7 +306,7 @@ async function createTables() {
       transport text,
       meal text,
       cost_amount decimal(10,2) DEFAULT NULL,
-      currency enum('EUR', 'SGD') NOT NULL DEFAULT 'EUR',
+      currency enum('EUR', 'SGD', 'MYR') NOT NULL DEFAULT 'EUR',
       notes text,
       map_query varchar(255) DEFAULT NULL,
       sort_order int NOT NULL DEFAULT 0,
@@ -288,6 +315,43 @@ async function createTables() {
       PRIMARY KEY (id),
       KEY idx_itinerary_items_order (travel_date, start_time, sort_order, id),
       KEY idx_itinerary_items_city (city, travel_date)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `);
+
+  await pool.execute(`
+    CREATE TABLE IF NOT EXISTS expenses (
+      id varchar(36) NOT NULL,
+      source_type enum('itinerary', 'booking', 'misc') NOT NULL DEFAULT 'misc',
+      source_id varchar(36) DEFAULT NULL,
+      title varchar(255) NOT NULL,
+      category enum('Flight', 'Accommodation', 'Transport', 'Food', 'Attraction', 'Insurance', 'Shopping', 'Other') NOT NULL,
+      amount decimal(10,2) NOT NULL,
+      currency enum('EUR', 'SGD', 'MYR') NOT NULL,
+      paid_by_traveler_id varchar(80) NOT NULL,
+      settled tinyint(1) NOT NULL DEFAULT 0,
+      expense_date date NOT NULL,
+      notes text,
+      created_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      PRIMARY KEY (id),
+      KEY idx_expenses_source (source_type, source_id),
+      KEY idx_expenses_date_currency (expense_date, currency),
+      KEY idx_expenses_paid_by (paid_by_traveler_id, settled)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `);
+
+  await pool.execute(`
+    CREATE TABLE IF NOT EXISTS expense_splits (
+      id varchar(36) NOT NULL,
+      expense_id varchar(36) NOT NULL,
+      traveler_id varchar(80) NOT NULL,
+      created_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (id),
+      UNIQUE KEY uniq_expense_split_traveler (expense_id, traveler_id),
+      KEY idx_expense_splits_traveler (traveler_id),
+      CONSTRAINT fk_expense_split_expense
+        FOREIGN KEY (expense_id) REFERENCES expenses (id)
+        ON DELETE CASCADE
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
   `);
 
@@ -324,6 +388,14 @@ async function createTables() {
   `);
 }
 
+async function updateCurrencyEnums() {
+  const pool = getAppPool();
+
+  await pool.execute("ALTER TABLE booking_items MODIFY currency enum('EUR', 'SGD', 'MYR') DEFAULT NULL");
+  await pool.execute("ALTER TABLE itinerary_items MODIFY currency enum('EUR', 'SGD', 'MYR') NOT NULL DEFAULT 'EUR'");
+  await pool.execute("ALTER TABLE expenses MODIFY currency enum('EUR', 'SGD', 'MYR') NOT NULL");
+}
+
 function listText(label: string, items: string[]) {
   if (items.length === 0) {
     return "";
@@ -351,6 +423,16 @@ function seedNotes(day: (typeof itinerary)[number]) {
 
 function travelerIdFromName(name: string) {
   return travelers.find((traveler) => traveler.name === name)?.id ?? null;
+}
+
+function requireTravelerIdFromName(name: string) {
+  const travelerId = travelerIdFromName(name);
+
+  if (!travelerId) {
+    throw new Error(`Unknown traveler name in seed data: ${name}`);
+  }
+
+  return travelerId;
 }
 
 function seedPackingStatuses(item: (typeof packingItems)[number]) {
@@ -448,6 +530,43 @@ async function seedTables() {
     }
   }
 
+  const [expenseRows] = await pool.execute<DbRow[]>("SELECT COUNT(*) AS count FROM expenses");
+  const expenseCount = Number(expenseRows[0]?.count ?? 0);
+
+  if (expenseCount === 0) {
+    for (const expense of expenses) {
+      const paidByTravelerId = requireTravelerIdFromName(expense.paidBy);
+      await pool.execute(
+        `INSERT INTO expenses
+          (id, source_type, source_id, title, category, amount, currency,
+           paid_by_traveler_id, settled, expense_date, notes)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          expense.id,
+          "misc",
+          null,
+          expense.item,
+          expense.category,
+          expense.amount,
+          expense.currency,
+          paidByTravelerId,
+          expense.settled ? 1 : 0,
+          expense.date,
+          expense.notes ?? null
+        ]
+      );
+
+      for (const splitName of expense.splitAmong) {
+        await pool.execute(
+          `INSERT INTO expense_splits
+            (id, expense_id, traveler_id)
+           VALUES (?, ?, ?)`,
+          [randomUUID(), expense.id, requireTravelerIdFromName(splitName)]
+        );
+      }
+    }
+  }
+
   const [packingRows] = await pool.execute<DbRow[]>("SELECT COUNT(*) AS count FROM packing_items");
   const packingCount = Number(packingRows[0]?.count ?? 0);
 
@@ -488,6 +607,7 @@ export async function ensureSharedDataStore() {
 
   await ensureDatabase();
   await createTables();
+  await updateCurrencyEnums();
   await seedTables();
   initialized = true;
 }
@@ -636,6 +756,82 @@ export function validateItineraryInput(input: Partial<ItineraryInput>) {
     notes: notes || undefined,
     mapQuery: mapQuery || undefined,
     sortOrder
+  };
+}
+
+function assertTravelerId(value: string, fieldLabel: string) {
+  if (!travelers.some((traveler) => traveler.id === value)) {
+    throw new Error(`${fieldLabel} is invalid.`);
+  }
+}
+
+export function validateExpenseInput(input: Partial<ExpenseInput>) {
+  const sourceType = input.sourceType;
+  const sourceId = String(input.sourceId ?? "").trim();
+  const title = String(input.title ?? "").trim();
+  const category = input.category;
+  const rawAmount = input.amount as number | string | null | undefined;
+  const amount = rawAmount === null || rawAmount === undefined || rawAmount === "" ? NaN : Number(rawAmount);
+  const currency = input.currency;
+  const paidByTravelerId = String(input.paidByTravelerId ?? "").trim();
+  const settled = Boolean(input.settled);
+  const expenseDate = String(input.expenseDate ?? "").trim();
+  const notes = String(input.notes ?? "").trim();
+  const splitTravelerIds = Array.isArray(input.splitTravelerIds)
+    ? input.splitTravelerIds.map((travelerId) => String(travelerId).trim())
+    : [];
+  const uniqueSplitTravelerIds = Array.from(new Set(splitTravelerIds));
+
+  if (!sourceType || !(expenseSourceTypes as readonly string[]).includes(sourceType)) {
+    throw new Error("Expense source type is invalid.");
+  }
+
+  if (!title) {
+    throw new Error("Expense title is required.");
+  }
+
+  if (!category || !(expenseCategories as readonly string[]).includes(category)) {
+    throw new Error("Expense category is invalid.");
+  }
+
+  if (!Number.isFinite(amount) || amount <= 0) {
+    throw new Error("Expense amount must be greater than zero.");
+  }
+
+  if (!currency || !(bookingCurrencies as readonly string[]).includes(currency)) {
+    throw new Error("Expense currency is invalid.");
+  }
+
+  assertTravelerId(paidByTravelerId, "Paid by traveler");
+
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(expenseDate)) {
+    throw new Error("Expense date must use YYYY-MM-DD.");
+  }
+
+  if (splitTravelerIds.length === 0) {
+    throw new Error("At least one split traveler is required.");
+  }
+
+  if (uniqueSplitTravelerIds.length !== splitTravelerIds.length) {
+    throw new Error("Split travelers must not contain duplicates.");
+  }
+
+  for (const travelerId of uniqueSplitTravelerIds) {
+    assertTravelerId(travelerId, "Split traveler");
+  }
+
+  return {
+    sourceType,
+    sourceId: sourceId || null,
+    title,
+    category,
+    amount,
+    currency,
+    paidByTravelerId,
+    splitTravelerIds: uniqueSplitTravelerIds,
+    settled,
+    expenseDate,
+    notes: notes || null
   };
 }
 
@@ -872,6 +1068,130 @@ export async function updateItineraryItem(id: string, input: ItineraryInput) {
 export async function deleteItineraryItem(id: string) {
   await ensureSharedDataStore();
   await getAppPool().execute("DELETE FROM itinerary_items WHERE id = ?", [id]);
+}
+
+function sortTravelerIds(travelerIds: string[]) {
+  const displayOrder = new Map(travelers.map((traveler) => [traveler.id, traveler.displayOrder]));
+
+  return travelerIds.slice().sort((a, b) => {
+    const orderDiff = (displayOrder.get(a) ?? 999) - (displayOrder.get(b) ?? 999);
+    return orderDiff !== 0 ? orderDiff : a.localeCompare(b);
+  });
+}
+
+export async function listExpenses() {
+  await ensureSharedDataStore();
+  const [expenseRows] = await getAppPool().execute<DbRow[]>(
+    "SELECT * FROM expenses ORDER BY expense_date DESC, created_at DESC, id ASC"
+  );
+  const [splitRows] = await getAppPool().execute<DbRow[]>(
+    "SELECT * FROM expense_splits ORDER BY created_at ASC, traveler_id ASC"
+  );
+  const splitsByExpense = new Map<string, string[]>();
+
+  for (const row of splitRows) {
+    const expenseId = asString(row.expense_id);
+    const current = splitsByExpense.get(expenseId) ?? [];
+    current.push(asString(row.traveler_id));
+    splitsByExpense.set(expenseId, current);
+  }
+
+  return expenseRows.map((row) =>
+    mapExpense(row, sortTravelerIds(splitsByExpense.get(asString(row.id)) ?? []))
+  );
+}
+
+async function insertExpenseSplits(
+  executor: MysqlConnection,
+  expenseId: string,
+  splitTravelerIds: string[]
+) {
+  for (const travelerId of splitTravelerIds) {
+    await executor.execute(
+      `INSERT INTO expense_splits
+        (id, expense_id, traveler_id)
+       VALUES (?, ?, ?)`,
+      [randomUUID(), expenseId, travelerId]
+    );
+  }
+}
+
+export async function createExpense(input: ExpenseInput) {
+  await ensureSharedDataStore();
+  const id = randomUUID();
+  const connection = await getAppPool().getConnection();
+
+  try {
+    await connection.beginTransaction();
+    await connection.execute(
+      `INSERT INTO expenses
+        (id, source_type, source_id, title, category, amount, currency,
+         paid_by_traveler_id, settled, expense_date, notes)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        id,
+        input.sourceType,
+        input.sourceId || null,
+        input.title,
+        input.category,
+        input.amount,
+        input.currency,
+        input.paidByTravelerId,
+        input.settled ? 1 : 0,
+        input.expenseDate,
+        input.notes || null
+      ]
+    );
+    await insertExpenseSplits(connection, id, input.splitTravelerIds);
+    await connection.commit();
+    return id;
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
+  }
+}
+
+export async function updateExpense(id: string, input: ExpenseInput) {
+  await ensureSharedDataStore();
+  const connection = await getAppPool().getConnection();
+
+  try {
+    await connection.beginTransaction();
+    await connection.execute(
+      `UPDATE expenses
+       SET source_type = ?, source_id = ?, title = ?, category = ?, amount = ?,
+           currency = ?, paid_by_traveler_id = ?, settled = ?, expense_date = ?, notes = ?
+       WHERE id = ?`,
+      [
+        input.sourceType,
+        input.sourceId || null,
+        input.title,
+        input.category,
+        input.amount,
+        input.currency,
+        input.paidByTravelerId,
+        input.settled ? 1 : 0,
+        input.expenseDate,
+        input.notes || null,
+        id
+      ]
+    );
+    await connection.execute("DELETE FROM expense_splits WHERE expense_id = ?", [id]);
+    await insertExpenseSplits(connection, id, input.splitTravelerIds);
+    await connection.commit();
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
+  }
+}
+
+export async function deleteExpense(id: string) {
+  await ensureSharedDataStore();
+  await getAppPool().execute("DELETE FROM expenses WHERE id = ?", [id]);
 }
 
 export async function listPackingItems() {

@@ -29,7 +29,7 @@ export type ItineraryDay = {
   meals: string[];
   tickets: string[];
   estimatedCost: number;
-  currency: "EUR" | "SGD";
+  currency: "EUR" | "SGD" | "MYR";
   notes: string;
   mapLinks: {
     label: string;
@@ -54,7 +54,7 @@ export type Booking = {
   bookedBy: string;
   paidBy?: string;
   amount?: number;
-  currency?: "EUR" | "SGD";
+  currency?: "EUR" | "SGD" | "MYR";
   status: BookingStatus;
   confirmationLink?: string;
   notes?: string;
@@ -73,7 +73,7 @@ export type Expense = {
     | "Insurance"
     | "Other";
   amount: number;
-  currency: "EUR" | "SGD";
+  currency: "EUR" | "SGD" | "MYR";
   paidBy: string;
   splitAmong: string[];
   notes?: string;

@@ -1,5 +1,30 @@
 # Progress
 
+## 2026-06-13
+
+- Added MYR support across the shared expense ledger currency model, validation path, MySQL currency enums, money formatting, Budget/Itinerary/Bookings forms, and Dashboard ledger widgets without adding exchange-rate conversion.
+- Added Dashboard budget widgets backed by `/api/expenses` and `summarizeExpenseLedger`, replacing the old static expense summary on the homepage while keeping the rest of Dashboard unchanged.
+- Dashboard now shows ledger total/outstanding/settled/average outstanding per person by currency, top settlement suggestions, recent expenses, loading/error/retry, empty state, and a Budget link.
+- Verified `npm.cmd run build`, `npm.cmd run lint`, desktop/LAN `/`, `/budget`, `/itinerary`, `/bookings`, `/api/expenses`, and temporary misc expense create/edit/delete cleanup with Dashboard ledger summary restore.
+- Completed a Budget unified expense closeout review and made small clarity fixes: Budget source labels are now display-friendly, filters explicitly apply only to the expense list, and linked expense edit/delete guidance points to Itinerary or Bookings.
+- Verified `npm.cmd run build`, `npm.cmd run lint`, desktop/LAN `/budget`, `/itinerary`, `/bookings`, `/api/expenses`, and full temporary misc/itinerary/booking expense create/edit/delete cleanup with Budget summary restore.
+- Added booking linked expenses using the shared expense ledger without changing the expense API schema or adding tables.
+- Booking rows/cards now load and display ledger expenses where `sourceType = booking` and `sourceId` matches the booking item id, with inline add/edit/delete for those linked expenses.
+- Confirmed booking `amount` remains only an estimated/reference field; it can prefill the linked expense form but is not automatically counted in Budget.
+- Verified `npm.cmd run build`, `npm.cmd run lint`, `/bookings`, `/budget`, `/api/bookings`, `/api/expenses`, temporary booking CRUD, temporary linked expense create/update/delete cleanup, and Budget ledger summary delta.
+- Added Budget to the mobile bottom navigation so phone users can reach the unified ledger directly while reviewing itinerary linked expenses.
+- Added itinerary linked expenses using the shared expense ledger without changing the expense API schema or adding tables.
+- Itinerary cards now load and display ledger expenses where `sourceType = itinerary` and `sourceId` matches the itinerary item id, with inline add/edit/delete for those linked expenses.
+- Confirmed itinerary `costAmount` remains only an estimated/reference field; it can prefill the linked expense form but is not automatically counted in Budget.
+- Verified `npm.cmd run build`, `npm.cmd run lint`, `/itinerary`, `/budget`, `/packing`, temporary itinerary CRUD, temporary linked expense create/update/delete cleanup, and Budget ledger summary delta.
+- Connected the Budget page to the shared expense ledger and added miscellaneous expense CRUD without changing Dashboard, Itinerary, Booking, or linked-expense UI.
+- Added a mobile-first Budget ledger client with loading, error, retry, empty state, summary cards, settlement suggestions, filters, expense cards, and inline add/edit form.
+- Verified `npm.cmd run build`, `npm.cmd run lint`, `/budget`, `/api/expenses`, Dashboard, Itinerary, and Packing HTTP 200 responses, plus temporary miscellaneous expense create/update/delete cleanup and settlement summary delta.
+- Added the shared expense ledger foundation without changing page UI: `expenses` and `expense_splits` tables, shared expense types, MySQL store CRUD, `/api/expenses` routes, and ledger summary calculation.
+- Seeded existing static placeholder budget expenses into the ledger only when `expenses` is empty, converting display names like `Person A` to stable traveler IDs like `person_a`.
+- Confirmed itinerary `cost_amount` and booking `amount` remain reference fields only and are not automatically converted into ledger expenses.
+- Verified `npm.cmd run build`, `npm.cmd run lint`, `/api/expenses` create/update/delete cleanup, and `/api/itinerary`, `/api/bookings`, `/api/packing` HTTP 200 JSON responses on the active dev server.
+
 ## 2026-06-12
 
 - Fixed mobile Safari behavior for Google Maps search panels by making simple searches native links and keeping geolocation as an enhancement.

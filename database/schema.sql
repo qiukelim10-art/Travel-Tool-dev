@@ -23,7 +23,7 @@ CREATE TABLE IF NOT EXISTS `booking_items` (
   `location` varchar(255) DEFAULT NULL,
   `booked_by` varchar(80) NOT NULL,
   `amount` decimal(10,2) DEFAULT NULL,
-  `currency` enum('EUR', 'SGD') DEFAULT NULL,
+  `currency` enum('EUR', 'SGD', 'MYR') DEFAULT NULL,
   `notes` text,
   `status` enum('Not Booked', 'Pending', 'Booked', 'Paid', 'Cancelled', 'Need Confirmation') NOT NULL DEFAULT 'Pending',
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -44,7 +44,7 @@ CREATE TABLE IF NOT EXISTS `itinerary_items` (
   `transport` text,
   `meal` text,
   `cost_amount` decimal(10,2) DEFAULT NULL,
-  `currency` enum('EUR', 'SGD') NOT NULL DEFAULT 'EUR',
+  `currency` enum('EUR', 'SGD', 'MYR') NOT NULL DEFAULT 'EUR',
   `notes` text,
   `map_query` varchar(255) DEFAULT NULL,
   `sort_order` int NOT NULL DEFAULT 0,
@@ -53,6 +53,39 @@ CREATE TABLE IF NOT EXISTS `itinerary_items` (
   PRIMARY KEY (`id`),
   KEY `idx_itinerary_items_order` (`travel_date`, `start_time`, `sort_order`, `id`),
     KEY `idx_itinerary_items_city` (`city`, `travel_date`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `expenses` (
+  `id` varchar(36) NOT NULL,
+  `source_type` enum('itinerary', 'booking', 'misc') NOT NULL DEFAULT 'misc',
+  `source_id` varchar(36) DEFAULT NULL,
+  `title` varchar(255) NOT NULL,
+  `category` enum('Flight', 'Accommodation', 'Transport', 'Food', 'Attraction', 'Insurance', 'Shopping', 'Other') NOT NULL,
+  `amount` decimal(10,2) NOT NULL,
+  `currency` enum('EUR', 'SGD', 'MYR') NOT NULL,
+  `paid_by_traveler_id` varchar(80) NOT NULL,
+  `settled` tinyint(1) NOT NULL DEFAULT 0,
+  `expense_date` date NOT NULL,
+  `notes` text,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_expenses_source` (`source_type`, `source_id`),
+  KEY `idx_expenses_date_currency` (`expense_date`, `currency`),
+  KEY `idx_expenses_paid_by` (`paid_by_traveler_id`, `settled`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `expense_splits` (
+  `id` varchar(36) NOT NULL,
+  `expense_id` varchar(36) NOT NULL,
+  `traveler_id` varchar(80) NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uniq_expense_split_traveler` (`expense_id`, `traveler_id`),
+  KEY `idx_expense_splits_traveler` (`traveler_id`),
+  CONSTRAINT `fk_expense_split_expense`
+    FOREIGN KEY (`expense_id`) REFERENCES `expenses` (`id`)
+    ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS `packing_items` (
