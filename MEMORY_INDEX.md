@@ -18,13 +18,14 @@
 - Dashboard information architecture has been simplified: homepage is now a compact overview with Next up, Needs attention, Quick actions, Money snapshot, folded reminders, and SOS quick access instead of page-level management detail.
 - i18n foundation now uses global language state with `trip-dashboard-language`, default English, EN/Chinese toggle in Layout, and a UI-only dictionary; user-entered trip content should remain untranslated.
 - Budget page system UI is now connected to the UI-only i18n foundation while keeping expense titles, notes, traveler names, currencies, and amounts untranslated.
+- Bookings, Itinerary, Packing, and Documents system UI are now connected to the UI-only i18n foundation while keeping user-entered trip content untranslated.
 - The shared expense ledger now supports EUR, SGD, and MYR.
 - Real-data preparation docs now exist: `REAL_DATA_ENTRY_GUIDE.md` and `REAL_DATA_CHECKLIST.md`.
 
 ## Highest Priority Task
 
-- Review the Budget page i18n pass on desktop and a real phone before committing `codex/i18n-budget`.
-- Continue page-level i18n in small phases after Budget is approved.
+- Review the Bookings / Itinerary / Packing / Documents i18n pass on desktop and a real phone before committing `codex/i18n-core-pages`.
+- After approval, commit and merge the core page i18n branch back to `master` in separate verification steps.
 - Review the new shared Documents checklist and protected folder unlock flow on desktop and a real phone.
 - Manually replace safe placeholder data with non-sensitive real trip summaries using `REAL_DATA_ENTRY_GUIDE.md` and `REAL_DATA_CHECKLIST.md`.
 
@@ -55,6 +56,7 @@
 - Emergency access is now a small SOS quick-action panel on the Dashboard, and `/emergency` redirects back to `/`.
 - Do not require every new website change to be bilingual yet; revisit full English/Simplified Chinese switching after the site structure and content are mostly finalized.
 - i18n should translate system UI labels/buttons/status/category text only; do not automatically translate itinerary titles, booking descriptions, expense titles, document notes, reminder text, or traveller display names.
+- Bookings, Itinerary, Packing, and Documents now follow that same UI-only i18n rule; linked expense titles/notes, item names, document folder URLs, city names, and traveler display names remain original data.
 - When asking the user to review a completed website change, provide both the computer URL and a phone URL.
 - Each completed website change handoff must include verified desktop and phone LAN URLs, current port, desktop page HTTP status, phone LAN page HTTP status, and related API status; note that phone access requires the same Wi-Fi or hotspot when applicable.
 - Next dev LAN testing currently allows `172.20.10.4` and `192.168.0.9` in `next.config.mjs` `allowedDevOrigins`; update this list when the computer's LAN IP changes.

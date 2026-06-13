@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
 import { formatMoney } from "@/lib/budget";
+import { useLanguage } from "@/lib/i18n";
+import { translateOption } from "@/lib/localize";
 import {
   bookingCurrencies,
   expenseCategories,
@@ -76,6 +78,7 @@ function emptyExpenseForm(item: SharedItineraryItem, travelers: Traveler[]): Exp
 }
 
 export function ItineraryClient() {
+  const { language, t } = useLanguage();
   const [items, setItems] = useState<SharedItineraryItem[]>([]);
   const [expenses, setExpenses] = useState<SharedExpense[]>([]);
   const [travelers, setTravelers] = useState<Traveler[]>([]);
@@ -139,14 +142,14 @@ export function ItineraryClient() {
 
     try {
       const [itineraryData, expensesData] = await Promise.all([
-        fetchItineraryJson("/api/itinerary", undefined, "Unable to load itinerary."),
-        fetchExpensesJson("/api/expenses", undefined, "Unable to load linked expenses.")
+        fetchItineraryJson("/api/itinerary", undefined, t("itinerary.errorLoad")),
+        fetchExpensesJson("/api/expenses", undefined, t("bookings.errorLinkedLoad"))
       ]);
       setItems(itineraryData.itineraryItems ?? []);
       setExpenses(expensesData.expenses);
       setTravelers(expensesData.travelers);
     } catch (loadError) {
-      setError(loadError instanceof Error ? loadError.message : "Unable to load itinerary.");
+      setError(loadError instanceof Error ? loadError.message : t("itinerary.errorLoad"));
     } finally {
       setLoading(false);
     }
@@ -231,17 +234,17 @@ export function ItineraryClient() {
     event.preventDefault();
 
     if (!form.travelDate) {
-      setError("Date is required.");
+      setError(t("itinerary.validationDate"));
       return;
     }
 
     if (!form.city.trim()) {
-      setError("City is required.");
+      setError(t("itinerary.validationCity"));
       return;
     }
 
     if (!form.title.trim()) {
-      setError("Title is required.");
+      setError(t("itinerary.validationTitle"));
       return;
     }
 
@@ -259,27 +262,23 @@ export function ItineraryClient() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(form)
         },
-        "Unable to save itinerary item."
+        t("itinerary.errorSave")
       );
       setItems(data.itineraryItems ?? []);
       const hiddenByFilters =
         (selectedDate !== "All" && selectedDate !== savedDate) ||
         (selectedCity !== "All" && selectedCity !== savedCity);
-      setNotice(
-        hiddenByFilters
-          ? "Saved. It may be hidden by the current city or date filter."
-          : "Saved itinerary item."
-      );
+      setNotice(hiddenByFilters ? t("itinerary.noticeHidden") : t("itinerary.noticeSaved"));
       resetForm();
     } catch (submitError) {
-      setError(submitError instanceof Error ? submitError.message : "Unable to save itinerary item.");
+      setError(submitError instanceof Error ? submitError.message : t("itinerary.errorSave"));
     } finally {
       setSubmitting(false);
     }
   }
 
   async function removeItem(item: SharedItineraryItem) {
-    if (!window.confirm(`Delete "${item.title}" from the itinerary?`)) {
+    if (!window.confirm(t("itinerary.confirmDelete"))) {
       return;
     }
 
@@ -290,15 +289,15 @@ export function ItineraryClient() {
       const data = await fetchItineraryJson(
         `/api/itinerary/${item.id}`,
         { method: "DELETE" },
-        "Unable to delete itinerary item."
+        t("itinerary.errorDelete")
       );
       setItems(data.itineraryItems ?? []);
-      setNotice("Deleted itinerary item.");
+      setNotice(t("itinerary.noticeDeleted"));
       if (editingId === item.id) {
         resetForm();
       }
     } catch (deleteError) {
-      setError(deleteError instanceof Error ? deleteError.message : "Unable to delete itinerary item.");
+      setError(deleteError instanceof Error ? deleteError.message : t("itinerary.errorDelete"));
     } finally {
       setDeletingId(null);
     }
@@ -313,22 +312,22 @@ export function ItineraryClient() {
 
     const input = buildExpenseInput(item, expenseForm);
     if (!input.title) {
-      setError("Expense title is required.");
+      setError(t("linkedExpenses.validationTitle"));
       return;
     }
 
     if (!Number.isFinite(input.amount) || input.amount <= 0) {
-      setError("Expense amount must be greater than zero.");
+      setError(t("linkedExpenses.validationAmount"));
       return;
     }
 
     if (!/^\d{4}-\d{2}-\d{2}$/.test(input.expenseDate)) {
-      setError("Expense date is required.");
+      setError(t("linkedExpenses.validationDate"));
       return;
     }
 
     if (input.splitTravelerIds.length === 0) {
-      setError("Select at least one traveler to split this expense.");
+      setError(t("linkedExpenses.validationSplit"));
       return;
     }
 
@@ -344,14 +343,14 @@ export function ItineraryClient() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(input)
         },
-        editingExpenseId ? "Unable to update linked expense." : "Unable to add linked expense."
+        editingExpenseId ? t("linkedExpenses.errorUpdate") : t("linkedExpenses.errorAdd")
       );
       setExpenses(data.expenses);
       setTravelers(data.travelers);
-      setNotice(editingExpenseId ? "Updated linked expense." : "Added linked expense.");
+      setNotice(editingExpenseId ? t("linkedExpenses.noticeUpdated") : t("linkedExpenses.noticeAdded"));
       resetExpenseForm();
     } catch (submitError) {
-      setError(submitError instanceof Error ? submitError.message : "Unable to save linked expense.");
+      setError(submitError instanceof Error ? submitError.message : t("linkedExpenses.errorSave"));
     } finally {
       setExpenseSubmitting(false);
     }
@@ -362,7 +361,7 @@ export function ItineraryClient() {
       return;
     }
 
-    if (!window.confirm(`Delete "${expense.title}" from linked itinerary expenses?`)) {
+    if (!window.confirm(t("linkedExpenses.confirmDeleteItinerary"))) {
       return;
     }
 
@@ -374,16 +373,16 @@ export function ItineraryClient() {
       const data = await fetchExpensesJson(
         `/api/expenses/${expense.id}`,
         { method: "DELETE" },
-        "Unable to delete linked expense."
+        t("linkedExpenses.errorDelete")
       );
       setExpenses(data.expenses);
       setTravelers(data.travelers);
-      setNotice("Deleted linked expense.");
+      setNotice(t("linkedExpenses.noticeDeleted"));
       if (editingExpenseId === expense.id) {
         resetExpenseForm();
       }
     } catch (deleteError) {
-      setError(deleteError instanceof Error ? deleteError.message : "Unable to delete linked expense.");
+      setError(deleteError instanceof Error ? deleteError.message : t("linkedExpenses.errorDelete"));
     } finally {
       setDeletingExpenseId(null);
     }
@@ -404,7 +403,7 @@ export function ItineraryClient() {
                   : "border-zinc-200 bg-white text-zinc-700"
               }`}
             >
-              {city}
+              {city === "All" ? translateOption(language, city) : city}
             </button>
           ))}
         </div>
@@ -413,7 +412,7 @@ export function ItineraryClient() {
           onClick={formOpen ? resetForm : openAddForm}
           className="w-full max-w-full rounded-md bg-moss px-3 py-2 text-sm font-semibold text-white sm:w-auto"
         >
-          {formOpen ? "Close form" : "Add itinerary item"}
+          {formOpen ? t("itinerary.closeForm") : t("itinerary.addItem")}
         </button>
       </div>
 
@@ -427,7 +426,7 @@ export function ItineraryClient() {
               : "border-zinc-200 bg-white text-zinc-700"
           }`}
         >
-          All dates
+          {t("itinerary.allDates")}
         </button>
         {dateOptions.map((date) => (
           <button
@@ -453,10 +452,10 @@ export function ItineraryClient() {
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="min-w-0">
               <p className="text-xs font-semibold uppercase tracking-[0.08em] text-terracotta">
-                {editingId ? "Edit itinerary item" : "Add itinerary item"}
+                {editingId ? t("itinerary.editItem") : t("itinerary.addItemEyebrow")}
               </p>
               <h2 className="mt-1 text-xl font-semibold text-ink">
-                {editingId ? "Update the shared plan" : "Create a shared plan entry"}
+                {editingId ? t("itinerary.editTitle") : t("itinerary.addTitle")}
               </h2>
             </div>
             {editingId ? (
@@ -465,50 +464,50 @@ export function ItineraryClient() {
                 onClick={resetForm}
                 className="max-w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold text-ink"
               >
-                Cancel edit
+                {t("itinerary.cancelEdit")}
               </button>
             ) : null}
           </div>
 
           <div className="mt-4 grid min-w-0 grid-cols-1 gap-3 md:grid-cols-2">
             <TextField
-              label="Date"
+              label={t("common.date")}
               type="date"
               value={form.travelDate}
               onChange={(value) => setForm((current) => ({ ...current, travelDate: value }))}
             />
             <TextField
-              label="City"
+              label={t("itinerary.form.city")}
               value={form.city}
               onChange={(value) => setForm((current) => ({ ...current, city: value }))}
               placeholder="Rome"
             />
             <TextField
-              label="Start time"
+              label={t("itinerary.form.startTime")}
               type="time"
               value={form.startTime ?? ""}
               onChange={(value) => setForm((current) => ({ ...current, startTime: value }))}
             />
             <TextField
-              label="End time"
+              label={t("itinerary.form.endTime")}
               type="time"
               value={form.endTime ?? ""}
               onChange={(value) => setForm((current) => ({ ...current, endTime: value }))}
             />
             <TextField
-              label="Title"
+              label={t("common.title")}
               value={form.title}
               onChange={(value) => setForm((current) => ({ ...current, title: value }))}
               placeholder="Colosseum timed entry"
             />
             <TextField
-              label="Location"
+              label={t("common.location")}
               value={form.location ?? ""}
               onChange={(value) => setForm((current) => ({ ...current, location: value }))}
               placeholder="Colosseum, Rome"
             />
             <TextField
-              label="Cost amount"
+              label={t("itinerary.form.costAmount")}
               type="number"
               value={form.costAmount === null || form.costAmount === undefined ? "" : String(form.costAmount)}
               onChange={(value) =>
@@ -517,19 +516,19 @@ export function ItineraryClient() {
               placeholder="0"
             />
             <SelectField
-              label="Currency"
+              label={t("common.currency")}
               value={form.currency ?? "EUR"}
               options={bookingCurrencies}
               onChange={(value) => setForm((current) => ({ ...current, currency: value as SharedCurrency }))}
             />
             <TextField
-              label="Map search query"
+              label={t("itinerary.form.mapQuery")}
               value={form.mapQuery ?? ""}
               onChange={(value) => setForm((current) => ({ ...current, mapQuery: value }))}
               placeholder="Colosseum Rome"
             />
             <TextField
-              label="Sort order"
+              label={t("common.sortOrder")}
               type="number"
               value={String(form.sortOrder ?? 0)}
               onChange={(value) =>
@@ -541,28 +540,28 @@ export function ItineraryClient() {
 
           <div className="mt-3 grid min-w-0 grid-cols-1 gap-3 md:grid-cols-2">
             <TextareaField
-              label="Details"
+              label={t("itinerary.details")}
               value={form.details ?? ""}
               onChange={(value) => setForm((current) => ({ ...current, details: value }))}
-              placeholder={"**Morning plan**\n- Colosseum timed entry\n- Roman Forum walk"}
+              placeholder={t("itinerary.form.detailsPlaceholder")}
             />
             <TextareaField
-              label="Transport"
+              label={t("itinerary.transport")}
               value={form.transport ?? ""}
               onChange={(value) => setForm((current) => ({ ...current, transport: value }))}
-              placeholder="- Metro to Colosseo"
+              placeholder={t("itinerary.form.transportPlaceholder")}
             />
             <TextareaField
-              label="Meal"
+              label={t("itinerary.meal")}
               value={form.meal ?? ""}
               onChange={(value) => setForm((current) => ({ ...current, meal: value }))}
-              placeholder="- Lunch near Monti"
+              placeholder={t("itinerary.form.mealPlaceholder")}
             />
             <TextareaField
-              label="Notes"
+              label={t("common.notes")}
               value={form.notes ?? ""}
               onChange={(value) => setForm((current) => ({ ...current, notes: value }))}
-              placeholder="Safe notes only. Avoid private confirmation numbers."
+              placeholder={t("bookings.form.notesPlaceholder")}
             />
           </div>
 
@@ -571,7 +570,7 @@ export function ItineraryClient() {
             disabled={submitting}
             className="mt-4 box-border w-full max-w-full rounded-md bg-moss px-3 py-2 text-base font-semibold text-white disabled:opacity-60 sm:w-auto sm:text-sm"
           >
-            {submitting ? "Saving..." : editingId ? "Save changes" : "Add item"}
+            {submitting ? t("common.saving") : editingId ? t("bookings.saveChanges") : t("itinerary.addButton")}
           </button>
         </form>
       ) : null}
@@ -591,16 +590,16 @@ export function ItineraryClient() {
             disabled={loading}
             className="rounded-md border border-red-200 bg-white px-3 py-2 text-sm font-semibold text-red-700 disabled:opacity-60"
           >
-            {loading ? "Retrying..." : "Retry"}
+            {loading ? t("common.retrying") : t("common.retry")}
           </button>
         </div>
       ) : null}
 
-      {loading ? <p className="text-sm text-zinc-600">Loading itinerary...</p> : null}
+      {loading ? <p className="text-sm text-zinc-600">{t("itinerary.loading")}</p> : null}
 
       {!loading && visibleItems.length === 0 ? (
         <p className="rounded-lg border border-zinc-200 bg-white px-4 py-8 text-sm text-zinc-600 shadow-soft">
-          No itinerary items match this filter yet.
+          {t("itinerary.empty")}
         </p>
       ) : null}
 
@@ -805,10 +804,11 @@ function ItineraryCard({
   onCancelExpense: () => void;
   onExpenseFormChange: (updater: (current: ExpenseFormState) => ExpenseFormState) => void;
 }) {
+  const { t } = useLanguage();
   const mapsQuery = item.mapQuery || item.location;
   const [expenseDetailsOpen, setExpenseDetailsOpen] = useState(false);
   const expenseDetailsVisible = expenseDetailsOpen || Boolean(expenseForm);
-  const outstandingSummary = formatOutstandingSummary(expenses);
+  const outstandingSummary = formatOutstandingSummary(expenses, t("linkedExpenses.none"));
 
   function handleAddExpense() {
     setExpenseDetailsOpen(true);
@@ -820,7 +820,7 @@ function ItineraryCard({
       <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
         <div className="min-w-0">
           <p className="text-xs font-semibold uppercase tracking-[0.08em] text-terracotta">
-            {formatTimeRange(item)}
+            {formatTimeRange(item, t("itinerary.flexibleTime"))}
           </p>
           <h3 className="mt-1 text-xl font-semibold text-ink">{item.title}</h3>
           <div className="mt-2 flex flex-wrap gap-2 text-sm text-zinc-600">
@@ -834,7 +834,7 @@ function ItineraryCard({
             onClick={() => onEdit(item)}
             className="rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold text-ink"
           >
-            Edit
+            {t("common.edit")}
           </button>
           <button
             type="button"
@@ -842,23 +842,23 @@ function ItineraryCard({
             disabled={deletingId === item.id}
             className="rounded-md border border-red-200 bg-white px-3 py-2 text-sm font-semibold text-red-700 disabled:opacity-60"
           >
-            {deletingId === item.id ? "Deleting..." : "Delete"}
+            {deletingId === item.id ? t("common.deleting") : t("common.delete")}
           </button>
         </div>
       </div>
 
       <div className="mt-4 grid gap-4 lg:grid-cols-[1.4fr_1fr]">
         <div className="space-y-3">
-          <RichTextBlock title="Details" value={item.details} />
-          <RichTextBlock title="Notes" value={item.notes} />
+          <RichTextBlock title={t("itinerary.details")} value={item.details} />
+          <RichTextBlock title={t("common.notes")} value={item.notes} />
         </div>
         <aside className="space-y-3 rounded-lg border border-zinc-200 bg-zinc-50 p-3">
-          <RichTextBlock title="Transport" value={item.transport} />
-          <RichTextBlock title="Meal" value={item.meal} />
+          <RichTextBlock title={t("itinerary.transport")} value={item.transport} />
+          <RichTextBlock title={t("itinerary.meal")} value={item.meal} />
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.08em] text-zinc-500">Cost</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.08em] text-zinc-500">{t("itinerary.cost")}</p>
             <p className="mt-1 text-sm text-zinc-700">
-              {item.costAmount !== null ? formatMoney(item.costAmount, item.currency) : "TBC"}
+              {item.costAmount !== null ? formatMoney(item.costAmount, item.currency) : t("common.tbc")}
             </p>
           </div>
           {mapsQuery ? (
@@ -868,7 +868,7 @@ function ItineraryCard({
               rel="noopener noreferrer"
               className="inline-flex rounded-md bg-moss px-3 py-2 text-sm font-semibold text-white"
             >
-              Open in Google Maps
+              {t("itinerary.openMaps")}
             </a>
           ) : null}
         </aside>
@@ -878,12 +878,14 @@ function ItineraryCard({
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
             <p className="text-xs font-semibold uppercase tracking-[0.08em] text-terracotta">
-              Linked expenses
+              {t("linkedExpenses.title")}
             </p>
             <div className="mt-2 flex flex-wrap gap-2 text-sm text-zinc-700">
-              <span className="rounded-md bg-zinc-50 px-2.5 py-1">Expenses: {expenses.length}</span>
               <span className="rounded-md bg-zinc-50 px-2.5 py-1">
-                Outstanding: {outstandingSummary}
+                {t("linkedExpenses.expensesCount", { count: expenses.length })}
+              </span>
+              <span className="rounded-md bg-zinc-50 px-2.5 py-1">
+                {t("linkedExpenses.outstanding", { amount: outstandingSummary })}
               </span>
             </div>
           </div>
@@ -893,14 +895,14 @@ function ItineraryCard({
               onClick={() => setExpenseDetailsOpen((current) => !current)}
               className="w-full max-w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold text-ink sm:w-auto"
             >
-              {expenseDetailsVisible ? "Hide details" : "Show details"}
+              {expenseDetailsVisible ? t("linkedExpenses.hideDetails") : t("linkedExpenses.showDetails")}
             </button>
             <button
               type="button"
               onClick={handleAddExpense}
               className="w-full max-w-full rounded-md bg-moss px-3 py-2 text-sm font-semibold text-white sm:w-auto"
             >
-              Add expense
+              {t("linkedExpenses.add")}
             </button>
           </div>
         </div>
@@ -923,7 +925,7 @@ function ItineraryCard({
             <div className="mt-3 grid gap-3">
               {expenses.length === 0 ? (
                 <p className="rounded-lg bg-zinc-50 px-3 py-4 text-sm text-zinc-600">
-                  No linked expenses yet.
+                  {t("linkedExpenses.empty")}
                 </p>
               ) : null}
               {expenses.map((expense) => (
@@ -944,7 +946,7 @@ function ItineraryCard({
   );
 }
 
-function formatOutstandingSummary(expenses: SharedExpense[]) {
+function formatOutstandingSummary(expenses: SharedExpense[], noneLabel: string) {
   const totals = new Map<SharedCurrency, number>();
 
   for (const expense of expenses) {
@@ -956,7 +958,7 @@ function formatOutstandingSummary(expenses: SharedExpense[]) {
   }
 
   if (totals.size === 0) {
-    return "None";
+    return noneLabel;
   }
 
   return Array.from(totals.entries())
@@ -984,6 +986,8 @@ function ItineraryExpenseForm({
   onCancel: () => void;
   onChange: (updater: (current: ExpenseFormState) => ExpenseFormState) => void;
 }) {
+  const { language, t } = useLanguage();
+
   return (
     <form
       onSubmit={(event) => void onSubmit(item, event)}
@@ -992,53 +996,54 @@ function ItineraryExpenseForm({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-xs font-semibold uppercase tracking-[0.08em] text-zinc-500">
-            {editingExpenseId ? "Edit linked expense" : "Add linked expense"}
+            {editingExpenseId ? t("linkedExpenses.editEyebrow") : t("linkedExpenses.addEyebrow")}
           </p>
           <h4 className="mt-1 text-base font-semibold text-ink">
-            {editingExpenseId ? "Update itinerary ledger item" : "Create itinerary ledger item"}
+            {editingExpenseId ? t("linkedExpenses.itineraryEditTitle") : t("linkedExpenses.itineraryAddTitle")}
           </h4>
         </div>
         {item.costAmount !== null ? (
           <p className="rounded-md bg-white px-3 py-2 text-xs font-medium text-zinc-600">
-            Estimate: {formatMoney(item.costAmount, item.currency)}
+            {t("linkedExpenses.estimate")}: {formatMoney(item.costAmount, item.currency)}
           </p>
         ) : null}
       </div>
 
       <div className="mt-3 grid min-w-0 grid-cols-1 gap-3 md:grid-cols-2">
         <TextField
-          label="Title"
+          label={t("common.title")}
           value={form.title}
           onChange={(value) => onChange((current) => ({ ...current, title: value }))}
           placeholder={item.title}
         />
         <TextField
-          label="Amount"
+          label={t("common.amount")}
           type="number"
           value={form.amount}
           onChange={(value) => onChange((current) => ({ ...current, amount: value }))}
           placeholder="0"
         />
         <SelectField
-          label="Currency"
+          label={t("common.currency")}
           value={form.currency}
           options={bookingCurrencies}
           onChange={(value) => onChange((current) => ({ ...current, currency: value as SharedCurrency }))}
         />
         <SelectField
-          label="Category"
+          label={t("common.category")}
           value={form.category}
           options={expenseCategories}
+          formatOption={(option) => translateOption(language, option)}
           onChange={(value) => onChange((current) => ({ ...current, category: value as ExpenseCategory }))}
         />
         <TextField
-          label="Date"
+          label={t("common.date")}
           type="date"
           value={form.expenseDate}
           onChange={(value) => onChange((current) => ({ ...current, expenseDate: value }))}
         />
         <SelectField
-          label="Paid by"
+          label={t("budget.form.paidBy")}
           value={form.paidByTravelerId}
           options={travelers.map((traveler) => traveler.id)}
           optionLabels={new Map(travelers.map((traveler) => [traveler.id, traveler.name]))}
@@ -1047,7 +1052,7 @@ function ItineraryExpenseForm({
       </div>
 
       <fieldset className="mt-3 min-w-0 rounded-lg border border-zinc-200 bg-white p-3">
-        <legend className="px-1 text-sm font-semibold text-ink">Split among</legend>
+        <legend className="px-1 text-sm font-semibold text-ink">{t("budget.form.splitAmong")}</legend>
         <div className="mt-2 grid gap-2 sm:grid-cols-2">
           {travelers.map((traveler) => (
             <label key={traveler.id} className="flex min-w-0 items-center gap-2 text-sm text-zinc-700">
@@ -1077,16 +1082,16 @@ function ItineraryExpenseForm({
           onChange={(event) => onChange((current) => ({ ...current, settled: event.target.checked }))}
           className="h-4 w-4 shrink-0 rounded border-zinc-300"
         />
-        <span>Settled</span>
+        <span>{translateOption(language, "Settled")}</span>
       </label>
 
       <label className="mt-3 block w-full max-w-full min-w-0 text-sm font-semibold text-ink">
-        Notes
+        {t("common.notes")}
         <textarea
           value={form.notes}
           onChange={(event) => onChange((current) => ({ ...current, notes: event.target.value }))}
           className="mt-2 block box-border min-h-24 w-full max-w-full min-w-0 resize-y rounded-md border border-zinc-200 bg-white px-3 py-2 text-base text-zinc-700 sm:text-sm"
-          placeholder="Safe notes only. Avoid private confirmation numbers."
+          placeholder={t("bookings.form.notesPlaceholder")}
         />
       </label>
 
@@ -1096,7 +1101,7 @@ function ItineraryExpenseForm({
           disabled={submitting}
           className="w-full max-w-full rounded-md bg-moss px-3 py-2 text-base font-semibold text-white disabled:opacity-60 sm:w-auto sm:text-sm"
         >
-          {submitting ? "Saving..." : editingExpenseId ? "Save expense" : "Add expense"}
+          {submitting ? t("common.saving") : editingExpenseId ? t("linkedExpenses.saveExpense") : t("linkedExpenses.addExpense")}
         </button>
         <button
           type="button"
@@ -1104,7 +1109,7 @@ function ItineraryExpenseForm({
           disabled={submitting}
           className="w-full max-w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-base font-semibold text-ink disabled:opacity-60 sm:w-auto sm:text-sm"
         >
-          Cancel
+          {t("common.cancel")}
         </button>
       </div>
     </form>
@@ -1124,6 +1129,8 @@ function ItineraryExpenseCard({
   onEdit: (expense: SharedExpense) => void;
   onDelete: (expense: SharedExpense) => Promise<void>;
 }) {
+  const { language, t } = useLanguage();
+
   return (
     <article className="rounded-lg border border-zinc-200 bg-zinc-50 p-3">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
@@ -1133,7 +1140,7 @@ function ItineraryExpenseCard({
             <ExpenseStatusPill settled={expense.settled} />
           </div>
           <p className="mt-1 text-xs uppercase tracking-[0.08em] text-zinc-500">
-            {expense.category} - {expense.expenseDate}
+            {translateOption(language, expense.category)} - {expense.expenseDate}
           </p>
         </div>
         <p className="shrink-0 text-sm font-semibold text-ink">
@@ -1142,11 +1149,11 @@ function ItineraryExpenseCard({
       </div>
       <dl className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
         <Field
-          label="Paid by"
+          label={t("budget.form.paidBy")}
           value={travelerNameById.get(expense.paidByTravelerId) ?? expense.paidByTravelerId}
         />
         <Field
-          label="Split among"
+          label={t("budget.form.splitAmong")}
           value={expense.splitTravelerIds
             .map((travelerId) => travelerNameById.get(travelerId) ?? travelerId)
             .join(", ")}
@@ -1159,7 +1166,7 @@ function ItineraryExpenseCard({
           onClick={() => onEdit(expense)}
           className="rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold text-ink"
         >
-          Edit
+          {t("common.edit")}
         </button>
         <button
           type="button"
@@ -1167,7 +1174,7 @@ function ItineraryExpenseCard({
           disabled={deletingExpenseId === expense.id}
           className="rounded-md border border-red-200 bg-white px-3 py-2 text-sm font-semibold text-red-700 disabled:opacity-60"
         >
-          {deletingExpenseId === expense.id ? "Deleting..." : "Delete"}
+          {deletingExpenseId === expense.id ? t("common.deleting") : t("common.delete")}
         </button>
       </div>
     </article>
@@ -1175,6 +1182,8 @@ function ItineraryExpenseCard({
 }
 
 function ExpenseStatusPill({ settled }: { settled: boolean }) {
+  const { language } = useLanguage();
+
   return (
     <span
       className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ${
@@ -1183,7 +1192,7 @@ function ExpenseStatusPill({ settled }: { settled: boolean }) {
           : "bg-amber-100 text-amber-800 ring-amber-200"
       }`}
     >
-      {settled ? "Settled" : "Outstanding"}
+      {translateOption(language, settled ? "Settled" : "Outstanding")}
     </span>
   );
 }
@@ -1197,12 +1206,12 @@ function Field({ label, value }: { label: string; value: string }) {
   );
 }
 
-function formatTimeRange(item: SharedItineraryItem) {
+function formatTimeRange(item: SharedItineraryItem, flexibleLabel: string) {
   if (item.startTime && item.endTime) {
     return `${item.startTime}-${item.endTime}`;
   }
 
-  return item.startTime || "Flexible time";
+  return item.startTime || flexibleLabel;
 }
 
 function googleMapsSearchUrl(query: string) {
@@ -1373,12 +1382,14 @@ function SelectField({
   value,
   options,
   optionLabels,
+  formatOption,
   onChange
 }: {
   label: string;
   value: string;
   options: readonly string[];
   optionLabels?: Map<string, string>;
+  formatOption?: (option: string) => string;
   onChange: (value: string) => void;
 }) {
   return (
@@ -1391,7 +1402,7 @@ function SelectField({
       >
         {options.map((option) => (
           <option key={option} value={option}>
-            {optionLabels?.get(option) ?? option}
+            {optionLabels?.get(option) ?? formatOption?.(option) ?? option}
           </option>
         ))}
       </select>

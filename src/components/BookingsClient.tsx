@@ -3,6 +3,8 @@
 import { Fragment, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { StatusBadge } from "@/components/StatusBadge";
 import { formatMoney } from "@/lib/budget";
+import { useLanguage } from "@/lib/i18n";
+import { translateOption } from "@/lib/localize";
 import {
   bookingCategories,
   bookingCurrencies,
@@ -72,6 +74,7 @@ function emptyExpenseForm(booking: SharedBooking, travelers: Traveler[]): Expens
 }
 
 export function BookingsClient({ participants }: BookingsClientProps) {
+  const { language, t } = useLanguage();
   const [bookings, setBookings] = useState<SharedBooking[]>([]);
   const [expenses, setExpenses] = useState<SharedExpense[]>([]);
   const [travelers, setTravelers] = useState<Traveler[]>([]);
@@ -136,15 +139,15 @@ export function BookingsClient({ participants }: BookingsClientProps) {
 
     try {
       const [bookingsData, expensesData] = await Promise.all([
-        fetchBookingsJson("/api/bookings", undefined, "Unable to load bookings."),
-        fetchExpensesJson("/api/expenses", undefined, "Unable to load linked expenses.")
+        fetchBookingsJson("/api/bookings", undefined, t("bookings.errorLoad")),
+        fetchExpensesJson("/api/expenses", undefined, t("bookings.errorLinkedLoad"))
       ]);
 
       setBookings(bookingsData.bookings ?? []);
       setExpenses(expensesData.expenses);
       setTravelers(expensesData.travelers);
     } catch (loadError) {
-      setError(loadError instanceof Error ? loadError.message : "Unable to load bookings.");
+      setError(loadError instanceof Error ? loadError.message : t("bookings.errorLoad"));
     } finally {
       setLoading(false);
     }
@@ -228,12 +231,12 @@ export function BookingsClient({ participants }: BookingsClientProps) {
     event.preventDefault();
 
     if (!form.description.trim()) {
-      setError("Description is required.");
+      setError(t("bookings.validationDescription"));
       return;
     }
 
     if (!form.date) {
-      setError("Date is required.");
+      setError(t("bookings.validationDate"));
       return;
     }
 
@@ -249,14 +252,14 @@ export function BookingsClient({ participants }: BookingsClientProps) {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(form)
         },
-        "Unable to save booking."
+        t("bookings.errorSave")
       );
 
       setBookings(data.bookings ?? []);
-      setNotice(editingId ? "Updated booking." : "Added booking.");
+      setNotice(editingId ? t("bookings.noticeUpdated") : t("bookings.noticeAdded"));
       resetForm();
     } catch (submitError) {
-      setError(submitError instanceof Error ? submitError.message : "Unable to save booking.");
+      setError(submitError instanceof Error ? submitError.message : t("bookings.errorSave"));
     } finally {
       setSubmitting(false);
     }
@@ -271,22 +274,22 @@ export function BookingsClient({ participants }: BookingsClientProps) {
 
     const input = buildExpenseInput(booking, expenseForm);
     if (!input.title) {
-      setError("Expense title is required.");
+      setError(t("linkedExpenses.validationTitle"));
       return;
     }
 
     if (!Number.isFinite(input.amount) || input.amount <= 0) {
-      setError("Expense amount must be greater than zero.");
+      setError(t("linkedExpenses.validationAmount"));
       return;
     }
 
     if (!/^\d{4}-\d{2}-\d{2}$/.test(input.expenseDate)) {
-      setError("Expense date is required.");
+      setError(t("linkedExpenses.validationDate"));
       return;
     }
 
     if (input.splitTravelerIds.length === 0) {
-      setError("Select at least one traveler to split this expense.");
+      setError(t("linkedExpenses.validationSplit"));
       return;
     }
 
@@ -302,21 +305,21 @@ export function BookingsClient({ participants }: BookingsClientProps) {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(input)
         },
-        editingExpenseId ? "Unable to update linked expense." : "Unable to add linked expense."
+        editingExpenseId ? t("linkedExpenses.errorUpdate") : t("linkedExpenses.errorAdd")
       );
       setExpenses(data.expenses);
       setTravelers(data.travelers);
-      setNotice(editingExpenseId ? "Updated linked expense." : "Added linked expense.");
+      setNotice(editingExpenseId ? t("linkedExpenses.noticeUpdated") : t("linkedExpenses.noticeAdded"));
       resetExpenseForm();
     } catch (submitError) {
-      setError(submitError instanceof Error ? submitError.message : "Unable to save linked expense.");
+      setError(submitError instanceof Error ? submitError.message : t("linkedExpenses.errorSave"));
     } finally {
       setExpenseSubmitting(false);
     }
   }
 
   async function removeBooking(booking: SharedBooking) {
-    if (!window.confirm("Delete this booking item? This cannot be undone.")) {
+    if (!window.confirm(t("bookings.confirmDelete"))) {
       return;
     }
 
@@ -328,11 +331,11 @@ export function BookingsClient({ participants }: BookingsClientProps) {
       const data = await fetchBookingsJson(
         `/api/bookings/${booking.id}`,
         { method: "DELETE" },
-        "Unable to delete booking."
+        t("bookings.errorDelete")
       );
 
       setBookings(data.bookings ?? []);
-      setNotice("Deleted booking.");
+      setNotice(t("bookings.noticeDeleted"));
       if (editingId === booking.id) {
         resetForm();
       }
@@ -340,7 +343,7 @@ export function BookingsClient({ participants }: BookingsClientProps) {
         resetExpenseForm();
       }
     } catch (deleteError) {
-      setError(deleteError instanceof Error ? deleteError.message : "Unable to delete booking.");
+      setError(deleteError instanceof Error ? deleteError.message : t("bookings.errorDelete"));
     } finally {
       setDeletingId(null);
     }
@@ -351,7 +354,7 @@ export function BookingsClient({ participants }: BookingsClientProps) {
       return;
     }
 
-    if (!window.confirm(`Delete "${expense.title}" from linked booking expenses?`)) {
+    if (!window.confirm(t("linkedExpenses.confirmDeleteBooking"))) {
       return;
     }
 
@@ -363,16 +366,16 @@ export function BookingsClient({ participants }: BookingsClientProps) {
       const data = await fetchExpensesJson(
         `/api/expenses/${expense.id}`,
         { method: "DELETE" },
-        "Unable to delete linked expense."
+        t("linkedExpenses.errorDelete")
       );
       setExpenses(data.expenses);
       setTravelers(data.travelers);
-      setNotice("Deleted linked expense.");
+      setNotice(t("linkedExpenses.noticeDeleted"));
       if (editingExpenseId === expense.id) {
         resetExpenseForm();
       }
     } catch (deleteError) {
-      setError(deleteError instanceof Error ? deleteError.message : "Unable to delete linked expense.");
+      setError(deleteError instanceof Error ? deleteError.message : t("linkedExpenses.errorDelete"));
     } finally {
       setDeletingExpenseId(null);
     }
@@ -381,9 +384,9 @@ export function BookingsClient({ participants }: BookingsClientProps) {
   return (
     <div className="w-full max-w-full min-w-0 space-y-5">
       <div className="grid gap-3 sm:grid-cols-3">
-        <SummaryPill label="Total items" value={String(bookings.length)} />
-        <SummaryPill label="Need action" value={String(incompleteCount)} />
-        <SummaryPill label="Visible" value={String(visibleBookings.length)} />
+        <SummaryPill label={t("bookings.summary.total")} value={String(bookings.length)} />
+        <SummaryPill label={t("bookings.summary.needAction")} value={String(incompleteCount)} />
+        <SummaryPill label={t("common.visible")} value={String(visibleBookings.length)} />
       </div>
 
       {!formOpen ? (
@@ -391,10 +394,10 @@ export function BookingsClient({ participants }: BookingsClientProps) {
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0">
               <p className="text-xs font-semibold uppercase tracking-[0.08em] text-terracotta">
-                Booking editor
+                {t("bookings.editor.eyebrow")}
               </p>
               <p className="mt-1 text-sm text-zinc-600">
-                Add or update shared booking items when there is a real change to record.
+                {t("bookings.editor.description")}
               </p>
             </div>
             <button
@@ -402,7 +405,7 @@ export function BookingsClient({ participants }: BookingsClientProps) {
               onClick={openAddForm}
               className="w-full max-w-full rounded-md bg-moss px-3 py-2 text-sm font-semibold text-white sm:w-auto"
             >
-              Add booking item
+              {t("bookings.addItem")}
             </button>
           </div>
         </section>
@@ -415,10 +418,10 @@ export function BookingsClient({ participants }: BookingsClientProps) {
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="min-w-0">
               <p className="text-xs font-semibold uppercase tracking-[0.08em] text-terracotta">
-                {editingId ? "Edit booking" : "Add booking"}
+                {editingId ? t("bookings.editBooking") : t("bookings.addBooking")}
               </p>
               <h2 className="mt-1 text-xl font-semibold text-ink">
-                {editingId ? "Update shared booking details" : "Create a shared booking item"}
+                {editingId ? t("bookings.editTitle") : t("bookings.addTitle")}
               </h2>
             </div>
             <button
@@ -426,43 +429,44 @@ export function BookingsClient({ participants }: BookingsClientProps) {
               onClick={resetForm}
               className="rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold text-ink"
             >
-              {editingId ? "Cancel edit" : "Close form"}
+              {editingId ? t("bookings.cancelEdit") : t("bookings.closeForm")}
             </button>
           </div>
 
           <div className="mt-4 grid min-w-0 grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
             <SelectField
-              label="Category"
+              label={t("common.category")}
               value={form.category}
               options={bookingCategories}
+              formatOption={(option) => translateOption(language, option)}
               onChange={(value) => setForm((current) => ({ ...current, category: value as BookingInput["category"] }))}
             />
             <TextField
-              label="Description"
+              label={t("common.description")}
               value={form.description}
               onChange={(value) => setForm((current) => ({ ...current, description: value }))}
-              placeholder="Rome hotel booking"
+              placeholder={t("bookings.form.descriptionPlaceholder")}
             />
             <TextField
-              label="Date"
+              label={t("common.date")}
               type="date"
               value={form.date}
               onChange={(value) => setForm((current) => ({ ...current, date: value }))}
             />
             <TextField
-              label="Location"
+              label={t("common.location")}
               value={form.location ?? ""}
               onChange={(value) => setForm((current) => ({ ...current, location: value }))}
               placeholder="Rome"
             />
             <SelectField
-              label="Booked by"
+              label={t("bookings.form.bookedBy")}
               value={form.bookedBy}
               options={participants}
               onChange={(value) => setForm((current) => ({ ...current, bookedBy: value }))}
             />
             <TextField
-              label="Amount"
+              label={t("common.amount")}
               type="number"
               value={form.amount === null || form.amount === undefined ? "" : String(form.amount)}
               onChange={(value) =>
@@ -471,26 +475,27 @@ export function BookingsClient({ participants }: BookingsClientProps) {
               placeholder="0"
             />
             <SelectField
-              label="Currency"
+              label={t("common.currency")}
               value={form.currency ?? "EUR"}
               options={bookingCurrencies}
               onChange={(value) => setForm((current) => ({ ...current, currency: value as BookingInput["currency"] }))}
             />
             <SelectField
-              label="Status"
+              label={t("common.status")}
               value={form.status}
               options={bookingStatuses}
+              formatOption={(option) => translateOption(language, option)}
               onChange={(value) => setForm((current) => ({ ...current, status: value as BookingInput["status"] }))}
             />
           </div>
 
           <label className="mt-3 block w-full max-w-full min-w-0 text-sm font-semibold text-ink">
-            Notes
+            {t("common.notes")}
             <textarea
               value={form.notes ?? ""}
               onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))}
               className="mt-2 block box-border min-h-24 w-full max-w-full min-w-0 rounded-md border border-zinc-200 bg-white px-3 py-2 text-base text-zinc-700 sm:text-sm"
-              placeholder="Safe notes only. Do not paste private confirmation numbers."
+              placeholder={t("bookings.form.notesPlaceholder")}
             />
           </label>
 
@@ -499,28 +504,31 @@ export function BookingsClient({ participants }: BookingsClientProps) {
             disabled={submitting}
             className="mt-4 w-full max-w-full rounded-md bg-moss px-3 py-2 text-base font-semibold text-white disabled:opacity-60 sm:w-auto sm:text-sm"
           >
-            {submitting ? "Saving..." : editingId ? "Save changes" : "Add booking"}
+            {submitting ? t("common.saving") : editingId ? t("bookings.saveChanges") : t("bookings.addBookingButton")}
           </button>
         </form>
       )}
 
       <div className="grid gap-3 rounded-lg border border-zinc-200 bg-white p-3 sm:grid-cols-3">
         <SelectField
-          label="Category"
+          label={t("common.category")}
           value={categoryFilter}
           options={["All", ...bookingCategories]}
+          formatOption={(option) => translateOption(language, option)}
           onChange={(value) => setCategoryFilter(value as typeof categoryFilter)}
         />
         <SelectField
-          label="Status"
+          label={t("common.status")}
           value={statusFilter}
           options={["All", ...bookingStatuses]}
+          formatOption={(option) => translateOption(language, option)}
           onChange={(value) => setStatusFilter(value as typeof statusFilter)}
         />
         <SelectField
-          label="Booked by"
+          label={t("bookings.form.bookedBy")}
           value={bookedByFilter}
           options={["All", ...participants]}
+          formatOption={(option) => (option === "All" ? translateOption(language, option) : option)}
           onChange={(value) => setBookedByFilter(value)}
         />
       </div>
@@ -540,16 +548,16 @@ export function BookingsClient({ participants }: BookingsClientProps) {
             disabled={loading}
             className="rounded-md border border-red-200 bg-white px-3 py-2 text-sm font-semibold text-red-700 disabled:opacity-60"
           >
-            {loading ? "Retrying..." : "Retry"}
+            {loading ? t("common.retrying") : t("common.retry")}
           </button>
         </div>
       ) : null}
 
-      {loading ? <p className="text-sm text-zinc-600">Loading bookings...</p> : null}
+      {loading ? <p className="text-sm text-zinc-600">{t("bookings.loading")}</p> : null}
 
       {!loading && visibleBookings.length === 0 ? (
         <p className="rounded-lg border border-zinc-200 bg-white px-4 py-8 text-sm text-zinc-600 shadow-soft">
-          No bookings match this filter yet.
+          {t("bookings.empty")}
         </p>
       ) : null}
 
@@ -557,13 +565,13 @@ export function BookingsClient({ participants }: BookingsClientProps) {
         <table className="w-full text-left text-sm">
           <thead className="bg-zinc-50 text-xs uppercase tracking-[0.08em] text-zinc-500">
             <tr>
-              <th className="px-4 py-3">Category</th>
-              <th className="px-4 py-3">Description</th>
-              <th className="px-4 py-3">Date</th>
-              <th className="px-4 py-3">Owner</th>
-              <th className="px-4 py-3">Amount</th>
-              <th className="px-4 py-3">Status</th>
-              <th className="px-4 py-3">Actions</th>
+              <th className="px-4 py-3">{t("common.category")}</th>
+              <th className="px-4 py-3">{t("common.description")}</th>
+              <th className="px-4 py-3">{t("common.date")}</th>
+              <th className="px-4 py-3">{t("common.owner")}</th>
+              <th className="px-4 py-3">{t("common.amount")}</th>
+              <th className="px-4 py-3">{t("common.status")}</th>
+              <th className="px-4 py-3">{t("common.actions")}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-200">
@@ -574,17 +582,17 @@ export function BookingsClient({ participants }: BookingsClientProps) {
               return (
                 <Fragment key={booking.id}>
                   <tr>
-                    <td className="px-4 py-4 font-medium text-ink">{booking.category}</td>
+                    <td className="px-4 py-4 font-medium text-ink">{translateOption(language, booking.category)}</td>
                     <td className="px-4 py-4">
                       <p className="font-medium text-ink">{booking.description}</p>
-                      <p className="mt-1 text-zinc-500">{booking.location ?? booking.notes ?? "TBC"}</p>
+                      <p className="mt-1 text-zinc-500">{booking.location ?? booking.notes ?? t("common.tbc")}</p>
                     </td>
                     <td className="px-4 py-4 text-zinc-600">{booking.date}</td>
                     <td className="px-4 py-4 text-zinc-600">{booking.bookedBy}</td>
                     <td className="px-4 py-4 text-zinc-600">
                       {booking.amount && booking.currency
                         ? formatMoney(booking.amount, booking.currency)
-                        : "TBC"}
+                        : t("common.tbc")}
                     </td>
                     <td className="px-4 py-4">
                       <StatusBadge status={booking.status} />
@@ -694,27 +702,29 @@ function BookingCard({
   onCancelExpense: () => void;
   onExpenseFormChange: (updater: (current: ExpenseFormState) => ExpenseFormState) => void;
 }) {
+  const { language, t } = useLanguage();
+
   return (
     <article className="rounded-lg border border-zinc-200 bg-white p-4 shadow-soft">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-xs font-semibold uppercase tracking-[0.08em] text-zinc-500">
-            {booking.category}
+            {translateOption(language, booking.category)}
           </p>
           <h2 className="mt-1 break-words text-lg font-semibold text-ink">{booking.description}</h2>
         </div>
         <StatusBadge status={booking.status} />
       </div>
       <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
-        <Field label="Date" value={booking.date} />
-        <Field label="Location" value={booking.location ?? "TBC"} />
-        <Field label="Booked by" value={booking.bookedBy} />
+        <Field label={t("common.date")} value={booking.date} />
+        <Field label={t("common.location")} value={booking.location ?? t("common.tbc")} />
+        <Field label={t("bookings.form.bookedBy")} value={booking.bookedBy} />
         <Field
-          label="Amount"
+          label={t("common.amount")}
           value={
             booking.amount && booking.currency
               ? formatMoney(booking.amount, booking.currency)
-              : "TBC"
+              : t("common.tbc")
           }
         />
       </dl>
@@ -778,9 +788,10 @@ function BookingExpensesSection({
   onCancelExpense: () => void;
   onExpenseFormChange: (updater: (current: ExpenseFormState) => ExpenseFormState) => void;
 }) {
+  const { t } = useLanguage();
   const [detailsOpen, setDetailsOpen] = useState(false);
   const detailsVisible = detailsOpen || Boolean(expenseForm);
-  const outstandingSummary = formatOutstandingSummary(expenses);
+  const outstandingSummary = formatOutstandingSummary(expenses, t("linkedExpenses.none"));
 
   function handleAddExpense() {
     setDetailsOpen(true);
@@ -792,12 +803,14 @@ function BookingExpensesSection({
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
           <p className="text-xs font-semibold uppercase tracking-[0.08em] text-terracotta">
-            Linked expenses
+            {t("linkedExpenses.title")}
           </p>
           <div className="mt-2 flex flex-wrap gap-2 text-sm text-zinc-700">
-            <span className="rounded-md bg-zinc-50 px-2.5 py-1">Expenses: {expenses.length}</span>
             <span className="rounded-md bg-zinc-50 px-2.5 py-1">
-              Outstanding: {outstandingSummary}
+              {t("linkedExpenses.expensesCount", { count: expenses.length })}
+            </span>
+            <span className="rounded-md bg-zinc-50 px-2.5 py-1">
+              {t("linkedExpenses.outstanding", { amount: outstandingSummary })}
             </span>
           </div>
         </div>
@@ -807,14 +820,14 @@ function BookingExpensesSection({
             onClick={() => setDetailsOpen((current) => !current)}
             className="w-full max-w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold text-ink sm:w-auto"
           >
-            {detailsVisible ? "Hide details" : "Show details"}
+            {detailsVisible ? t("linkedExpenses.hideDetails") : t("linkedExpenses.showDetails")}
           </button>
           <button
             type="button"
             onClick={handleAddExpense}
             className="w-full max-w-full rounded-md bg-moss px-3 py-2 text-sm font-semibold text-white sm:w-auto"
           >
-            Add expense
+            {t("linkedExpenses.add")}
           </button>
         </div>
       </div>
@@ -837,7 +850,7 @@ function BookingExpensesSection({
           <div className="mt-3 grid gap-3">
             {expenses.length === 0 ? (
               <p className="rounded-lg bg-zinc-50 px-3 py-4 text-sm text-zinc-600">
-                No linked expenses yet.
+                {t("linkedExpenses.empty")}
               </p>
             ) : null}
             {expenses.map((expense) => (
@@ -857,7 +870,7 @@ function BookingExpensesSection({
   );
 }
 
-function formatOutstandingSummary(expenses: SharedExpense[]) {
+function formatOutstandingSummary(expenses: SharedExpense[], noneLabel: string) {
   const totals = new Map<SharedCurrency, number>();
 
   for (const expense of expenses) {
@@ -869,7 +882,7 @@ function formatOutstandingSummary(expenses: SharedExpense[]) {
   }
 
   if (totals.size === 0) {
-    return "None";
+    return noneLabel;
   }
 
   return Array.from(totals.entries())
@@ -897,6 +910,8 @@ function BookingExpenseForm({
   onCancel: () => void;
   onChange: (updater: (current: ExpenseFormState) => ExpenseFormState) => void;
 }) {
+  const { language, t } = useLanguage();
+
   return (
     <form
       onSubmit={(event) => void onSubmit(booking, event)}
@@ -905,53 +920,54 @@ function BookingExpenseForm({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-xs font-semibold uppercase tracking-[0.08em] text-zinc-500">
-            {editingExpenseId ? "Edit linked expense" : "Add linked expense"}
+            {editingExpenseId ? t("linkedExpenses.editEyebrow") : t("linkedExpenses.addEyebrow")}
           </p>
           <h4 className="mt-1 text-base font-semibold text-ink">
-            {editingExpenseId ? "Update booking ledger item" : "Create booking ledger item"}
+            {editingExpenseId ? t("linkedExpenses.bookingEditTitle") : t("linkedExpenses.bookingAddTitle")}
           </h4>
         </div>
         {booking.amount !== null && booking.currency ? (
           <p className="rounded-md bg-white px-3 py-2 text-xs font-medium text-zinc-600">
-            Booking amount: {formatMoney(booking.amount, booking.currency)}
+            {t("bookings.linked.bookingAmount")}: {formatMoney(booking.amount, booking.currency)}
           </p>
         ) : null}
       </div>
 
       <div className="mt-3 grid min-w-0 grid-cols-1 gap-3 md:grid-cols-2">
         <TextField
-          label="Title"
+          label={t("common.title")}
           value={form.title}
           onChange={(value) => onChange((current) => ({ ...current, title: value }))}
           placeholder={booking.description}
         />
         <TextField
-          label="Amount"
+          label={t("common.amount")}
           type="number"
           value={form.amount}
           onChange={(value) => onChange((current) => ({ ...current, amount: value }))}
           placeholder="0"
         />
         <SelectField
-          label="Currency"
+          label={t("common.currency")}
           value={form.currency}
           options={bookingCurrencies}
           onChange={(value) => onChange((current) => ({ ...current, currency: value as SharedCurrency }))}
         />
         <SelectField
-          label="Category"
+          label={t("common.category")}
           value={form.category}
           options={expenseCategories}
+          formatOption={(option) => translateOption(language, option)}
           onChange={(value) => onChange((current) => ({ ...current, category: value as ExpenseCategory }))}
         />
         <TextField
-          label="Date"
+          label={t("common.date")}
           type="date"
           value={form.expenseDate}
           onChange={(value) => onChange((current) => ({ ...current, expenseDate: value }))}
         />
         <SelectField
-          label="Paid by"
+          label={t("budget.form.paidBy")}
           value={form.paidByTravelerId}
           options={travelers.map((traveler) => traveler.id)}
           optionLabels={new Map(travelers.map((traveler) => [traveler.id, traveler.name]))}
@@ -960,7 +976,7 @@ function BookingExpenseForm({
       </div>
 
       <fieldset className="mt-3 min-w-0 rounded-lg border border-zinc-200 bg-white p-3">
-        <legend className="px-1 text-sm font-semibold text-ink">Split among</legend>
+        <legend className="px-1 text-sm font-semibold text-ink">{t("budget.form.splitAmong")}</legend>
         <div className="mt-2 grid gap-2 sm:grid-cols-2">
           {travelers.map((traveler) => (
             <label key={traveler.id} className="flex min-w-0 items-center gap-2 text-sm text-zinc-700">
@@ -990,16 +1006,16 @@ function BookingExpenseForm({
           onChange={(event) => onChange((current) => ({ ...current, settled: event.target.checked }))}
           className="h-4 w-4 shrink-0 rounded border-zinc-300"
         />
-        <span>Settled</span>
+        <span>{translateOption(language, "Settled")}</span>
       </label>
 
       <label className="mt-3 block w-full max-w-full min-w-0 text-sm font-semibold text-ink">
-        Notes
+        {t("common.notes")}
         <textarea
           value={form.notes}
           onChange={(event) => onChange((current) => ({ ...current, notes: event.target.value }))}
           className="mt-2 block box-border min-h-24 w-full max-w-full min-w-0 resize-y rounded-md border border-zinc-200 bg-white px-3 py-2 text-base text-zinc-700 sm:text-sm"
-          placeholder="Safe notes only. Avoid private confirmation numbers."
+          placeholder={t("bookings.form.notesPlaceholder")}
         />
       </label>
 
@@ -1009,7 +1025,7 @@ function BookingExpenseForm({
           disabled={submitting}
           className="w-full max-w-full rounded-md bg-moss px-3 py-2 text-base font-semibold text-white disabled:opacity-60 sm:w-auto sm:text-sm"
         >
-          {submitting ? "Saving..." : editingExpenseId ? "Save expense" : "Add expense"}
+          {submitting ? t("common.saving") : editingExpenseId ? t("linkedExpenses.saveExpense") : t("linkedExpenses.addExpense")}
         </button>
         <button
           type="button"
@@ -1017,7 +1033,7 @@ function BookingExpenseForm({
           disabled={submitting}
           className="w-full max-w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-base font-semibold text-ink disabled:opacity-60 sm:w-auto sm:text-sm"
         >
-          Cancel
+          {t("common.cancel")}
         </button>
       </div>
     </form>
@@ -1037,6 +1053,8 @@ function BookingExpenseCard({
   onEdit: (expense: SharedExpense) => void;
   onDelete: (expense: SharedExpense) => Promise<void>;
 }) {
+  const { language, t } = useLanguage();
+
   return (
     <article className="rounded-lg border border-zinc-200 bg-zinc-50 p-3">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
@@ -1046,7 +1064,7 @@ function BookingExpenseCard({
             <ExpenseStatusPill settled={expense.settled} />
           </div>
           <p className="mt-1 text-xs uppercase tracking-[0.08em] text-zinc-500">
-            {expense.category} - {expense.expenseDate}
+            {translateOption(language, expense.category)} - {expense.expenseDate}
           </p>
         </div>
         <p className="shrink-0 text-sm font-semibold text-ink">
@@ -1055,11 +1073,11 @@ function BookingExpenseCard({
       </div>
       <dl className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
         <Field
-          label="Paid by"
+          label={t("budget.form.paidBy")}
           value={travelerNameById.get(expense.paidByTravelerId) ?? expense.paidByTravelerId}
         />
         <Field
-          label="Split among"
+          label={t("budget.form.splitAmong")}
           value={expense.splitTravelerIds
             .map((travelerId) => travelerNameById.get(travelerId) ?? travelerId)
             .join(", ")}
@@ -1072,7 +1090,7 @@ function BookingExpenseCard({
           onClick={() => onEdit(expense)}
           className="rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold text-ink"
         >
-          Edit
+          {t("common.edit")}
         </button>
         <button
           type="button"
@@ -1080,7 +1098,7 @@ function BookingExpenseCard({
           disabled={deletingExpenseId === expense.id}
           className="rounded-md border border-red-200 bg-white px-3 py-2 text-sm font-semibold text-red-700 disabled:opacity-60"
         >
-          {deletingExpenseId === expense.id ? "Deleting..." : "Delete"}
+          {deletingExpenseId === expense.id ? t("common.deleting") : t("common.delete")}
         </button>
       </div>
     </article>
@@ -1101,14 +1119,18 @@ function SelectField({
   value,
   options,
   optionLabels,
+  formatOption,
   onChange
 }: {
   label: string;
   value: string;
   options: readonly string[];
   optionLabels?: Map<string, string>;
+  formatOption?: (option: string) => string;
   onChange: (value: string) => void;
 }) {
+  const { t } = useLanguage();
+
   return (
     <label className="block w-full max-w-full min-w-0 text-sm font-semibold text-ink">
       {label}
@@ -1119,7 +1141,7 @@ function SelectField({
       >
         {options.map((option) => (
           <option key={option} value={option}>
-            {optionLabels?.get(option) ?? option}
+            {optionLabels?.get(option) ?? formatOption?.(option) ?? option}
           </option>
         ))}
       </select>
@@ -1140,6 +1162,8 @@ function TextField({
   placeholder?: string;
   type?: "date" | "number" | "text";
 }) {
+  const { t } = useLanguage();
+
   return (
     <label className="block w-full max-w-full min-w-0 text-sm font-semibold text-ink">
       {label}
@@ -1176,6 +1200,8 @@ function ActionButtons({
   onEdit: (booking: SharedBooking) => void;
   onDelete: (booking: SharedBooking) => Promise<void>;
 }) {
+  const { t } = useLanguage();
+
   return (
     <div className="flex flex-wrap gap-2">
       <button
@@ -1183,7 +1209,7 @@ function ActionButtons({
         onClick={() => onEdit(booking)}
         className="rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold text-ink"
       >
-        Edit
+        {t("common.edit")}
       </button>
       <button
         type="button"
@@ -1191,13 +1217,15 @@ function ActionButtons({
         disabled={deletingId === booking.id}
         className="rounded-md border border-red-200 bg-white px-3 py-2 text-sm font-semibold text-red-700 disabled:opacity-60"
       >
-        {deletingId === booking.id ? "Deleting..." : "Delete"}
+        {deletingId === booking.id ? t("common.deleting") : t("common.delete")}
       </button>
     </div>
   );
 }
 
 function ExpenseStatusPill({ settled }: { settled: boolean }) {
+  const { language } = useLanguage();
+
   return (
     <span
       className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ${
@@ -1206,7 +1234,7 @@ function ExpenseStatusPill({ settled }: { settled: boolean }) {
           : "bg-amber-100 text-amber-800 ring-amber-200"
       }`}
     >
-      {settled ? "Settled" : "Outstanding"}
+      {translateOption(language, settled ? "Settled" : "Outstanding")}
     </span>
   );
 }
