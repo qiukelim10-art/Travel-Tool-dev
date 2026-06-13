@@ -2,6 +2,8 @@
 
 ## 2026-06-13
 
+- Connected the Budget page to the UI-only i18n foundation: Budget ledger headings, summary labels, filters, status/category/source labels, misc expense form labels, buttons, loading/error/empty states, settlement labels, and expense card labels now switch between English and Chinese.
+- Kept Budget user-entered data untranslated: expense titles, expense notes, traveler display names, currency values, and amount values still render from the original data.
 - Added the i18n foundation branch scope: `src/lib/i18n.tsx` now uses a UI-only dictionary with `trip-dashboard-language`, one-time migration from `italy-trip-language`, default English, and persisted EN/Chinese toggle state.
 - Added language toggle access in the Layout desktop top nav and mobile top header, and connected Layout navigation plus Dashboard, SOS, Dashboard budget snapshot, and Dashboard reminders basic UI labels.
 - Stopped using broad seed-data localization on Dashboard; itinerary titles, booking titles/descriptions, expense titles, reminder text, and traveller display names remain original user/data content.
