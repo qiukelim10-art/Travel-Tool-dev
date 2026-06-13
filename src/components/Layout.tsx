@@ -14,8 +14,7 @@ const navItems = [
   { href: "/food", labelKey: "nav.food", shortLabelKey: "nav.food" },
   { href: "/attractions", labelKey: "nav.attractions", shortLabelKey: "nav.see" },
   { href: "/packing", labelKey: "nav.packing", shortLabelKey: "nav.pack" },
-  { href: "/documents", labelKey: "nav.documents", shortLabelKey: "nav.docs" },
-  { href: "/emergency", labelKey: "nav.emergency", shortLabelKey: "nav.emergency" }
+  { href: "/documents", labelKey: "nav.documents", shortLabelKey: "nav.docs" }
 ];
 
 const mobileNavItems = [
@@ -23,7 +22,6 @@ const mobileNavItems = [
   { href: "/itinerary", labelKey: "nav.itinerary", shortLabelKey: "nav.plan" },
   { href: "/bookings", labelKey: "nav.bookings", shortLabelKey: "nav.book" },
   { href: "/budget", labelKey: "nav.budget", shortLabelKey: "nav.money" },
-  { href: "/emergency", labelKey: "nav.emergency", shortLabelKey: "nav.emergency" },
   { href: "/more", labelKey: "nav.more", shortLabelKey: "nav.more" }
 ];
 
@@ -79,7 +77,7 @@ function Navigation() {
         </div>
       </nav>
       <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-zinc-200 bg-white/95 px-2 pb-2 pt-1 backdrop-blur md:hidden">
-        <div className="mx-auto grid max-w-lg grid-cols-6 gap-1">
+        <div className="mx-auto grid max-w-lg grid-cols-5 gap-1">
           {mobileNavItems.map((item) => {
             const active =
               pathname === item.href ||

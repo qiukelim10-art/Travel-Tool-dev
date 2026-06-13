@@ -7,6 +7,7 @@
 - Review the shared reminders and bookings CRUD/filter UI on computer and phone when the user is ready.
 - Review the shared itinerary CRUD UI on computer and phone, especially long notes and card readability.
 - Review the shared packing CRUD UI on computer and phone using the active worktree configuration.
+- Review the Dashboard SOS quick-access panel on a real phone, including tap target comfort and bottom-nav clearance.
 - Add real trip details into `src/data/tripData.ts` only when the user provides safe, non-sensitive information.
 - Keep the mobile browsing experience clear, practical, and easy for all 4 travellers.
 - Postpone full English/Simplified Chinese switching until the website is closer to fully formed.

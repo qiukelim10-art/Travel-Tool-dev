@@ -2,6 +2,9 @@
 
 ## 2026-06-13
 
+- Moved Emergency access from a standalone navigation entry to a small Dashboard SOS quick-access panel with public Italy emergency numbers only.
+- `/emergency` now redirects to `/`; desktop and mobile navigation no longer show Emergency, and More has no Emergency entry.
+- Verified `npm.cmd run build`, `npm.cmd run lint`, desktop/LAN `/`, `/emergency` redirect, and `/budget`, `/itinerary`, `/bookings`, `/packing` HTTP 200 smoke checks.
 - Added MYR support across the shared expense ledger currency model, validation path, MySQL currency enums, money formatting, Budget/Itinerary/Bookings forms, and Dashboard ledger widgets without adding exchange-rate conversion.
 - Added Dashboard budget widgets backed by `/api/expenses` and `summarizeExpenseLedger`, replacing the old static expense summary on the homepage while keeping the rest of Dashboard unchanged.
 - Dashboard now shows ledger total/outstanding/settled/average outstanding per person by currency, top settlement suggestions, recent expenses, loading/error/retry, empty state, and a Budget link.

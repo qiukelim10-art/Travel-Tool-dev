@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { DashboardBudgetWidget } from "@/components/DashboardBudgetWidget";
 import { DashboardCard } from "@/components/DashboardCard";
+import { EmergencyQuickAccess } from "@/components/EmergencyQuickAccess";
 import { RemindersClient } from "@/components/RemindersClient";
 import { SectionHeader } from "@/components/SectionHeader";
 import { StatusBadge } from "@/components/StatusBadge";
@@ -27,13 +28,16 @@ export default function DashboardPage() {
 
   return (
     <div>
-      <SectionHeader
-        eyebrow={t("page.dashboard.eyebrow")}
-        title={translateText(language, tripInfo.title) ?? tripInfo.title}
-        description={translateText(language, tripInfo.privacyNote)}
-      />
+      <div className="flex items-start justify-between gap-3">
+        <SectionHeader
+          eyebrow={t("page.dashboard.eyebrow")}
+          title={translateText(language, tripInfo.title) ?? tripInfo.title}
+          description={translateText(language, tripInfo.privacyNote)}
+        />
+        <EmergencyQuickAccess />
+      </div>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-3">
         <DashboardCard
           label={t("page.dashboard.tripDates")}
           value={t("page.dashboard.tripDatesValue")}
@@ -49,12 +53,6 @@ export default function DashboardPage() {
           value={tripInfo.nextDeadline.date}
           detail={`${translateText(language, tripInfo.nextDeadline.title)}. ${t("common.owner")}: ${translateText(language, tripInfo.nextDeadline.owner)}.`}
           tone="warm"
-        />
-        <DashboardCard
-          label={t("nav.emergency")}
-          value="112"
-          detail={t("page.dashboard.emergencyDetail")}
-          tone="urgent"
         />
       </div>
 

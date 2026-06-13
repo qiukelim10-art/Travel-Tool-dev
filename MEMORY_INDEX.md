@@ -5,7 +5,7 @@
 - The project is a private, mobile-first Italy trip dashboard for 4 travellers in October 2026.
 - The user will gradually provide real trip information to replace placeholder data.
 - The dashboard's purpose is to keep all 4 travellers synchronized before and during the trip, with fast phone-friendly access to key travel information.
-- Phase 1 pages are complete: Dashboard, Itinerary, Bookings, Budget, Emergency.
+- Phase 1 core areas are complete: Dashboard, Itinerary, Bookings, Budget, and Dashboard-based Emergency quick access.
 - Phase 2 placeholder pages are complete: Map, Food, Attractions, Documents, More.
 - Packing List is now a shared MySQL/API CRUD page with per-traveler required/packed/not-needed statuses.
 - English/Simplified Chinese switching was explored, but the user decided to postpone bilingual work until the website is closer to fully formed.
@@ -36,7 +36,8 @@
 - Booking rows/cards can display, add, edit, and delete linked ledger expenses where `sourceType = booking` and `sourceId` is the booking item id.
 - Expense ledger uses stable traveler IDs (`person_a`, `person_b`, `person_c`, `person_d`) for payer and split values; display names should remain presentation-only.
 - Itinerary `cost_amount` and booking `amount` are reference fields only unless the user explicitly creates linked ledger expenses from them.
-- Desktop navigation shows all main pages; mobile bottom navigation includes Dashboard, Itinerary, Bookings, Budget, Emergency, and More.
+- Desktop navigation shows the main pages except Emergency; mobile bottom navigation includes Dashboard, Itinerary, Bookings, Budget, and More.
+- Emergency access is now a small SOS quick-action panel on the Dashboard, and `/emergency` redirects back to `/`.
 - Do not require every new website change to be bilingual yet; revisit full English/Simplified Chinese switching after the site structure and content are mostly finalized.
 - When asking the user to review a completed website change, provide both the computer URL and a phone URL.
 - Each completed website change handoff must include verified desktop and phone LAN URLs, current port, desktop page HTTP status, phone LAN page HTTP status, and related API status; note that phone access requires the same Wi-Fi or hotspot when applicable.
