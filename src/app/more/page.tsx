@@ -9,7 +9,7 @@ const moreItems = [
     href: "/settings",
     title: {
       en: "Trip Settings",
-      zh: "Trip Settings"
+      zh: "行程设置"
     },
     description: {
       en: "Active trip basics, travelers, route stops, and display defaults.",

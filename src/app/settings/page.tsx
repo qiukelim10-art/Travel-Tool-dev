@@ -54,7 +54,7 @@ const copy = {
   },
   zh: {
     eyebrow: "行程设置",
-    title: "Trip Settings",
+    title: "行程设置",
     description: "管理当前 active trip 的基础信息、成员、路线和默认显示。",
     loading: "正在加载行程设置...",
     loadError: "无法加载行程设置。",

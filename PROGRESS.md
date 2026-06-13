@@ -2,6 +2,9 @@
 
 ## 2026-06-13
 
+- Completed final bilingual polish for the Settings entry points on `codex/trip-settings-foundation`: desktop navigation, `/settings`, and the `/more` Trip Settings card now switch between English and Chinese.
+- Kept trip/settings user-entered content untranslated; only system UI labels changed.
+- Verified `npm.cmd run build`, sequential `npm.cmd run lint`, desktop `/`, `/settings`, `/more`, `/api/trip-settings`, and LAN `/`, `/settings`, `/more`, `/api/trip-settings` all return 200.
 - Completed the editable Trip Settings milestone on `codex/trip-settings-foundation`: `/settings` now edits the single active trip basics, default currencies, timezone, notes, travelers, and route stops through `PUT /api/trip-settings`.
 - Kept the single active trip boundary: no existing business tables received `trip_id`, no full multi-trip behavior was added, and existing booking/reminder historical name strings are not migrated.
 - Made active trip travelers the shared traveler source for expenses, packing, and documents APIs while returning compatible `name/displayOrder` fields for existing clients.

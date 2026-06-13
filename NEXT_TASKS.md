@@ -2,8 +2,8 @@
 
 ## Current Priority
 
-- Review the editable Trip Settings milestone on desktop and a real phone: `/settings` save flow, More page entry, Dashboard/Layout trip display, dynamic traveler choices in Budget/Bookings/Itinerary/Packing/Documents, EN/Chinese toggle preserving user-entered settings text, and no mobile horizontal scroll.
-- If approved, keep the milestone as one commit on `codex/trip-settings-foundation` with `Add editable trip settings milestone`; do not merge master in this pass.
+- Commit the approved Trip Settings milestone on `codex/trip-settings-foundation` after the user explicitly requests commit. The latest uncommitted polish localizes the Settings desktop nav, `/settings` title, and `/more` Trip Settings card in Chinese.
+- Recommended commit message for the latest uncommitted polish: `Localize settings entry labels`.
 - Next likely follow-up after review: decide whether to add simple shared-password protection before entering real private trip details.
 - Review the Bookings / Itinerary / Packing / Documents i18n pass on desktop and a real phone: EN/Chinese switching, filters/forms/buttons/status labels, unchanged user-entered content, CRUD flows, protected Documents unlock, linked expenses, and no mobile horizontal scroll.
 - If approved, commit `codex/i18n-core-pages` with `Add i18n labels for core trip pages`, then merge it back to `master` in a separate safety pass.

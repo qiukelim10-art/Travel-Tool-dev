@@ -13,7 +13,7 @@ const navItems = [
   { href: "/budget", labelKey: "nav.budget", shortLabelKey: "nav.money" },
   { href: "/packing", labelKey: "nav.packing", shortLabelKey: "nav.pack" },
   { href: "/documents", labelKey: "nav.documents", shortLabelKey: "nav.docs" },
-  { href: "/settings", label: "Settings" }
+  { href: "/settings", label: { en: "Settings", zh: "设置" } }
 ];
 
 const mobileNavItems = [
@@ -45,7 +45,7 @@ function LanguageToggle({ compact = false }: { compact?: boolean }) {
 
 function Navigation() {
   const pathname = usePathname();
-  const { t } = useLanguage();
+  const { language, t } = useLanguage();
   const { trip } = useTripSettingsView({ genericFallback: true });
 
   return (
@@ -69,7 +69,7 @@ function Navigation() {
                       : "text-zinc-600 hover:bg-zinc-100 hover:text-ink"
                   }`}
                 >
-                  {"label" in item ? item.label : t(item.labelKey as TranslationKey)}
+                  {getNavLabel(item, language, t)}
                 </Link>
               );
             })}
@@ -109,6 +109,18 @@ function Navigation() {
       </nav>
     </>
   );
+}
+
+function getNavLabel(
+  item: (typeof navItems)[number],
+  language: ReturnType<typeof useLanguage>["language"],
+  t: ReturnType<typeof useLanguage>["t"]
+) {
+  if ("label" in item && item.label) {
+    return item.label[language];
+  }
+
+  return t((item as { labelKey: TranslationKey }).labelKey);
 }
 
 export function Layout({ children }: { children: ReactNode }) {
