@@ -60,9 +60,13 @@ Use this checklist when replacing placeholder data with safe real information. D
 ## Documents
 
 - [ ] Keep placeholder document links until private storage permissions are verified.
+- [ ] Confirm Google Drive, iCloud, OneDrive, or other folder permissions are limited to the intended travelers.
+- [ ] Use a Documents access code only for protected folder links that need an extra app-level gate.
+- [ ] Do not write the access code in notes, labels, screenshots, commits, or chat logs.
 - [ ] Add safe labels for flight, hotel, train, attraction, insurance, and receipt folders.
 - [ ] Do not enter passport number, card number, full policy number, or complete confirmation number.
-- [ ] Do not upload or commit document files.
+- [ ] Do not upload or commit PDFs, screenshots, QR codes, receipts, passport scans, insurance certificates, or booking files.
+- [ ] Do not enter full confirmation numbers, passport numbers, card numbers, or bank details into the app.
 - [ ] Confirm the Documents warning is still visible on desktop and phone.
 
 ## Food

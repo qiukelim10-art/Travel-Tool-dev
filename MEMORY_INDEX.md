@@ -12,6 +12,7 @@
 - Food, Attractions, and Map now include Google Maps jump-out search panels for live nearby recommendations without using a Places API key.
 - Shared reminders, bookings, itinerary, and packing now use local Next API + MySQL prototype paths with CRUD and filtering.
 - Budget now uses the shared expense ledger for its page UI and supports miscellaneous expense CRUD; Itinerary and Booking linked expense UI have been added.
+- Documents is now a shared MySQL/API CRUD checklist with per-traveler statuses and optional protected folder links.
 - Bookings, Itinerary, and Budget have a second mobile polish pass focused on collapsed sections and lighter first-screen page weight.
 - Dashboard budget overview now reads the unified expense ledger through `/api/expenses` instead of static `tripData.ts` expenses.
 - The shared expense ledger now supports EUR, SGD, and MYR.
@@ -19,6 +20,7 @@
 
 ## Highest Priority Task
 
+- Review the new shared Documents checklist and protected folder unlock flow on desktop and a real phone.
 - Manually replace safe placeholder data with non-sensitive real trip summaries using `REAL_DATA_ENTRY_GUIDE.md` and `REAL_DATA_CHECKLIST.md`.
 
 ## Key Known Issue
@@ -26,11 +28,12 @@
 - Real traveller and booking information has not been fully entered yet.
 - Some Phase 2 pages still use placeholder data only.
 - Shared reminders/bookings are verified locally, but there is still no password protection. Revisit security before storing real private trip details.
-- Real passport numbers, payment card details, full confirmations, private document files, and personal contact details should still not be entered unless protection is added later.
+- Real passport numbers, payment card details, full confirmations, private document files, and personal contact details should still not be entered. Documents can store folder links, but real files must stay in permission-controlled cloud storage and passcodes must not be written in notes.
 
 ## Important Architecture Note
 
 - Most trip pages still use static data, but reminders, bookings, itinerary, and packing now use local Next API + MySQL prototype paths.
+- Documents uses `document_items` and `document_item_traveler_statuses` through local Next API + MySQL prototype paths; protected list responses intentionally hide `externalUrl`, passcode hash, and salt until `/api/documents/[id]/unlock` succeeds.
 - Budget renders the unified expense ledger client with summary cards, settlement suggestions, filters, expense cards, and miscellaneous expense CRUD.
 - Budget filters apply only to the visible expense list; summary cards and settlement suggestions intentionally stay based on the full ledger.
 - Budget filters are collapsed by default in the mobile polish flow, and individual expense card paid/split/notes details are behind a per-card details toggle.
