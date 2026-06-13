@@ -8,7 +8,7 @@
 - Phase 1 core areas are complete: Dashboard, Itinerary, Bookings, Budget, and Dashboard-based Emergency quick access.
 - More now links to Packing and Documents only; standalone Map, Food, and Attractions pages have been removed from navigation and redirect to `/more`.
 - Packing List is now a shared MySQL/API CRUD page with per-traveler required/packed/not-needed statuses.
-- English/Simplified Chinese switching was explored, but the user decided to postpone bilingual work until the website is closer to fully formed.
+- English/Simplified Chinese switching exists for system UI labels, but full bilingual/content translation is not the current priority; user-entered trip content should remain untranslated.
 - Google Maps links remain available inside travel content where already useful, but standalone Map/Food/Attractions pages are no longer maintained.
 - Shared reminders, bookings, itinerary, and packing now use local Next API + MySQL prototype paths with CRUD and filtering.
 - Budget now uses the shared expense ledger for its page UI and supports miscellaneous expense CRUD; Itinerary and Booking linked expense UI have been added.
@@ -25,12 +25,10 @@
 
 ## Highest Priority Task
 
-- Review the editable Trip Settings milestone on desktop and a real phone before merging or starting real private data entry.
-- If approved, keep the milestone as one commit with `Add editable trip settings milestone`; keep business table `trip_id` migrations and full multi-trip for later phases.
-- Review the Bookings / Itinerary / Packing / Documents i18n pass on desktop and a real phone before committing `codex/i18n-core-pages`.
-- After approval, commit and merge the core page i18n branch back to `master` in separate verification steps.
-- Review the new shared Documents checklist and protected folder unlock flow on desktop and a real phone.
-- Manually replace safe placeholder data with non-sensitive real trip summaries using `REAL_DATA_ENTRY_GUIDE.md` and `REAL_DATA_CHECKLIST.md`.
+- Keep memory files focused on current active work; branch-specific review, commit, and merge tasks should only be reintroduced when the user explicitly resumes that branch.
+- Decide whether to add simple shared-password protection before entering real private trip details.
+- Manually replace safe placeholder data with non-sensitive real trip summaries using `REAL_DATA_ENTRY_GUIDE.md` and `REAL_DATA_CHECKLIST.md` when the user provides approved details.
+- Keep sensitive documents, passport numbers, payment details, insurance files, and full booking confirmations out of the repo.
 
 ## Key Known Issue
 
