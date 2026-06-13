@@ -5,6 +5,8 @@ import { travelers as fallbackTravelers, tripInfo, type Traveler } from "@/data/
 import type { TripSettingsResponse } from "@/lib/sharedDataTypes";
 
 const requestTimeoutMs = 10000;
+const tripSettingsCacheKey = "trip-dashboard-active-settings";
+const tripSettingsUpdatedEvent = "trip-settings-updated";
 
 export type TripSettingsView = {
   name: string;
@@ -34,8 +36,17 @@ const fallbackTripSettingsView: TripSettingsView = {
   activeTravelers: fallbackTravelers
 };
 
-export function useTripSettingsView() {
-  const [settings, setSettings] = useState<TripSettingsResponse | null>(null);
+const genericTripSettingsView: TripSettingsView = {
+  ...fallbackTripSettingsView,
+  name: "Private Trip Dashboard"
+};
+
+type TripSettingsViewOptions = {
+  genericFallback?: boolean;
+};
+
+export function useTripSettingsView(options: TripSettingsViewOptions = {}) {
+  const [settings, setSettings] = useState<TripSettingsResponse | null>(() => readCachedTripSettings());
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -55,6 +66,7 @@ export function useTripSettingsView() {
         }
 
         setSettings(data);
+        writeCachedTripSettings(data);
         setError(null);
       } catch (loadError) {
         if (loadError instanceof DOMException && loadError.name === "AbortError") {
@@ -76,15 +88,47 @@ export function useTripSettingsView() {
     };
   }, []);
 
+  useEffect(() => {
+    function handleTripSettingsUpdated(event: Event) {
+      const detail = (event as CustomEvent<TripSettingsResponse>).detail;
+      if (isTripSettingsResponse(detail)) {
+        setSettings(detail);
+      }
+    }
+
+    function handleStorage(event: StorageEvent) {
+      if (event.key === tripSettingsCacheKey) {
+        setSettings(readCachedTripSettings());
+      }
+    }
+
+    window.addEventListener(tripSettingsUpdatedEvent, handleTripSettingsUpdated);
+    window.addEventListener("storage", handleStorage);
+
+    return () => {
+      window.removeEventListener(tripSettingsUpdatedEvent, handleTripSettingsUpdated);
+      window.removeEventListener("storage", handleStorage);
+    };
+  }, []);
+
   const trip = useMemo(
-    () => (settings ? buildTripSettingsView(settings) : fallbackTripSettingsView),
-    [settings]
+    () => (settings ? buildTripSettingsView(settings) : options.genericFallback ? genericTripSettingsView : fallbackTripSettingsView),
+    [options.genericFallback, settings]
   );
 
   return {
     trip,
     error
   };
+}
+
+export function publishTripSettings(settings: TripSettingsResponse) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  writeCachedTripSettings(settings);
+  window.dispatchEvent(new CustomEvent(tripSettingsUpdatedEvent, { detail: settings }));
 }
 
 function buildTripSettingsView(settings: TripSettingsResponse): TripSettingsView {
@@ -139,4 +183,34 @@ function isTripSettingsResponse(value: unknown): value is TripSettingsResponse {
 
   const response = value as Partial<TripSettingsResponse>;
   return Boolean(response.trip) && Array.isArray(response.travelers) && Array.isArray(response.routeStops);
+}
+
+function readCachedTripSettings() {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  try {
+    const raw = window.localStorage.getItem(tripSettingsCacheKey);
+    if (!raw) {
+      return null;
+    }
+
+    const parsed = JSON.parse(raw) as unknown;
+    return isTripSettingsResponse(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeCachedTripSettings(settings: TripSettingsResponse) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  try {
+    window.localStorage.setItem(tripSettingsCacheKey, JSON.stringify(settings));
+  } catch {
+    // Local storage is only an instant UI cache; API data remains the source of truth.
+  }
 }

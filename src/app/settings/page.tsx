@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { SectionHeader } from "@/components/SectionHeader";
 import { useLanguage } from "@/lib/i18n";
 import { bookingCurrencies, type TripSettingsInput, type TripSettingsResponse } from "@/lib/sharedDataTypes";
+import { publishTripSettings } from "@/lib/useTripSettings";
 
 type SettingsForm = TripSettingsInput;
 
@@ -176,6 +177,7 @@ export default function SettingsPage() {
       }
 
       const nextForm = responseToForm(data as TripSettingsResponse);
+      publishTripSettings(data as TripSettingsResponse);
       setForm(nextForm);
       setSavedSnapshot(JSON.stringify(normalizeForSave(nextForm)));
       setNotice(labels.saved);

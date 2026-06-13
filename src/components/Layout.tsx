@@ -12,7 +12,8 @@ const navItems = [
   { href: "/bookings", labelKey: "nav.bookings", shortLabelKey: "nav.book" },
   { href: "/budget", labelKey: "nav.budget", shortLabelKey: "nav.money" },
   { href: "/packing", labelKey: "nav.packing", shortLabelKey: "nav.pack" },
-  { href: "/documents", labelKey: "nav.documents", shortLabelKey: "nav.docs" }
+  { href: "/documents", labelKey: "nav.documents", shortLabelKey: "nav.docs" },
+  { href: "/settings", label: "Settings" }
 ];
 
 const mobileNavItems = [
@@ -45,7 +46,7 @@ function LanguageToggle({ compact = false }: { compact?: boolean }) {
 function Navigation() {
   const pathname = usePathname();
   const { t } = useLanguage();
-  const { trip } = useTripSettingsView();
+  const { trip } = useTripSettingsView({ genericFallback: true });
 
   return (
     <>
@@ -68,7 +69,7 @@ function Navigation() {
                       : "text-zinc-600 hover:bg-zinc-100 hover:text-ink"
                   }`}
                 >
-                  {t(item.labelKey as TranslationKey)}
+                  {"label" in item ? item.label : t(item.labelKey as TranslationKey)}
                 </Link>
               );
             })}
