@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { formatMoney, summarizeExpenseLedger } from "@/lib/budget";
+import { useLanguage } from "@/lib/i18n";
 import type { SharedExpense } from "@/lib/sharedDataTypes";
 import type { Traveler } from "@/data/tripData";
 
@@ -15,6 +16,7 @@ type ExpensesApiResponse = {
 const requestTimeoutMs = 10000;
 
 export function DashboardBudgetWidget() {
+  const { t } = useLanguage();
   const [expenses, setExpenses] = useState<SharedExpense[]>([]);
   const [travelers, setTravelers] = useState<Traveler[]>([]);
   const [loading, setLoading] = useState(true);
@@ -56,11 +58,11 @@ export function DashboardBudgetWidget() {
     setError(null);
 
     try {
-      const data = await fetchExpensesJson("/api/expenses", "Unable to load budget summary.");
+      const data = await fetchExpensesJson("/api/expenses", t("budgetWidget.errorLoad"), t("budgetWidget.errorTimeout"));
       setExpenses(data.expenses);
       setTravelers(data.travelers);
     } catch (loadError) {
-      setError(loadError instanceof Error ? loadError.message : "Unable to load budget summary.");
+      setError(loadError instanceof Error ? loadError.message : t("budgetWidget.errorLoad"));
     } finally {
       setLoading(false);
     }
@@ -75,22 +77,22 @@ export function DashboardBudgetWidget() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
           <p className="text-xs font-semibold uppercase tracking-[0.08em] text-terracotta">
-            Money snapshot
+            {t("budgetWidget.eyebrow")}
           </p>
-          <h2 className="mt-1 text-lg font-semibold text-ink">Outstanding by currency</h2>
+          <h2 className="mt-1 text-lg font-semibold text-ink">{t("budgetWidget.title")}</h2>
           <p className="mt-1 text-sm leading-6 text-zinc-600">
-            Full expense details stay in Budget.
+            {t("budgetWidget.description")}
           </p>
         </div>
         <Link
           href="/budget"
           className="w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-center text-sm font-semibold text-ink sm:w-auto"
         >
-          Open Budget
+          {t("budgetWidget.openBudget")}
         </Link>
       </div>
 
-      {loading ? <p className="mt-4 text-sm text-zinc-600">Loading budget ledger...</p> : null}
+      {loading ? <p className="mt-4 text-sm text-zinc-600">{t("budgetWidget.loading")}</p> : null}
 
       {error ? (
         <div className="mt-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
@@ -101,16 +103,16 @@ export function DashboardBudgetWidget() {
             disabled={loading}
             className="mt-3 rounded-md border border-red-200 bg-white px-3 py-2 text-sm font-semibold text-red-700 disabled:opacity-60"
           >
-            {loading ? "Retrying..." : "Retry"}
+            {loading ? t("budgetWidget.retrying") : t("common.retry")}
           </button>
         </div>
       ) : null}
 
       {!loading && !error && expenses.length === 0 ? (
         <div className="mt-4 rounded-lg bg-zinc-50 p-4">
-          <p className="text-sm font-semibold text-ink">No shared expenses yet.</p>
+          <p className="text-sm font-semibold text-ink">{t("budgetWidget.emptyTitle")}</p>
           <p className="mt-1 text-sm leading-6 text-zinc-600">
-            Add expenses from Budget, Itinerary, or Bookings when ready.
+            {t("budgetWidget.emptyDescription")}
           </p>
         </div>
       ) : null}
@@ -127,14 +129,14 @@ export function DashboardBudgetWidget() {
                   {formatMoney(summary.outstandingTotal, summary.currency)}
                 </p>
                 <p className="mt-1 text-xs text-zinc-500">
-                  Total spent {formatMoney(summary.totalSpent, summary.currency)}
+                  {t("budgetWidget.totalSpent")} {formatMoney(summary.totalSpent, summary.currency)}
                 </p>
               </article>
             ))}
           </div>
 
           <section className="rounded-lg bg-zinc-50 p-3">
-            <h3 className="text-sm font-semibold text-ink">Top settlements</h3>
+            <h3 className="text-sm font-semibold text-ink">{t("budgetWidget.topSettlements")}</h3>
             {settlementSuggestions.length > 0 ? (
               <ul className="mt-2 space-y-1.5">
                 {settlementSuggestions.map((settlement) => (
@@ -145,7 +147,7 @@ export function DashboardBudgetWidget() {
                     <span className="font-semibold text-ink">
                       {travelerNameById.get(settlement.fromTravelerId) ?? settlement.fromTravelerId}
                     </span>{" "}
-                    pays{" "}
+                    {t("budgetWidget.pays")}{" "}
                     <span className="font-semibold text-ink">
                       {travelerNameById.get(settlement.toTravelerId) ?? settlement.toTravelerId}
                     </span>{" "}
@@ -155,14 +157,14 @@ export function DashboardBudgetWidget() {
               </ul>
             ) : (
               <p className="mt-2 text-sm leading-6 text-zinc-600">
-                All outstanding expenses are balanced.
+                {t("budgetWidget.allBalanced")}
               </p>
             )}
           </section>
 
           {recentExpenses.length > 0 ? (
             <section className="rounded-lg bg-zinc-50 p-3">
-              <h3 className="text-sm font-semibold text-ink">Recent expenses</h3>
+              <h3 className="text-sm font-semibold text-ink">{t("budgetWidget.recentExpenses")}</h3>
               <ul className="mt-2 space-y-1.5">
                 {recentExpenses.map((expense) => (
                   <li key={expense.id} className="min-w-0 text-sm leading-6 text-zinc-700">
@@ -173,7 +175,7 @@ export function DashboardBudgetWidget() {
                       </span>
                     </div>
                     <p className="text-xs uppercase tracking-[0.08em] text-zinc-500">
-                      {sourceTypeLabel(expense.sourceType)} - {expense.expenseDate}
+                      {sourceTypeLabel(expense.sourceType, t)} - {expense.expenseDate}
                     </p>
                   </li>
                 ))}
@@ -188,7 +190,8 @@ export function DashboardBudgetWidget() {
 
 async function fetchExpensesJson(
   url: string,
-  fallbackMessage: string
+  fallbackMessage: string,
+  timeoutMessage: string
 ): Promise<{ expenses: SharedExpense[]; travelers: Traveler[] }> {
   const controller = new AbortController();
   const timeoutId = window.setTimeout(() => controller.abort(), requestTimeoutMs);
@@ -211,7 +214,7 @@ async function fetchExpensesJson(
     };
   } catch (error) {
     if (error instanceof DOMException && error.name === "AbortError") {
-      throw new Error(`${fallbackMessage} Request timed out. Please retry.`);
+      throw new Error(`${fallbackMessage} ${timeoutMessage}`);
     }
 
     throw error;
@@ -254,16 +257,16 @@ function isTraveler(value: unknown): value is Traveler {
   );
 }
 
-function sourceTypeLabel(sourceType: SharedExpense["sourceType"]) {
+function sourceTypeLabel(sourceType: SharedExpense["sourceType"], t: ReturnType<typeof useLanguage>["t"]) {
   if (sourceType === "misc") {
-    return "Misc";
+    return t("budgetWidget.source.misc");
   }
 
   if (sourceType === "itinerary") {
-    return "Itinerary";
+    return t("budgetWidget.source.itinerary");
   }
 
-  return "Booking";
+  return t("budgetWidget.source.booking");
 }
 
 function orderTravelers(travelers: Traveler[]) {
