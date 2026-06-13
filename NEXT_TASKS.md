@@ -2,6 +2,8 @@
 
 ## Current Priority
 
+- Review the simplified Dashboard on desktop and a real phone: compact trip header, Next up card, Needs attention summary, Quick actions, Budget snapshot, folded reminders, and SOS access.
+- If approved, commit the Dashboard simplification before starting reusable trip dashboard data-model or i18n work.
 - Review the new shared Documents checklist on desktop and a real phone, especially protected folder unlock, Add/Edit form comfort, and card spacing.
 - Use `REAL_DATA_ENTRY_GUIDE.md` and `REAL_DATA_CHECKLIST.md` to manually replace safe placeholder data with non-sensitive real trip summaries.
 - Keep real private data out of the repo unless the user later asks to add protection first.
@@ -28,6 +30,7 @@
 
 ## Suggested Next Feature
 
+- After Dashboard simplification is approved, plan reusable trip dashboard data-model work separately from UI redesign and bilingual switching.
 - After reviewing Documents, decide whether the current per-folder access code is enough for private folder links or whether a later whole-site protection layer is needed before entering more sensitive trip context.
 - Review Budget filters, settlement suggestions, lighter expense cards, and misc expense form ergonomics on a real phone.
 - Review Booking linked expenses without counting booking `amount` twice.

@@ -15,12 +15,14 @@
 - Documents is now a shared MySQL/API CRUD checklist with per-traveler statuses and optional protected folder links.
 - Bookings, Itinerary, and Budget have a second mobile polish pass focused on collapsed sections and lighter first-screen page weight.
 - Dashboard budget overview now reads the unified expense ledger through `/api/expenses` instead of static `tripData.ts` expenses.
+- Dashboard information architecture has been simplified: homepage is now a compact overview with Next up, Needs attention, Quick actions, Money snapshot, folded reminders, and SOS quick access instead of page-level management detail.
 - The shared expense ledger now supports EUR, SGD, and MYR.
 - Real-data preparation docs now exist: `REAL_DATA_ENTRY_GUIDE.md` and `REAL_DATA_CHECKLIST.md`.
 
 ## Highest Priority Task
 
 - Review the new shared Documents checklist and protected folder unlock flow on desktop and a real phone.
+- Review the simplified Dashboard on desktop and a real phone before committing `codex/dashboard-simplify`.
 - Manually replace safe placeholder data with non-sensitive real trip summaries using `REAL_DATA_ENTRY_GUIDE.md` and `REAL_DATA_CHECKLIST.md`.
 
 ## Key Known Issue
@@ -38,6 +40,7 @@
 - Budget filters apply only to the visible expense list; summary cards and settlement suggestions intentionally stay based on the full ledger.
 - Budget filters are collapsed by default in the mobile polish flow, and individual expense card paid/split/notes details are behind a per-card details toggle.
 - Dashboard budget widgets show full-ledger totals, outstanding/settled amounts, top settlement suggestions, and recent expenses with local loading/error handling.
+- Dashboard money snapshot intentionally stays compact; full expense ledger review and management should remain on `/budget`.
 - Budget and Dashboard summarize EUR, SGD, and MYR separately; the app does not perform exchange-rate conversion.
 - Itinerary cards can display, add, edit, and delete linked ledger expenses where `sourceType = itinerary` and `sourceId` is the itinerary item id.
 - Booking rows/cards can display, add, edit, and delete linked ledger expenses where `sourceType = booking` and `sourceId` is the booking item id.

@@ -30,6 +30,7 @@ export function RemindersClient({ participants }: RemindersClientProps) {
   const [reminders, setReminders] = useState<SharedReminder[]>([]);
   const [priorityFilter, setPriorityFilter] = useState<"All" | ReminderPriority>("All");
   const [form, setForm] = useState<FormState>(() => emptyForm(participants[0] ?? "Person A"));
+  const [expanded, setExpanded] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -43,6 +44,7 @@ export function RemindersClient({ participants }: RemindersClientProps) {
         : reminders.filter((reminder) => reminder.priority === priorityFilter),
     [priorityFilter, reminders]
   );
+  const displayedReminders = expanded ? visibleReminders : reminders.slice(0, 3);
 
   async function loadReminders() {
     setLoading(true);
@@ -73,7 +75,13 @@ export function RemindersClient({ participants }: RemindersClientProps) {
     setForm(emptyForm(participants[0] ?? "Person A"));
   }
 
+  function startAdding() {
+    resetForm();
+    setExpanded(true);
+  }
+
   function startEditing(reminder: SharedReminder) {
+    setExpanded(true);
     setEditingId(reminder.id);
     setForm({
       text: reminder.text,
@@ -115,6 +123,10 @@ export function RemindersClient({ participants }: RemindersClientProps) {
   }
 
   async function removeReminder(reminder: SharedReminder) {
+    if (!window.confirm(`Delete "${reminder.text}" from reminders?`)) {
+      return;
+    }
+
     setDeletingId(reminder.id);
     setError(null);
 
@@ -139,93 +151,117 @@ export function RemindersClient({ participants }: RemindersClientProps) {
 
   return (
     <section className="rounded-lg border border-zinc-200 bg-white p-4 shadow-soft">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
           <p className="text-xs font-semibold uppercase tracking-[0.08em] text-terracotta">
             Important reminders
           </p>
-          <p className="mt-1 text-sm text-zinc-600">
-            Add shared reminders and keep the highest priority items at the top.
+          <h2 className="mt-1 text-lg font-semibold text-ink">Top shared notes</h2>
+          <p className="mt-1 text-sm leading-6 text-zinc-600">
+            Showing the highest priority reminders first.
           </p>
         </div>
-        <label className="text-sm font-semibold text-ink">
-          Filter
-          <select
-            value={priorityFilter}
-            onChange={(event) => setPriorityFilter(event.target.value as "All" | ReminderPriority)}
-            className="ml-2 rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-700"
+        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+          <button
+            type="button"
+            onClick={startAdding}
+            className="w-full rounded-md bg-moss px-3 py-2 text-sm font-semibold text-white sm:w-auto"
           >
-            <option value="All">All priorities</option>
-            {reminderPriorities.map((priority) => (
-              <option key={priority} value={priority}>
-                {priority}
-              </option>
-            ))}
-          </select>
-        </label>
+            Add reminder
+          </button>
+          <button
+            type="button"
+            onClick={() => setExpanded((current) => !current)}
+            className="w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold text-ink sm:w-auto"
+          >
+            {expanded ? "Show less" : "Manage"}
+          </button>
+        </div>
       </div>
 
-      <form onSubmit={submitReminder} className="mt-4 grid gap-3 rounded-lg bg-zinc-50 p-3">
-        <label className="text-sm font-semibold text-ink">
-          Reminder
-          <input
-            value={form.text}
-            onChange={(event) => setForm((current) => ({ ...current, text: event.target.value }))}
-            className="mt-2 w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-700"
-            placeholder="Example: Confirm Rome hotel address"
-          />
-        </label>
-        <div className="grid gap-3 sm:grid-cols-3">
-          <label className="text-sm font-semibold text-ink">
-            Priority
-            <select
-              value={form.priority}
-              onChange={(event) =>
-                setForm((current) => ({ ...current, priority: event.target.value as ReminderPriority }))
-              }
-              className="mt-2 w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-700"
-            >
-              {reminderPriorities.map((priority) => (
-                <option key={priority} value={priority}>
-                  {priority}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="text-sm font-semibold text-ink">
-            Created by
-            <select
-              value={form.createdBy}
-              onChange={(event) => setForm((current) => ({ ...current, createdBy: event.target.value }))}
-              className="mt-2 w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-700"
-            >
-              {participants.map((participant) => (
-                <option key={participant} value={participant}>
-                  {participant}
-                </option>
-              ))}
-            </select>
-          </label>
-          <div className="flex items-end gap-2">
-            <button
-              type="submit"
-              disabled={submitting}
-              className="rounded-md bg-moss px-3 py-2 text-sm font-semibold text-white disabled:opacity-60"
-            >
-              {submitting ? "Saving..." : editingId ? "Save changes" : "Add reminder"}
-            </button>
-            {editingId ? (
-              <button
-                type="button"
-                onClick={resetForm}
-                className="rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold text-ink"
+      {expanded ? (
+        <>
+          <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <label className="text-sm font-semibold text-ink">
+              Filter
+              <select
+                value={priorityFilter}
+                onChange={(event) => setPriorityFilter(event.target.value as "All" | ReminderPriority)}
+                className="ml-2 rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-700"
               >
-                Cancel
-              </button>
-            ) : null}
+                <option value="All">All priorities</option>
+                {reminderPriorities.map((priority) => (
+                  <option key={priority} value={priority}>
+                    {priority}
+                  </option>
+                ))}
+              </select>
+            </label>
           </div>
-        </div>
-      </form>
+
+          <form onSubmit={submitReminder} className="mt-3 grid gap-3 rounded-lg bg-zinc-50 p-3">
+            <label className="text-sm font-semibold text-ink">
+              Reminder
+              <input
+                value={form.text}
+                onChange={(event) => setForm((current) => ({ ...current, text: event.target.value }))}
+                className="mt-2 w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-700"
+                placeholder="Example: Confirm hotel address"
+              />
+            </label>
+            <div className="grid gap-3 sm:grid-cols-3">
+              <label className="text-sm font-semibold text-ink">
+                Priority
+                <select
+                  value={form.priority}
+                  onChange={(event) =>
+                    setForm((current) => ({ ...current, priority: event.target.value as ReminderPriority }))
+                  }
+                  className="mt-2 w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-700"
+                >
+                  {reminderPriorities.map((priority) => (
+                    <option key={priority} value={priority}>
+                      {priority}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="text-sm font-semibold text-ink">
+                Created by
+                <select
+                  value={form.createdBy}
+                  onChange={(event) => setForm((current) => ({ ...current, createdBy: event.target.value }))}
+                  className="mt-2 w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-700"
+                >
+                  {participants.map((participant) => (
+                    <option key={participant} value={participant}>
+                      {participant}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <div className="flex items-end gap-2">
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="rounded-md bg-moss px-3 py-2 text-sm font-semibold text-white disabled:opacity-60"
+                >
+                  {submitting ? "Saving..." : editingId ? "Save changes" : "Add reminder"}
+                </button>
+                {editingId ? (
+                  <button
+                    type="button"
+                    onClick={resetForm}
+                    className="rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold text-ink"
+                  >
+                    Cancel
+                  </button>
+                ) : null}
+              </div>
+            </div>
+          </form>
+        </>
+      ) : null}
 
       {error ? (
         <p className="mt-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
@@ -235,16 +271,16 @@ export function RemindersClient({ participants }: RemindersClientProps) {
 
       {loading ? <p className="mt-4 text-sm text-zinc-600">Loading reminders...</p> : null}
 
-      {!loading && visibleReminders.length === 0 ? (
+      {!loading && displayedReminders.length === 0 ? (
         <p className="mt-4 rounded-lg bg-zinc-50 px-3 py-4 text-sm text-zinc-600">
-          No reminders match this filter yet.
+          {expanded ? "No reminders match this filter yet." : "No reminders yet."}
         </p>
       ) : null}
 
-      <ul className="mt-4 space-y-3">
-        {visibleReminders.map((reminder) => (
+      <ul className="mt-4 space-y-2">
+        {displayedReminders.map((reminder) => (
           <li key={reminder.id} className="rounded-lg bg-zinc-50 px-3 py-3 text-sm text-zinc-700">
-            <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className={`rounded-full px-2 py-1 text-xs font-semibold ${priorityClass[reminder.priority]}`}>
@@ -252,7 +288,7 @@ export function RemindersClient({ participants }: RemindersClientProps) {
                   </span>
                   <span className="text-xs text-zinc-500">By {reminder.createdBy}</span>
                 </div>
-                <p className="mt-2 leading-6 text-ink">{reminder.text}</p>
+                <p className="mt-2 break-words leading-6 text-ink">{reminder.text}</p>
               </div>
               <div className="flex shrink-0 gap-2">
                 <button
@@ -275,6 +311,16 @@ export function RemindersClient({ participants }: RemindersClientProps) {
           </li>
         ))}
       </ul>
+
+      {!expanded && reminders.length > 3 ? (
+        <button
+          type="button"
+          onClick={() => setExpanded(true)}
+          className="mt-3 w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold text-ink"
+        >
+          Show all {reminders.length} reminders
+        </button>
+      ) : null}
     </section>
   );
 }
