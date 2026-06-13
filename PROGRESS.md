@@ -2,6 +2,11 @@
 
 ## 2026-06-13
 
+- Fixed the mobile LAN dev loading/hydration issue for shared widgets by adding the current Wi-Fi LAN IP `192.168.0.9` to `next.config.mjs` `allowedDevOrigins`, while preserving the older hotspot IP `172.20.10.4`.
+- Confirmed the issue was not API/DB: desktop and LAN `/api/itinerary`, `/api/expenses`, `/api/reminders`, `/api/bookings`, `/api/documents`, and `/api/packing` all returned 200 JSON; the failing probe was the LAN dev resource origin check returning 403 before the config update.
+- Removed standalone Map, Food, and Attractions page entries; `/map`, `/food`, and `/attractions` now redirect to `/more`.
+- Removed the unused Google Maps search/directory components and standalone map/restaurant/attraction placeholder exports from `tripData.ts`; Itinerary, Bookings, and Emergency Google Maps links remain available where already used.
+- Verified `npm.cmd run build`, `npm.cmd run lint`, desktop/LAN `/`, `/more`, `/itinerary`, `/bookings`, `/budget`, `/packing`, `/documents`, redirect checks for `/map`, `/food`, `/attractions`, and API JSON checks for `/api/itinerary`, `/api/bookings`, `/api/expenses`, `/api/packing`, and `/api/documents`.
 - Completed Phase 3 Documents shared checklist: Documents now uses local Next API + MySQL CRUD with per-traveler required/saved/not-needed statuses and optional external folder links.
 - Fixed the Documents Add/Edit responsive overflow bug by exempting checkbox/radio controls from `mobile-safe-form` full-width input styling and making the access-code row wrap safely inside the form card.
 - Added protected folder links for Documents using Node crypto salted SHA-256 passcode hashes; plaintext passcodes are not stored, and protected `GET /api/documents` responses do not return `externalUrl`, hash, or salt.

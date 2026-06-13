@@ -10,9 +10,6 @@ const navItems = [
   { href: "/itinerary", labelKey: "nav.itinerary", shortLabelKey: "nav.plan" },
   { href: "/bookings", labelKey: "nav.bookings", shortLabelKey: "nav.book" },
   { href: "/budget", labelKey: "nav.budget", shortLabelKey: "nav.money" },
-  { href: "/map", labelKey: "nav.map", shortLabelKey: "nav.map" },
-  { href: "/food", labelKey: "nav.food", shortLabelKey: "nav.food" },
-  { href: "/attractions", labelKey: "nav.attractions", shortLabelKey: "nav.see" },
   { href: "/packing", labelKey: "nav.packing", shortLabelKey: "nav.pack" },
   { href: "/documents", labelKey: "nav.documents", shortLabelKey: "nav.docs" }
 ];
@@ -82,7 +79,7 @@ function Navigation() {
             const active =
               pathname === item.href ||
               (item.href === "/more" &&
-                ["/map", "/food", "/attractions", "/packing", "/documents"].includes(pathname));
+                ["/packing", "/documents"].includes(pathname));
 
             return (
               <Link

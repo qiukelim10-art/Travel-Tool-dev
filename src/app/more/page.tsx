@@ -6,30 +6,6 @@ import { useLanguage, type TranslationKey } from "@/lib/i18n";
 
 const moreItems = [
   {
-    href: "/map",
-    titleKey: "page.map.title",
-    description: {
-      en: "Maps, important places, stations, and location links.",
-      zh: "地图、重要地点、车站和位置链接。"
-    }
-  },
-  {
-    href: "/food",
-    titleKey: "page.food.title",
-    description: {
-      en: "Restaurant shortlist and reservation status.",
-      zh: "餐厅候选清单和订位状态。"
-    }
-  },
-  {
-    href: "/attractions",
-    titleKey: "page.attractions.title",
-    description: {
-      en: "Sightseeing priorities, ticket requirements, and booking status.",
-      zh: "观光优先级、门票需求和预订状态。"
-    }
-  },
-  {
     href: "/packing",
     titleKey: "page.packing.title",
     description: {

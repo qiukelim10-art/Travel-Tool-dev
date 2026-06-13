@@ -1,28 +1,20 @@
 import type {
-  Attraction,
   Booking,
   DocumentLink,
   EmergencyInfo,
   Expense,
   ItineraryDay,
-  MapLocation,
   PackingItem,
-  Restaurant,
-  TripMap
 } from "@/data/tripData";
 import type { Language } from "@/lib/i18n";
 
 type Localizable =
-  | Attraction
   | Booking
   | DocumentLink
   | EmergencyInfo
   | Expense
   | ItineraryDay
-  | MapLocation
-  | PackingItem
-  | Restaurant
-  | TripMap;
+  | PackingItem;
 
 const zhText: Record<string, string> = {
   "Italy Trip 2026": "意大利之旅 2026",
