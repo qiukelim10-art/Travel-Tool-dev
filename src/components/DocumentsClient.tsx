@@ -58,10 +58,12 @@ function orderTravelers(travelers: Traveler[]) {
 }
 
 function defaultStatuses(travelers: Traveler[]) {
-  return orderTravelers(travelers).map((traveler) => ({
-    travelerId: traveler.id,
-    status: "required" as DocumentTravelerStatus
-  }));
+  return orderTravelers(travelers)
+    .filter((traveler) => traveler.isActive !== false)
+    .map((traveler) => ({
+      travelerId: traveler.id,
+      status: "required" as DocumentTravelerStatus
+    }));
 }
 
 function emptyForm(travelers: Traveler[]): DocumentInput {
@@ -101,6 +103,10 @@ export function DocumentsClient({ travelers: initialTravelers }: DocumentsClient
   const [unlockingId, setUnlockingId] = useState<string | null>(null);
 
   const orderedTravelers = useMemo(() => orderTravelers(travelers), [travelers]);
+  const activeTravelers = useMemo(
+    () => orderedTravelers.filter((traveler) => traveler.isActive !== false),
+    [orderedTravelers]
+  );
   const travelerNameById = useMemo(
     () => new Map(orderedTravelers.map((traveler) => [traveler.id, traveler.name])),
     [orderedTravelers]
@@ -371,7 +377,7 @@ export function DocumentsClient({ travelers: initialTravelers }: DocumentsClient
       {formOpen ? (
         <DocumentForm
           form={form}
-          travelers={orderedTravelers}
+          travelers={activeTravelers}
           editingId={editingId}
           submitting={submitting}
           onSubmit={submitDocument}
@@ -947,10 +953,11 @@ function isTraveler(value: unknown): value is Traveler {
 }
 
 function ensureFormTravelers(form: DocumentInput, travelers: Traveler[]) {
-  const travelerIds = new Set(travelers.map((traveler) => traveler.id));
+  const activeTravelers = travelers.filter((traveler) => traveler.isActive !== false);
+  const travelerIds = new Set(activeTravelers.map((traveler) => traveler.id));
   const validStatuses = form.statuses.filter((status) => travelerIds.has(status.travelerId));
 
-  if (validStatuses.length === travelers.length) {
+  if (validStatuses.length === activeTravelers.length) {
     return {
       ...form,
       statuses: validStatuses
@@ -959,6 +966,6 @@ function ensureFormTravelers(form: DocumentInput, travelers: Traveler[]) {
 
   return {
     ...form,
-    statuses: defaultStatuses(travelers)
+    statuses: defaultStatuses(activeTravelers)
   };
 }

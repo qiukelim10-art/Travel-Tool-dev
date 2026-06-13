@@ -1,8 +1,8 @@
-import { travelers } from "@/data/tripData";
 import { NextResponse } from "next/server";
 import {
   deleteExpense,
   listExpenses,
+  listTripTravelersForBusinessData,
   updateExpense,
   validateExpenseInput
 } from "@/lib/server/sharedDataStore";
@@ -14,9 +14,10 @@ type RouteContext = {
 export async function PATCH(request: Request, context: RouteContext) {
   try {
     const { id } = await context.params;
-    const input = validateExpenseInput(await request.json());
+    const input = await validateExpenseInput(await request.json());
     await updateExpense(id, input);
     const expenses = await listExpenses();
+    const travelers = await listTripTravelersForBusinessData();
     return NextResponse.json({ expenses, travelers });
   } catch (error) {
     return NextResponse.json(
@@ -31,6 +32,7 @@ export async function DELETE(_request: Request, context: RouteContext) {
     const { id } = await context.params;
     await deleteExpense(id);
     const expenses = await listExpenses();
+    const travelers = await listTripTravelersForBusinessData();
     return NextResponse.json({ expenses, travelers });
   } catch (error) {
     return NextResponse.json(

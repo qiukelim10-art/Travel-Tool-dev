@@ -4,7 +4,7 @@ import {
   bookingCategories,
   bookingCurrencies,
   bookingStatuses,
-  buildDefaultPackingStatuses,
+  defaultPackingStatusForCategory,
   documentCategories,
   documentPriorities,
   documentStatuses,
@@ -34,6 +34,7 @@ import {
   type SharedReminder,
   type TripRouteStop,
   type TripSettings,
+  type TripSettingsInput,
   type TripSettingsResponse,
   type TripTraveler
 } from "@/lib/sharedDataTypes";
@@ -200,10 +201,13 @@ function mapTripSettings(row: DbRow): TripSettings {
 }
 
 function mapTripTraveler(row: DbRow): TripTraveler {
+  const displayName = asString(row.display_name);
+
   return {
     id: asString(row.id),
     tripId: asString(row.trip_id),
-    displayName: asString(row.display_name),
+    name: displayName,
+    displayName,
     displayOrder: Number(row.display_order ?? 0),
     isActive: asBoolean(row.is_active),
     createdAt: asString(row.created_at),
@@ -223,6 +227,157 @@ function mapTripRouteStop(row: DbRow): TripRouteStop {
     createdAt: asString(row.created_at),
     updatedAt: asString(row.updated_at)
   };
+}
+
+function isDateInput(value: string) {
+  return /^\d{4}-\d{2}-\d{2}$/.test(value);
+}
+
+function normalizeDateInput(value: unknown, label: string) {
+  const text = String(value ?? "").trim();
+
+  if (!text) {
+    return null;
+  }
+
+  if (!isDateInput(text)) {
+    throw new Error(`${label} must use YYYY-MM-DD.`);
+  }
+
+  return text;
+}
+
+function normalizeTripSettingsInput(input: Partial<TripSettingsInput>): TripSettingsInput {
+  const tripInput = (input.trip ?? {}) as Partial<TripSettingsInput["trip"]>;
+  const name = String(tripInput.name ?? "").trim();
+  const destination = String(tripInput.destination ?? "").trim();
+  const startDate = normalizeDateInput(tripInput.startDate, "Start date");
+  const endDate = normalizeDateInput(tripInput.endDate, "End date");
+  const defaultCurrencies = Array.isArray(tripInput.defaultCurrencies)
+    ? Array.from(new Set(tripInput.defaultCurrencies.map((currency) => String(currency))))
+    : [];
+  const timezone = String(tripInput.timezone ?? "").trim() || "Europe/Rome";
+  const notes = String(tripInput.notes ?? "").trim();
+
+  if (!name) {
+    throw new Error("Trip name is required.");
+  }
+
+  if (!destination) {
+    throw new Error("Destination is required.");
+  }
+
+  if (startDate && endDate && startDate > endDate) {
+    throw new Error("Start date must be before or equal to end date.");
+  }
+
+  if (
+    defaultCurrencies.length === 0 ||
+    defaultCurrencies.some((currency) => !(bookingCurrencies as readonly string[]).includes(currency))
+  ) {
+    throw new Error("Select at least one valid default currency.");
+  }
+
+  const normalizedTravelers = normalizeTripTravelerInputs(input.travelers);
+  const normalizedRouteStops = normalizeTripRouteStopInputs(input.routeStops);
+
+  return {
+    trip: {
+      name,
+      destination,
+      startDate,
+      endDate,
+      defaultCurrencies: defaultCurrencies as SharedCurrency[],
+      timezone,
+      notes: notes || null
+    },
+    travelers: normalizedTravelers,
+    routeStops: normalizedRouteStops
+  };
+}
+
+function normalizeTripTravelerInputs(value: unknown): TripSettingsInput["travelers"] {
+  const inputs = Array.isArray(value) ? value : [];
+  const travelersByName = new Set<string>();
+  const normalized = inputs.map((travelerInput, index) => {
+    const traveler = travelerInput as Partial<TripSettingsInput["travelers"][number]>;
+    const id = String(traveler.id ?? "").trim();
+    const displayName = String(traveler.displayName ?? "").trim();
+    const displayOrder = Number(traveler.displayOrder ?? index + 1);
+    const isActive = Boolean(traveler.isActive);
+
+    if (id && !/^person_[a-z0-9_]+$/.test(id)) {
+      throw new Error("Traveler id is invalid.");
+    }
+
+    if (!displayName) {
+      throw new Error("Traveler display name is required.");
+    }
+
+    if (!Number.isInteger(displayOrder)) {
+      throw new Error("Traveler display order must be a whole number.");
+    }
+
+    if (isActive) {
+      const key = displayName.toLowerCase();
+      if (travelersByName.has(key)) {
+        throw new Error("Active traveler display names must be unique.");
+      }
+      travelersByName.add(key);
+    }
+
+    return {
+      id: id || undefined,
+      displayName,
+      displayOrder,
+      isActive
+    };
+  });
+
+  if (!normalized.some((traveler) => traveler.isActive)) {
+    throw new Error("At least one traveler must stay active.");
+  }
+
+  return normalized;
+}
+
+function normalizeTripRouteStopInputs(value: unknown): TripSettingsInput["routeStops"] {
+  const inputs = Array.isArray(value) ? value : [];
+
+  return inputs.map((stopInput, index) => {
+    const stop = stopInput as Partial<TripSettingsInput["routeStops"][number]>;
+    const id = String(stop.id ?? "").trim();
+    const city = String(stop.city ?? "").trim();
+    const country = String(stop.country ?? "").trim();
+    const startDate = normalizeDateInput(stop.startDate, "Route start date");
+    const endDate = normalizeDateInput(stop.endDate, "Route end date");
+    const sortOrder = Number(stop.sortOrder ?? index + 1);
+
+    if (id && !/^[A-Za-z0-9_-]{1,36}$/.test(id)) {
+      throw new Error("Route stop id is invalid.");
+    }
+
+    if (!city) {
+      throw new Error("Route city is required.");
+    }
+
+    if (startDate && endDate && startDate > endDate) {
+      throw new Error("Route start date must be before or equal to route end date.");
+    }
+
+    if (!Number.isInteger(sortOrder)) {
+      throw new Error("Route sort order must be a whole number.");
+    }
+
+    return {
+      id: id || undefined,
+      city,
+      country: country || null,
+      startDate,
+      endDate,
+      sortOrder
+    };
+  });
 }
 
 function mapReminder(row: DbRow): SharedReminder {
@@ -948,6 +1103,172 @@ export async function getActiveTripSettings(): Promise<TripSettingsResponse> {
   };
 }
 
+export async function listTripTravelersForBusinessData() {
+  await ensureSharedDataStore();
+  const [rows] = await getAppPool().execute<DbRow[]>(
+    `SELECT * FROM trip_travelers
+     WHERE trip_id = ?
+     ORDER BY display_order ASC, display_name ASC, id ASC`,
+    [activeTripId]
+  );
+
+  return rows.map(mapTripTraveler);
+}
+
+async function listTripTravelerIds() {
+  const tripTravelers = await listTripTravelersForBusinessData();
+  return new Set(tripTravelers.map((traveler) => traveler.id));
+}
+
+function generateTravelerId(existingIds: Set<string>) {
+  for (let code = 97; code <= 122; code += 1) {
+    const id = `person_${String.fromCharCode(code)}`;
+    if (!existingIds.has(id)) {
+      existingIds.add(id);
+      return id;
+    }
+  }
+
+  let id = `person_${randomUUID().slice(0, 8)}`;
+  while (existingIds.has(id)) {
+    id = `person_${randomUUID().slice(0, 8)}`;
+  }
+  existingIds.add(id);
+  return id;
+}
+
+async function insertMissingChecklistStatuses(executor: MysqlConnection, travelerIds: string[]) {
+  if (travelerIds.length === 0) {
+    return;
+  }
+
+  const [packingRows] = await executor.execute<DbRow[]>("SELECT id, category FROM packing_items");
+  for (const row of packingRows) {
+    const itemId = asString(row.id);
+    const status = defaultPackingStatusForCategory(asString(row.category) as PackingCategory);
+    for (const travelerId of travelerIds) {
+      await executor.execute(
+        `INSERT IGNORE INTO packing_item_traveler_statuses
+          (id, item_id, traveler_id, status)
+         VALUES (?, ?, ?, ?)`,
+        [randomUUID(), itemId, travelerId, status]
+      );
+    }
+  }
+
+  const [documentRows] = await executor.execute<DbRow[]>("SELECT id FROM document_items");
+  for (const row of documentRows) {
+    const itemId = asString(row.id);
+    for (const travelerId of travelerIds) {
+      await executor.execute(
+        `INSERT IGNORE INTO document_item_traveler_statuses
+          (id, item_id, traveler_id, status)
+         VALUES (?, ?, ?, 'required')`,
+        [randomUUID(), itemId, travelerId]
+      );
+    }
+  }
+}
+
+export async function updateActiveTripSettings(rawInput: Partial<TripSettingsInput>) {
+  await ensureSharedDataStore();
+  const input = normalizeTripSettingsInput(rawInput);
+  const connection = await getAppPool().getConnection();
+
+  try {
+    await connection.beginTransaction();
+    await connection.execute(
+      `UPDATE trips
+       SET name = ?, destination = ?, start_date = ?, end_date = ?,
+           default_currencies = ?, timezone = ?, notes = ?, is_active = 1
+       WHERE id = ?`,
+      [
+        input.trip.name,
+        input.trip.destination,
+        input.trip.startDate,
+        input.trip.endDate,
+        JSON.stringify(input.trip.defaultCurrencies),
+        input.trip.timezone,
+        input.trip.notes,
+        activeTripId
+      ]
+    );
+
+    const [existingTravelerRows] = await connection.execute<DbRow[]>(
+      "SELECT id FROM trip_travelers WHERE trip_id = ?",
+      [activeTripId]
+    );
+    const existingTravelerIds = new Set(existingTravelerRows.map((row) => asString(row.id)));
+    const addedTravelerIds: string[] = [];
+
+    for (const traveler of input.travelers) {
+      const id = traveler.id || generateTravelerId(existingTravelerIds);
+      if (!traveler.id) {
+        addedTravelerIds.push(id);
+      }
+
+      await connection.execute(
+        `INSERT INTO trip_travelers
+          (id, trip_id, display_name, display_order, is_active)
+         VALUES (?, ?, ?, ?, ?)
+         ON DUPLICATE KEY UPDATE
+          display_name = VALUES(display_name),
+          display_order = VALUES(display_order),
+          is_active = VALUES(is_active)`,
+        [id, activeTripId, traveler.displayName, traveler.displayOrder, traveler.isActive ? 1 : 0]
+      );
+    }
+
+    const submittedRouteIds = input.routeStops
+      .map((stop) => stop.id)
+      .filter((id): id is string => Boolean(id));
+    if (submittedRouteIds.length > 0) {
+      const placeholders = submittedRouteIds.map(() => "?").join(", ");
+      await connection.execute(
+        `DELETE FROM trip_route_stops
+         WHERE trip_id = ? AND id NOT IN (${placeholders})`,
+        [activeTripId, ...submittedRouteIds]
+      );
+    } else {
+      await connection.execute("DELETE FROM trip_route_stops WHERE trip_id = ?", [activeTripId]);
+    }
+
+    for (const stop of input.routeStops) {
+      const id = stop.id || randomUUID();
+      await connection.execute(
+        `INSERT INTO trip_route_stops
+          (id, trip_id, city, country, start_date, end_date, sort_order)
+         VALUES (?, ?, ?, ?, ?, ?, ?)
+         ON DUPLICATE KEY UPDATE
+          city = VALUES(city),
+          country = VALUES(country),
+          start_date = VALUES(start_date),
+          end_date = VALUES(end_date),
+          sort_order = VALUES(sort_order)`,
+        [
+          id,
+          activeTripId,
+          stop.city,
+          stop.country ?? null,
+          stop.startDate ?? null,
+          stop.endDate ?? null,
+          stop.sortOrder
+        ]
+      );
+    }
+
+    await insertMissingChecklistStatuses(connection, addedTravelerIds);
+    await connection.commit();
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
+  }
+
+  return getActiveTripSettings();
+}
+
 export function validateReminderInput(input: Partial<ReminderInput>) {
   const text = String(input.text ?? "").trim();
   const priority = input.priority;
@@ -1095,13 +1416,14 @@ export function validateItineraryInput(input: Partial<ItineraryInput>) {
   };
 }
 
-function assertTravelerId(value: string, fieldLabel: string) {
-  if (!travelers.some((traveler) => traveler.id === value)) {
+function assertTravelerId(value: string, allowedTravelerIds: Set<string>, fieldLabel: string) {
+  if (!allowedTravelerIds.has(value)) {
     throw new Error(`${fieldLabel} is invalid.`);
   }
 }
 
-export function validateExpenseInput(input: Partial<ExpenseInput>) {
+export async function validateExpenseInput(input: Partial<ExpenseInput>) {
+  const allowedTravelerIds = await listTripTravelerIds();
   const sourceType = input.sourceType;
   const sourceId = String(input.sourceId ?? "").trim();
   const title = String(input.title ?? "").trim();
@@ -1138,7 +1460,7 @@ export function validateExpenseInput(input: Partial<ExpenseInput>) {
     throw new Error("Expense currency is invalid.");
   }
 
-  assertTravelerId(paidByTravelerId, "Paid by traveler");
+  assertTravelerId(paidByTravelerId, allowedTravelerIds, "Paid by traveler");
 
   if (!/^\d{4}-\d{2}-\d{2}$/.test(expenseDate)) {
     throw new Error("Expense date must use YYYY-MM-DD.");
@@ -1153,7 +1475,7 @@ export function validateExpenseInput(input: Partial<ExpenseInput>) {
   }
 
   for (const travelerId of uniqueSplitTravelerIds) {
-    assertTravelerId(travelerId, "Split traveler");
+    assertTravelerId(travelerId, allowedTravelerIds, "Split traveler");
   }
 
   return {
@@ -1173,11 +1495,14 @@ export function validateExpenseInput(input: Partial<ExpenseInput>) {
 
 function normalizePackingStatuses(
   category: PackingCategory,
-  inputStatuses: PackingInput["statuses"] | undefined
+  inputStatuses: PackingInput["statuses"] | undefined,
+  tripTravelers: TripTraveler[]
 ) {
-  const allowedTravelerIds = new Set(travelers.map((traveler) => traveler.id));
+  const allowedTravelerIds = new Set(tripTravelers.map((traveler) => traveler.id));
   const defaultStatuses = new Map(
-    buildDefaultPackingStatuses(category).map((status) => [status.travelerId, status.status])
+    tripTravelers
+      .filter((traveler) => traveler.isActive)
+      .map((traveler) => [traveler.id, defaultPackingStatusForCategory(category)])
   );
 
   for (const status of inputStatuses ?? []) {
@@ -1192,16 +1517,18 @@ function normalizePackingStatuses(
     defaultStatuses.set(status.travelerId, status.status);
   }
 
-  return travelers
+  return tripTravelers
     .slice()
     .sort((a, b) => a.displayOrder - b.displayOrder)
+    .filter((traveler) => defaultStatuses.has(traveler.id))
     .map((traveler) => ({
       travelerId: traveler.id,
       status: defaultStatuses.get(traveler.id) ?? "required"
     }));
 }
 
-export function validatePackingInput(input: Partial<PackingInput>) {
+export async function validatePackingInput(input: Partial<PackingInput>) {
+  const tripTravelers = await listTripTravelersForBusinessData();
   const name = String(input.name ?? "").trim();
   const category = input.category;
   const priority = input.priority;
@@ -1244,14 +1571,19 @@ export function validatePackingInput(input: Partial<PackingInput>) {
     notes: notes || undefined,
     quantity,
     sortOrder,
-    statuses: normalizePackingStatuses(category, input.statuses)
+    statuses: normalizePackingStatuses(category, input.statuses, tripTravelers)
   };
 }
 
-function normalizeDocumentStatuses(inputStatuses: DocumentInput["statuses"] | undefined) {
-  const allowedTravelerIds = new Set(travelers.map((traveler) => traveler.id));
+function normalizeDocumentStatuses(
+  inputStatuses: DocumentInput["statuses"] | undefined,
+  tripTravelers: TripTraveler[]
+) {
+  const allowedTravelerIds = new Set(tripTravelers.map((traveler) => traveler.id));
   const statusesByTraveler = new Map<string, DocumentTravelerStatus>(
-    travelers.map((traveler) => [traveler.id, "required"])
+    tripTravelers
+      .filter((traveler) => traveler.isActive)
+      .map((traveler) => [traveler.id, "required"])
   );
 
   for (const status of inputStatuses ?? []) {
@@ -1266,9 +1598,10 @@ function normalizeDocumentStatuses(inputStatuses: DocumentInput["statuses"] | un
     statusesByTraveler.set(status.travelerId, status.status);
   }
 
-  return travelers
+  return tripTravelers
     .slice()
     .sort((a, b) => a.displayOrder - b.displayOrder)
+    .filter((traveler) => statusesByTraveler.has(traveler.id))
     .map((traveler) => ({
       travelerId: traveler.id,
       status: statusesByTraveler.get(traveler.id) ?? "required"
@@ -1307,7 +1640,8 @@ function verifyPasscode(passcode: string, salt: string, hash: string) {
   return expected.length === attempted.length && timingSafeEqual(expected, attempted);
 }
 
-export function validateDocumentInput(input: Partial<DocumentInput>) {
+export async function validateDocumentInput(input: Partial<DocumentInput>) {
+  const tripTravelers = await listTripTravelersForBusinessData();
   const title = String(input.title ?? "").trim();
   const category = input.category;
   const priority = input.priority;
@@ -1353,7 +1687,7 @@ export function validateDocumentInput(input: Partial<DocumentInput>) {
     passcode,
     notes: notes || null,
     sortOrder,
-    statuses: normalizeDocumentStatuses(input.statuses)
+    statuses: normalizeDocumentStatuses(input.statuses, tripTravelers)
   };
 }
 
@@ -1515,8 +1849,8 @@ export async function deleteItineraryItem(id: string) {
   await getAppPool().execute("DELETE FROM itinerary_items WHERE id = ?", [id]);
 }
 
-function sortTravelerIds(travelerIds: string[]) {
-  const displayOrder = new Map(travelers.map((traveler) => [traveler.id, traveler.displayOrder]));
+function sortTravelerIds(travelerIds: string[], tripTravelers: TripTraveler[]) {
+  const displayOrder = new Map(tripTravelers.map((traveler) => [traveler.id, traveler.displayOrder]));
 
   return travelerIds.slice().sort((a, b) => {
     const orderDiff = (displayOrder.get(a) ?? 999) - (displayOrder.get(b) ?? 999);
@@ -1526,6 +1860,7 @@ function sortTravelerIds(travelerIds: string[]) {
 
 export async function listExpenses() {
   await ensureSharedDataStore();
+  const tripTravelers = await listTripTravelersForBusinessData();
   const [expenseRows] = await getAppPool().execute<DbRow[]>(
     "SELECT * FROM expenses ORDER BY expense_date DESC, created_at DESC, id ASC"
   );
@@ -1542,7 +1877,7 @@ export async function listExpenses() {
   }
 
   return expenseRows.map((row) =>
-    mapExpense(row, sortTravelerIds(splitsByExpense.get(asString(row.id)) ?? []))
+    mapExpense(row, sortTravelerIds(splitsByExpense.get(asString(row.id)) ?? [], tripTravelers))
   );
 }
 
@@ -1641,6 +1976,7 @@ export async function deleteExpense(id: string) {
 
 export async function listPackingItems() {
   await ensureSharedDataStore();
+  const tripTravelers = await listTripTravelersForBusinessData();
   const [itemRows] = await getAppPool().execute<DbRow[]>(
     "SELECT * FROM packing_items ORDER BY sort_order ASC, category ASC, name ASC, id ASC"
   );
@@ -1659,9 +1995,10 @@ export async function listPackingItems() {
   return itemRows.map((row) => {
     const itemStatuses = statusesByItem.get(asString(row.id)) ?? [];
     const statusesByTraveler = new Map(itemStatuses.map((status) => [status.travelerId, status]));
-    const orderedStatuses = travelers
+    const orderedStatuses = tripTravelers
       .slice()
       .sort((a, b) => a.displayOrder - b.displayOrder)
+      .filter((traveler) => traveler.isActive || statusesByTraveler.has(traveler.id))
       .map((traveler) => statusesByTraveler.get(traveler.id) ?? {
         travelerId: traveler.id,
         status: "required" as PackingTravelerStatus,
@@ -1757,6 +2094,7 @@ export async function deletePackingItem(id: string) {
 
 export async function listDocumentItems() {
   await ensureSharedDataStore();
+  const tripTravelers = await listTripTravelersForBusinessData();
   const [itemRows] = await getAppPool().execute<DbRow[]>(
     "SELECT * FROM document_items ORDER BY sort_order ASC, category ASC, title ASC, id ASC"
   );
@@ -1775,9 +2113,10 @@ export async function listDocumentItems() {
   return itemRows.map((row) => {
     const itemStatuses = statusesByItem.get(asString(row.id)) ?? [];
     const statusesByTraveler = new Map(itemStatuses.map((status) => [status.travelerId, status]));
-    const orderedStatuses = travelers
+    const orderedStatuses = tripTravelers
       .slice()
       .sort((a, b) => a.displayOrder - b.displayOrder)
+      .filter((traveler) => traveler.isActive || statusesByTraveler.has(traveler.id))
       .map((traveler) => statusesByTraveler.get(traveler.id) ?? {
         travelerId: traveler.id,
         status: "required" as DocumentTravelerStatus,

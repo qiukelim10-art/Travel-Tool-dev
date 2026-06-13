@@ -115,6 +115,14 @@ export function ItineraryClient() {
 
   const groupedItems = useMemo(() => groupByDate(visibleItems), [visibleItems]);
   const orderedTravelers = useMemo(() => orderTravelers(travelers), [travelers]);
+  const activeTravelers = useMemo(
+    () => orderedTravelers.filter((traveler) => traveler.isActive !== false),
+    [orderedTravelers]
+  );
+  const expenseFormTravelers = useMemo(
+    () => (expenseForm ? mergeExpenseFormTravelers(activeTravelers, orderedTravelers, expenseForm) : activeTravelers),
+    [activeTravelers, expenseForm, orderedTravelers]
+  );
   const travelerNameById = useMemo(
     () => new Map(orderedTravelers.map((traveler) => [traveler.id, traveler.name])),
     [orderedTravelers]
@@ -203,7 +211,7 @@ export function ItineraryClient() {
   function openExpenseForm(item: SharedItineraryItem) {
     setExpenseFormItemId(item.id);
     setEditingExpenseId(null);
-    setExpenseForm(emptyExpenseForm(item, travelers));
+    setExpenseForm(emptyExpenseForm(item, activeTravelers));
     setNotice(null);
     setError(null);
   }
@@ -616,7 +624,7 @@ export function ItineraryClient() {
                   key={item.id}
                   item={item}
                   expenses={linkedExpensesByItem.get(item.id) ?? []}
-                  travelers={orderedTravelers}
+                  travelers={expenseFormTravelers}
                   travelerNameById={travelerNameById}
                   expenseForm={expenseFormItemId === item.id ? expenseForm : null}
                   editingExpenseId={expenseFormItemId === item.id ? editingExpenseId : null}
@@ -1322,6 +1330,20 @@ function buildExpenseInput(item: SharedItineraryItem, form: ExpenseFormState): E
 
 function orderTravelers(travelers: Traveler[]) {
   return travelers.slice().sort((a, b) => a.displayOrder - b.displayOrder);
+}
+
+function mergeExpenseFormTravelers(
+  activeTravelers: Traveler[],
+  allTravelers: Traveler[],
+  form: ExpenseFormState
+) {
+  const included = new Set(activeTravelers.map((traveler) => traveler.id));
+  const selectedIds = new Set([form.paidByTravelerId, ...form.splitTravelerIds]);
+  const extraTravelers = allTravelers.filter(
+    (traveler) => selectedIds.has(traveler.id) && !included.has(traveler.id)
+  );
+
+  return orderTravelers([...activeTravelers, ...extraTravelers]);
 }
 
 function TextField({

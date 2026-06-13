@@ -2,6 +2,13 @@
 
 ## 2026-06-13
 
+- Completed the editable Trip Settings milestone on `codex/trip-settings-foundation`: `/settings` now edits the single active trip basics, default currencies, timezone, notes, travelers, and route stops through `PUT /api/trip-settings`.
+- Kept the single active trip boundary: no existing business tables received `trip_id`, no full multi-trip behavior was added, and existing booking/reminder historical name strings are not migrated.
+- Made active trip travelers the shared traveler source for expenses, packing, and documents APIs while returning compatible `name/displayOrder` fields for existing clients.
+- Added dynamic traveler behavior: existing travelers can be renamed/reordered/deactivated, new travelers get generated stable IDs, active display names must be unique, and new travelers receive default existing packing/document statuses.
+- Updated Budget, Dashboard budget, Booking linked expenses, Itinerary linked expenses, Packing, Documents, and Dashboard reminders to use active settings travelers for new form choices while preserving historical inactive references where needed.
+- Added a More page entry for Trip Settings without changing main navigation density.
+- Verified `npm.cmd run build`, sequential `npm.cmd run lint`, `/api/trip-settings` GET/PUT including invalid payload rollback, desktop/LAN page and API smoke checks, EN/Chinese toggle preserving trip name/route text, 390px Dashboard/Settings no-horizontal-scroll checks, and temporary CRUD cleanup for reminders, bookings, itinerary, expenses, packing, and documents.
 - Added Phase 1 Active Trip Settings Foundation without changing existing business tables: new `trips`, `trip_travelers`, and `trip_route_stops` tables are created by the shared MySQL store and `database/schema.sql`.
 - Added active trip seed data only when `trips` is empty: `active-trip`, Italy Trip 2026, Italy, 2026-10-08 to 2026-10-18, EUR/SGD/MYR, Europe/Rome, Person A-D, and Rome/Florence/Venice/Milan route stops.
 - Added read-only `/api/trip-settings` and shared trip settings types; Dashboard and Layout now read active trip settings for trip name, date range, destination/route, traveler count, and brand text, with `tripData.ts` fallback if the settings API fails.

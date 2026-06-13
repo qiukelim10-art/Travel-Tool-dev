@@ -6,7 +6,7 @@ import type { Traveler } from "@/data/tripData";
 import { useLanguage } from "@/lib/i18n";
 import { translateOption } from "@/lib/localize";
 import {
-  buildDefaultPackingStatuses,
+  defaultPackingStatusForCategory,
   packingCategories,
   packingPriorities,
   packingTravelerStatuses,
@@ -45,7 +45,15 @@ const overallClass: Record<OverallStatus, string> = {
   "Not assigned": "bg-zinc-100 text-zinc-700 ring-zinc-200"
 };
 
-function emptyForm(): PackingInput {
+function buildDefaultStatuses(category: PackingCategory, travelers: Traveler[]) {
+  const status = defaultPackingStatusForCategory(category);
+  return travelers.map((traveler) => ({
+    travelerId: traveler.id,
+    status
+  }));
+}
+
+function emptyForm(travelers: Traveler[]): PackingInput {
   return {
     name: "",
     category: "Documents",
@@ -53,7 +61,7 @@ function emptyForm(): PackingInput {
     notes: "",
     quantity: null,
     sortOrder: 0,
-    statuses: buildDefaultPackingStatuses("Documents")
+    statuses: buildDefaultStatuses("Documents", travelers)
   };
 }
 
@@ -81,6 +89,10 @@ export function PackingClient({ travelers }: PackingClientProps) {
     () => travelers.slice().sort((a, b) => a.displayOrder - b.displayOrder),
     [travelers]
   );
+  const activeTravelers = useMemo(
+    () => sortedTravelers.filter((traveler) => traveler.isActive !== false),
+    [sortedTravelers]
+  );
   const travelerNameById = useMemo(
     () => new Map(sortedTravelers.map((traveler) => [traveler.id, traveler.name])),
     [sortedTravelers]
@@ -91,7 +103,7 @@ export function PackingClient({ travelers }: PackingClientProps) {
   const [priorityFilter, setPriorityFilter] = useState<FilterValue | PackingPriority>("All");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("All");
   const [formOpen, setFormOpen] = useState(false);
-  const [form, setForm] = useState<PackingInput>(() => emptyForm());
+  const [form, setForm] = useState<PackingInput>(() => emptyForm(activeTravelers));
   const [editingId, setEditingId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -175,13 +187,13 @@ export function PackingClient({ travelers }: PackingClientProps) {
 
   function resetForm() {
     setEditingId(null);
-    setForm(emptyForm());
+    setForm(emptyForm(activeTravelers));
     setFormOpen(false);
   }
 
   function openNewForm() {
     setEditingId(null);
-    setForm(emptyForm());
+    setForm(emptyForm(activeTravelers));
     setFormOpen(true);
   }
 
@@ -206,21 +218,21 @@ export function PackingClient({ travelers }: PackingClientProps) {
     setForm((current) => ({
       ...current,
       category,
-      statuses: editingId ? current.statuses : buildDefaultPackingStatuses(category)
+      statuses: editingId ? current.statuses : buildDefaultStatuses(category, activeTravelers)
     }));
   }
 
   function applyCategoryDefault() {
     setForm((current) => ({
       ...current,
-      statuses: buildDefaultPackingStatuses(current.category)
+      statuses: buildDefaultStatuses(current.category, activeTravelers)
     }));
   }
 
   function changeTravelerStatus(travelerId: string, status: PackingTravelerStatus) {
     setForm((current) => ({
       ...current,
-      statuses: sortedTravelers.map((traveler) => {
+      statuses: activeTravelers.map((traveler) => {
         if (traveler.id === travelerId) {
           return { travelerId, status };
         }
@@ -422,7 +434,7 @@ export function PackingClient({ travelers }: PackingClientProps) {
               </button>
             </div>
             <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              {sortedTravelers.map((traveler) => (
+              {activeTravelers.map((traveler) => (
                 <SelectField
                   key={traveler.id}
                   label={traveler.name}

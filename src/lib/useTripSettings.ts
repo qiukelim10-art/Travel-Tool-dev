@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { tripInfo } from "@/data/tripData";
+import { travelers as fallbackTravelers, tripInfo, type Traveler } from "@/data/tripData";
 import type { TripSettingsResponse } from "@/lib/sharedDataTypes";
 
 const requestTimeoutMs = 10000;
@@ -16,6 +16,8 @@ export type TripSettingsView = {
   routeLabel: string;
   travelerCount: number;
   travelerDisplayNames: string[];
+  travelers: Traveler[];
+  activeTravelers: Traveler[];
 };
 
 const fallbackTripSettingsView: TripSettingsView = {
@@ -27,7 +29,9 @@ const fallbackTripSettingsView: TripSettingsView = {
   routeCities: tripInfo.cities,
   routeLabel: tripInfo.cities.join(" -> "),
   travelerCount: tripInfo.participants.length,
-  travelerDisplayNames: tripInfo.participants
+  travelerDisplayNames: tripInfo.participants,
+  travelers: fallbackTravelers,
+  activeTravelers: fallbackTravelers
 };
 
 export function useTripSettingsView() {
@@ -87,6 +91,13 @@ function buildTripSettingsView(settings: TripSettingsResponse): TripSettingsView
   const routeCities = settings.routeStops.map((stop) => stop.city).filter(Boolean);
   const activeTravelers = settings.travelers.filter((traveler) => traveler.isActive);
   const travelerDisplayNames = activeTravelers.map((traveler) => traveler.displayName);
+  const mappedTravelers = settings.travelers.map((traveler) => ({
+    id: traveler.id,
+    name: traveler.displayName,
+    displayName: traveler.displayName,
+    displayOrder: traveler.displayOrder,
+    isActive: traveler.isActive
+  }));
 
   return {
     name: settings.trip.name,
@@ -97,7 +108,9 @@ function buildTripSettingsView(settings: TripSettingsResponse): TripSettingsView
     routeCities,
     routeLabel: routeCities.length > 0 ? routeCities.join(" -> ") : settings.trip.destination,
     travelerCount: activeTravelers.length,
-    travelerDisplayNames
+    travelerDisplayNames,
+    travelers: mappedTravelers,
+    activeTravelers: mappedTravelers.filter((traveler) => traveler.isActive)
   };
 }
 

@@ -42,6 +42,7 @@ export type TripSettings = {
 export type TripTraveler = {
   id: string;
   tripId: string;
+  name: string;
   displayName: string;
   displayOrder: number;
   isActive: boolean;
@@ -65,6 +66,36 @@ export type TripSettingsResponse = {
   trip: TripSettings;
   travelers: TripTraveler[];
   routeStops: TripRouteStop[];
+};
+
+export type TripTravelerInput = {
+  id?: string;
+  displayName: string;
+  displayOrder: number;
+  isActive: boolean;
+};
+
+export type TripRouteStopInput = {
+  id?: string;
+  city: string;
+  country?: string | null;
+  startDate?: string | null;
+  endDate?: string | null;
+  sortOrder: number;
+};
+
+export type TripSettingsInput = {
+  trip: {
+    name: string;
+    destination: string;
+    startDate?: string | null;
+    endDate?: string | null;
+    defaultCurrencies: SharedCurrency[];
+    timezone: string;
+    notes?: string | null;
+  };
+  travelers: TripTravelerInput[];
+  routeStops: TripRouteStopInput[];
 };
 
 export const expenseSourceTypes = ["itinerary", "booking", "misc"] as const;

@@ -39,6 +39,10 @@ export function RemindersClient({ participants }: RemindersClientProps) {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const formParticipants = useMemo(
+    () => (participants.includes(form.createdBy) ? participants : [form.createdBy, ...participants].filter(Boolean)),
+    [form.createdBy, participants]
+  );
 
   const visibleReminders = useMemo(
     () =>
@@ -236,7 +240,7 @@ export function RemindersClient({ participants }: RemindersClientProps) {
                   onChange={(event) => setForm((current) => ({ ...current, createdBy: event.target.value }))}
                   className="mt-2 w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-700"
                 >
-                  {participants.map((participant) => (
+                  {formParticipants.map((participant) => (
                     <option key={participant} value={participant}>
                       {participant}
                     </option>

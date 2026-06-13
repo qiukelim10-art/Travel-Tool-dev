@@ -6,6 +6,17 @@ import { useLanguage, type TranslationKey } from "@/lib/i18n";
 
 const moreItems = [
   {
+    href: "/settings",
+    title: {
+      en: "Trip Settings",
+      zh: "Trip Settings"
+    },
+    description: {
+      en: "Active trip basics, travelers, route stops, and display defaults.",
+      zh: "管理当前 active trip 的基础信息、成员、路线城市和默认显示。"
+    }
+  },
+  {
     href: "/packing",
     titleKey: "page.packing.title",
     description: {
@@ -45,7 +56,7 @@ export default function MorePage() {
               {t("page.more.open")}
             </p>
             <h2 className="mt-1 text-xl font-semibold text-ink">
-              {t(item.titleKey as TranslationKey)}
+              {"titleKey" in item ? t(item.titleKey as TranslationKey) : item.title[language]}
             </h2>
             <p className="mt-2 text-sm leading-6 text-zinc-600">
               {item.description[language]}

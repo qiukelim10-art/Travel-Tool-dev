@@ -119,6 +119,8 @@ export type Traveler = {
   id: string;
   name: string;
   displayOrder: number;
+  displayName?: string;
+  isActive?: boolean;
 };
 
 export type DocumentLink = {

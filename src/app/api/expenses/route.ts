@@ -1,14 +1,15 @@
-import { travelers } from "@/data/tripData";
 import { NextResponse } from "next/server";
 import {
   createExpense,
   listExpenses,
+  listTripTravelersForBusinessData,
   validateExpenseInput
 } from "@/lib/server/sharedDataStore";
 
 export async function GET() {
   try {
     const expenses = await listExpenses();
+    const travelers = await listTripTravelersForBusinessData();
     return NextResponse.json({ expenses, travelers });
   } catch (error) {
     return NextResponse.json(
@@ -20,9 +21,10 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const input = validateExpenseInput(await request.json());
+    const input = await validateExpenseInput(await request.json());
     await createExpense(input);
     const expenses = await listExpenses();
+    const travelers = await listTripTravelersForBusinessData();
     return NextResponse.json({ expenses, travelers }, { status: 201 });
   } catch (error) {
     return NextResponse.json(

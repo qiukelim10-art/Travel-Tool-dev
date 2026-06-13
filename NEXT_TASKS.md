@@ -2,8 +2,9 @@
 
 ## Current Priority
 
-- Review Phase 1 Active Trip Settings Foundation on desktop and a real phone: Dashboard trip header, Layout brand, `/api/trip-settings`, EN/Chinese toggle preserving trip name/route text, and no mobile horizontal scroll.
-- If approved, commit `codex/trip-settings-foundation` with `Add active trip settings foundation`; do not start `/settings` editing UI until this foundation is reviewed.
+- Review the editable Trip Settings milestone on desktop and a real phone: `/settings` save flow, More page entry, Dashboard/Layout trip display, dynamic traveler choices in Budget/Bookings/Itinerary/Packing/Documents, EN/Chinese toggle preserving user-entered settings text, and no mobile horizontal scroll.
+- If approved, keep the milestone as one commit on `codex/trip-settings-foundation` with `Add editable trip settings milestone`; do not merge master in this pass.
+- Next likely follow-up after review: decide whether to add simple shared-password protection before entering real private trip details.
 - Review the Bookings / Itinerary / Packing / Documents i18n pass on desktop and a real phone: EN/Chinese switching, filters/forms/buttons/status labels, unchanged user-entered content, CRUD flows, protected Documents unlock, linked expenses, and no mobile horizontal scroll.
 - If approved, commit `codex/i18n-core-pages` with `Add i18n labels for core trip pages`, then merge it back to `master` in a separate safety pass.
 - Review the simplified Dashboard on desktop and a real phone: compact trip header, Next up card, Needs attention summary, Quick actions, Budget snapshot, folded reminders, and SOS access.

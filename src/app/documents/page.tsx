@@ -2,11 +2,12 @@
 
 import { DocumentsClient } from "@/components/DocumentsClient";
 import { SectionHeader } from "@/components/SectionHeader";
-import { travelers } from "@/data/tripData";
 import { useLanguage } from "@/lib/i18n";
+import { useTripSettingsView } from "@/lib/useTripSettings";
 
 export default function DocumentsPage() {
   const { t } = useLanguage();
+  const { trip } = useTripSettingsView();
 
   return (
     <div>
@@ -15,7 +16,7 @@ export default function DocumentsPage() {
         title={t("page.documents.title")}
         description={t("page.documents.description")}
       />
-      <DocumentsClient travelers={travelers} />
+      <DocumentsClient travelers={trip.travelers} />
     </div>
   );
 }

@@ -2,11 +2,12 @@
 
 import { PackingClient } from "@/components/PackingClient";
 import { SectionHeader } from "@/components/SectionHeader";
-import { travelers } from "@/data/tripData";
 import { useLanguage } from "@/lib/i18n";
+import { useTripSettingsView } from "@/lib/useTripSettings";
 
 export default function PackingPage() {
   const { t } = useLanguage();
+  const { trip } = useTripSettingsView();
 
   return (
     <div>
@@ -15,7 +16,7 @@ export default function PackingPage() {
         title={t("page.packing.title")}
         description={t("page.packing.description")}
       />
-      <PackingClient travelers={travelers} />
+      <PackingClient travelers={trip.travelers} />
     </div>
   );
 }

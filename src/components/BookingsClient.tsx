@@ -112,9 +112,25 @@ export function BookingsClient({ participants }: BookingsClientProps) {
   ).length;
 
   const orderedTravelers = useMemo(() => orderTravelers(travelers), [travelers]);
+  const activeTravelers = useMemo(
+    () => orderedTravelers.filter((traveler) => traveler.isActive !== false),
+    [orderedTravelers]
+  );
+  const expenseFormTravelers = useMemo(
+    () => (expenseForm ? mergeExpenseFormTravelers(activeTravelers, orderedTravelers, expenseForm) : activeTravelers),
+    [activeTravelers, expenseForm, orderedTravelers]
+  );
   const travelerNameById = useMemo(
     () => new Map(orderedTravelers.map((traveler) => [traveler.id, traveler.name])),
     [orderedTravelers]
+  );
+  const bookingOwnerOptions = useMemo(
+    () => Array.from(new Set([...participants, ...bookings.map((booking) => booking.bookedBy)].filter(Boolean))),
+    [bookings, participants]
+  );
+  const formParticipants = useMemo(
+    () => (participants.includes(form.bookedBy) ? participants : [form.bookedBy, ...participants].filter(Boolean)),
+    [form.bookedBy, participants]
   );
   const linkedExpensesByBooking = useMemo(() => {
     const groups = new Map<string, SharedExpense[]>();
@@ -200,7 +216,7 @@ export function BookingsClient({ participants }: BookingsClientProps) {
   function openExpenseForm(booking: SharedBooking) {
     setExpenseFormBookingId(booking.id);
     setEditingExpenseId(null);
-    setExpenseForm(emptyExpenseForm(booking, travelers));
+    setExpenseForm(emptyExpenseForm(booking, activeTravelers));
     setNotice(null);
     setError(null);
   }
@@ -462,7 +478,7 @@ export function BookingsClient({ participants }: BookingsClientProps) {
             <SelectField
               label={t("bookings.form.bookedBy")}
               value={form.bookedBy}
-              options={participants}
+              options={formParticipants}
               onChange={(value) => setForm((current) => ({ ...current, bookedBy: value }))}
             />
             <TextField
@@ -527,7 +543,7 @@ export function BookingsClient({ participants }: BookingsClientProps) {
         <SelectField
           label={t("bookings.form.bookedBy")}
           value={bookedByFilter}
-          options={["All", ...participants]}
+          options={["All", ...bookingOwnerOptions]}
           formatOption={(option) => (option === "All" ? translateOption(language, option) : option)}
           onChange={(value) => setBookedByFilter(value)}
         />
@@ -611,7 +627,7 @@ export function BookingsClient({ participants }: BookingsClientProps) {
                       <BookingExpensesSection
                         booking={booking}
                         expenses={bookingExpenses}
-                        travelers={orderedTravelers}
+                        travelers={expenseFormTravelers}
                         travelerNameById={travelerNameById}
                         expenseForm={activeExpenseForm}
                         editingExpenseId={editingExpenseId}
@@ -641,7 +657,7 @@ export function BookingsClient({ participants }: BookingsClientProps) {
             key={booking.id}
             booking={booking}
             expenses={linkedExpensesByBooking.get(booking.id) ?? []}
-            travelers={orderedTravelers}
+            travelers={expenseFormTravelers}
             travelerNameById={travelerNameById}
             expenseForm={expenseFormBookingId === booking.id ? expenseForm : null}
             editingExpenseId={editingExpenseId}
@@ -1384,4 +1400,18 @@ function mapBookingCategoryToExpenseCategory(category: SharedBooking["category"]
 
 function orderTravelers(travelers: Traveler[]) {
   return travelers.slice().sort((a, b) => a.displayOrder - b.displayOrder);
+}
+
+function mergeExpenseFormTravelers(
+  activeTravelers: Traveler[],
+  allTravelers: Traveler[],
+  form: ExpenseFormState
+) {
+  const included = new Set(activeTravelers.map((traveler) => traveler.id));
+  const selectedIds = new Set([form.paidByTravelerId, ...form.splitTravelerIds]);
+  const extraTravelers = allTravelers.filter(
+    (traveler) => selectedIds.has(traveler.id) && !included.has(traveler.id)
+  );
+
+  return orderTravelers([...activeTravelers, ...extraTravelers]);
 }

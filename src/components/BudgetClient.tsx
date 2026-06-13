@@ -85,6 +85,14 @@ export function BudgetClient() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("All");
 
   const orderedTravelers = useMemo(() => orderTravelers(travelers), [travelers]);
+  const activeTravelers = useMemo(
+    () => orderedTravelers.filter((traveler) => traveler.isActive !== false),
+    [orderedTravelers]
+  );
+  const formTravelers = useMemo(
+    () => mergeFormTravelers(activeTravelers, orderedTravelers, form),
+    [activeTravelers, form, orderedTravelers]
+  );
   const travelerIds = useMemo(() => orderedTravelers.map((traveler) => traveler.id), [orderedTravelers]);
   const travelerNameById = useMemo(
     () => new Map(orderedTravelers.map((traveler) => [traveler.id, traveler.name])),
@@ -321,7 +329,7 @@ export function BudgetClient() {
       {formOpen ? (
         <ExpenseForm
           form={form}
-          travelers={orderedTravelers}
+          travelers={formTravelers}
           editingId={editingId}
           submitting={submitting}
           onSubmit={submitExpense}
@@ -1085,19 +1093,31 @@ function buildExpenseInput(form: ExpenseFormState): ExpenseInput {
 }
 
 function ensureFormTravelers(form: ExpenseFormState, travelers: Traveler[]) {
+  const activeTravelers = travelers.filter((traveler) => traveler.isActive !== false);
+  const activeTravelerIds = new Set(activeTravelers.map((traveler) => traveler.id));
   const travelerIds = new Set(travelers.map((traveler) => traveler.id));
   const validSplitTravelerIds = form.splitTravelerIds.filter((travelerId) => travelerIds.has(travelerId));
 
-  if (travelerIds.has(form.paidByTravelerId) && validSplitTravelerIds.length > 0) {
+  if (activeTravelerIds.has(form.paidByTravelerId) && validSplitTravelerIds.length > 0) {
     return {
       ...form,
-      splitTravelerIds: validSplitTravelerIds
+      splitTravelerIds: validSplitTravelerIds.filter((travelerId) => travelerIds.has(travelerId))
     };
   }
 
-  return emptyForm(travelers);
+  return emptyForm(activeTravelers);
 }
 
 function orderTravelers(travelers: Traveler[]) {
   return travelers.slice().sort((a, b) => a.displayOrder - b.displayOrder);
+}
+
+function mergeFormTravelers(activeTravelers: Traveler[], allTravelers: Traveler[], form: ExpenseFormState) {
+  const included = new Set(activeTravelers.map((traveler) => traveler.id));
+  const selectedIds = new Set([form.paidByTravelerId, ...form.splitTravelerIds]);
+  const extraTravelers = allTravelers.filter(
+    (traveler) => selectedIds.has(traveler.id) && !included.has(traveler.id)
+  );
+
+  return orderTravelers([...activeTravelers, ...extraTravelers]);
 }
