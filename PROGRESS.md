@@ -2,6 +2,9 @@
 
 ## 2026-06-13
 
+- Fixed a React hydration text mismatch on `codex/fix-hydration-mismatch` without changing visible behavior: trip settings cache is now read after client mount instead of during the initial client render.
+- Root cause: `useTripSettingsView` read `localStorage` in the `useState` initializer, so the client could render cached active trip text before hydration while the server rendered fallback text.
+- The user reviewed and approved the hydration mismatch fix. Final verification passed with `npm.cmd run build`, `npm.cmd run lint`, desktop/LAN `/`, `/settings`, `/more`, `/api/trip-settings` on port 3135, 390px Settings no-horizontal-scroll, and no new React #418 logs for port 3135.
 - Completed final bilingual polish for the Settings entry points on `codex/trip-settings-foundation`: desktop navigation, `/settings`, and the `/more` Trip Settings card now switch between English and Chinese.
 - Kept trip/settings user-entered content untranslated; only system UI labels changed.
 - Verified `npm.cmd run build`, sequential `npm.cmd run lint`, desktop `/`, `/settings`, `/more`, `/api/trip-settings`, and LAN `/`, `/settings`, `/more`, `/api/trip-settings` all return 200.

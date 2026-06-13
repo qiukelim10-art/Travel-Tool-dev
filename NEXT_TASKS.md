@@ -2,8 +2,8 @@
 
 ## Current Priority
 
-- Commit the approved Trip Settings milestone on `codex/trip-settings-foundation` after the user explicitly requests commit. The latest uncommitted polish localizes the Settings desktop nav, `/settings` title, and `/more` Trip Settings card in Chinese.
-- Recommended commit message for the latest uncommitted polish: `Localize settings entry labels`.
+- Commit the approved hydration mismatch fix on `codex/fix-hydration-mismatch` with `Fix trip settings hydration mismatch`, then merge back to `master` after the user explicitly asks.
+- After merge, run a final master smoke check for `/`, `/settings`, `/more`, `/api/trip-settings`, and browser console React #418.
 - Next likely follow-up after review: decide whether to add simple shared-password protection before entering real private trip details.
 - Review the Bookings / Itinerary / Packing / Documents i18n pass on desktop and a real phone: EN/Chinese switching, filters/forms/buttons/status labels, unchanged user-entered content, CRUD flows, protected Documents unlock, linked expenses, and no mobile horizontal scroll.
 - If approved, commit `codex/i18n-core-pages` with `Add i18n labels for core trip pages`, then merge it back to `master` in a separate safety pass.

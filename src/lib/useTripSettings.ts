@@ -46,10 +46,12 @@ type TripSettingsViewOptions = {
 };
 
 export function useTripSettingsView(options: TripSettingsViewOptions = {}) {
-  const [settings, setSettings] = useState<TripSettingsResponse | null>(() => readCachedTripSettings());
+  const [settings, setSettings] = useState<TripSettingsResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    setSettings(readCachedTripSettings());
+
     const controller = new AbortController();
     const timeoutId = window.setTimeout(() => controller.abort(), requestTimeoutMs);
 
