@@ -2,6 +2,11 @@
 
 ## 2026-06-13
 
+- Added Phase 1 Active Trip Settings Foundation without changing existing business tables: new `trips`, `trip_travelers`, and `trip_route_stops` tables are created by the shared MySQL store and `database/schema.sql`.
+- Added active trip seed data only when `trips` is empty: `active-trip`, Italy Trip 2026, Italy, 2026-10-08 to 2026-10-18, EUR/SGD/MYR, Europe/Rome, Person A-D, and Rome/Florence/Venice/Milan route stops.
+- Added read-only `/api/trip-settings` and shared trip settings types; Dashboard and Layout now read active trip settings for trip name, date range, destination/route, traveler count, and brand text, with `tripData.ts` fallback if the settings API fails.
+- Kept existing CRUD/API behavior unchanged: no `trip_id` columns were added to reminders, bookings, itinerary, expenses, packing, or documents, and the expense ledger was not changed.
+- Verified `npm.cmd run build`, `npm.cmd run lint`, `/api/trip-settings`, desktop and LAN Dashboard HTTP 200, specified page/API smoke checks, desktop EN/Chinese toggle preserving trip name/route text, 390px mobile no-horizontal-scroll, and temporary CRUD create/update/delete cleanup for reminders, bookings, itinerary, expenses, packing, and documents.
 - Connected Bookings, Itinerary, Packing, and Documents system UI labels to the UI-only i18n foundation, including filters, forms, buttons, status/category/priority labels, loading/error/empty states, delete confirmations, linked expense labels, and protected document unlock labels.
 - Kept user-entered content untranslated across the core pages: itinerary title/details/location/notes/map query, booking description/location/notes, expense title/notes, packing item name/notes, document title/notes/externalUrl, traveler display names, city names, and currency/amount values still render from original data.
 - Verified `npm.cmd run build`, `npm.cmd run lint`, desktop/LAN page smoke checks for Bookings, Itinerary, Packing, Documents, Budget, and Dashboard, API JSON checks for bookings/itinerary/packing/documents/expenses, EN/Chinese page switching, mobile no-horizontal-scroll checks, and temporary CRUD cleanup for bookings, itinerary, packing, documents, protected document unlock, and booking/itinerary linked expenses.

@@ -4,6 +4,54 @@ CREATE DATABASE IF NOT EXISTS `italy_trip_2026`
 
 USE `italy_trip_2026`;
 
+CREATE TABLE IF NOT EXISTS `trips` (
+  `id` varchar(36) NOT NULL,
+  `name` varchar(120) NOT NULL,
+  `destination` varchar(120) NOT NULL,
+  `start_date` date DEFAULT NULL,
+  `end_date` date DEFAULT NULL,
+  `default_currencies` json NOT NULL,
+  `timezone` varchar(80) NOT NULL DEFAULT 'UTC',
+  `notes` text,
+  `is_active` tinyint(1) NOT NULL DEFAULT 1,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_trips_active` (`is_active`, `updated_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `trip_travelers` (
+  `id` varchar(80) NOT NULL,
+  `trip_id` varchar(36) NOT NULL,
+  `display_name` varchar(120) NOT NULL,
+  `display_order` int NOT NULL DEFAULT 0,
+  `is_active` tinyint(1) NOT NULL DEFAULT 1,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_trip_travelers_trip_order` (`trip_id`, `is_active`, `display_order`),
+  CONSTRAINT `fk_trip_travelers_trip`
+    FOREIGN KEY (`trip_id`) REFERENCES `trips` (`id`)
+    ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `trip_route_stops` (
+  `id` varchar(36) NOT NULL,
+  `trip_id` varchar(36) NOT NULL,
+  `city` varchar(120) NOT NULL,
+  `country` varchar(120) DEFAULT NULL,
+  `start_date` date DEFAULT NULL,
+  `end_date` date DEFAULT NULL,
+  `sort_order` int NOT NULL DEFAULT 0,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_trip_route_stops_order` (`trip_id`, `sort_order`, `city`),
+  CONSTRAINT `fk_trip_route_stops_trip`
+    FOREIGN KEY (`trip_id`) REFERENCES `trips` (`id`)
+    ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS `reminders` (
   `id` varchar(36) NOT NULL,
   `text` varchar(500) NOT NULL,

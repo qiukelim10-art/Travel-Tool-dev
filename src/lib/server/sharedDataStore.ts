@@ -28,9 +28,14 @@ import {
   type SharedDocumentItem,
   type SharedExpense,
   type SharedPackingItem,
+  type SharedCurrency,
   type ReminderInput,
   type SharedBooking,
-  type SharedReminder
+  type SharedReminder,
+  type TripRouteStop,
+  type TripSettings,
+  type TripSettingsResponse,
+  type TripTraveler
 } from "@/lib/sharedDataTypes";
 
 type DbRow = Record<string, unknown>;
@@ -62,6 +67,10 @@ const priorityRank: Record<string, number> = {
   Medium: 2,
   Low: 3
 };
+
+const activeTripId = "active-trip";
+const defaultTripCurrencies = ["EUR", "SGD", "MYR"] as const satisfies readonly SharedCurrency[];
+const defaultTripRouteStops = ["Rome", "Florence", "Venice", "Milan"] as const;
 
 function getMysql(): MysqlModule {
   try {
@@ -153,6 +162,67 @@ function nullableTime(value: unknown) {
 
 function asBoolean(value: unknown) {
   return value === true || value === 1 || value === "1";
+}
+
+function asDefaultCurrencies(value: unknown): SharedCurrency[] {
+  if (Array.isArray(value)) {
+    return value.filter((currency): currency is SharedCurrency =>
+      (bookingCurrencies as readonly string[]).includes(String(currency))
+    );
+  }
+
+  if (typeof value === "string") {
+    try {
+      const parsed = JSON.parse(value) as unknown;
+      return asDefaultCurrencies(parsed);
+    } catch {
+      return [...defaultTripCurrencies];
+    }
+  }
+
+  return [...defaultTripCurrencies];
+}
+
+function mapTripSettings(row: DbRow): TripSettings {
+  return {
+    id: asString(row.id),
+    name: asString(row.name),
+    destination: asString(row.destination),
+    startDate: row.start_date === null || row.start_date === undefined ? null : asDateOnly(row.start_date),
+    endDate: row.end_date === null || row.end_date === undefined ? null : asDateOnly(row.end_date),
+    defaultCurrencies: asDefaultCurrencies(row.default_currencies),
+    timezone: asString(row.timezone),
+    notes: nullableString(row.notes),
+    isActive: asBoolean(row.is_active),
+    createdAt: asString(row.created_at),
+    updatedAt: asString(row.updated_at)
+  };
+}
+
+function mapTripTraveler(row: DbRow): TripTraveler {
+  return {
+    id: asString(row.id),
+    tripId: asString(row.trip_id),
+    displayName: asString(row.display_name),
+    displayOrder: Number(row.display_order ?? 0),
+    isActive: asBoolean(row.is_active),
+    createdAt: asString(row.created_at),
+    updatedAt: asString(row.updated_at)
+  };
+}
+
+function mapTripRouteStop(row: DbRow): TripRouteStop {
+  return {
+    id: asString(row.id),
+    tripId: asString(row.trip_id),
+    city: asString(row.city),
+    country: nullableString(row.country),
+    startDate: row.start_date === null || row.start_date === undefined ? null : asDateOnly(row.start_date),
+    endDate: row.end_date === null || row.end_date === undefined ? null : asDateOnly(row.end_date),
+    sortOrder: Number(row.sort_order ?? 0),
+    createdAt: asString(row.created_at),
+    updatedAt: asString(row.updated_at)
+  };
 }
 
 function mapReminder(row: DbRow): SharedReminder {
@@ -297,6 +367,60 @@ async function ensureDatabase() {
 
 async function createTables() {
   const pool = getAppPool();
+
+  await pool.execute(`
+    CREATE TABLE IF NOT EXISTS trips (
+      id varchar(36) NOT NULL,
+      name varchar(120) NOT NULL,
+      destination varchar(120) NOT NULL,
+      start_date date DEFAULT NULL,
+      end_date date DEFAULT NULL,
+      default_currencies json NOT NULL,
+      timezone varchar(80) NOT NULL DEFAULT 'UTC',
+      notes text,
+      is_active tinyint(1) NOT NULL DEFAULT 1,
+      created_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      PRIMARY KEY (id),
+      KEY idx_trips_active (is_active, updated_at)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `);
+
+  await pool.execute(`
+    CREATE TABLE IF NOT EXISTS trip_travelers (
+      id varchar(80) NOT NULL,
+      trip_id varchar(36) NOT NULL,
+      display_name varchar(120) NOT NULL,
+      display_order int NOT NULL DEFAULT 0,
+      is_active tinyint(1) NOT NULL DEFAULT 1,
+      created_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      PRIMARY KEY (id),
+      KEY idx_trip_travelers_trip_order (trip_id, is_active, display_order),
+      CONSTRAINT fk_trip_travelers_trip
+        FOREIGN KEY (trip_id) REFERENCES trips (id)
+        ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `);
+
+  await pool.execute(`
+    CREATE TABLE IF NOT EXISTS trip_route_stops (
+      id varchar(36) NOT NULL,
+      trip_id varchar(36) NOT NULL,
+      city varchar(120) NOT NULL,
+      country varchar(120) DEFAULT NULL,
+      start_date date DEFAULT NULL,
+      end_date date DEFAULT NULL,
+      sort_order int NOT NULL DEFAULT 0,
+      created_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      PRIMARY KEY (id),
+      KEY idx_trip_route_stops_order (trip_id, sort_order, city),
+      CONSTRAINT fk_trip_route_stops_trip
+        FOREIGN KEY (trip_id) REFERENCES trips (id)
+        ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `);
 
   await pool.execute(`
     CREATE TABLE IF NOT EXISTS reminders (
@@ -557,8 +681,55 @@ function seedDocumentUrl(link: string) {
   return trimmed.startsWith("http://") || trimmed.startsWith("https://") ? trimmed : null;
 }
 
+async function seedActiveTripSettings() {
+  const pool = getAppPool();
+  const [tripRows] = await pool.execute<DbRow[]>("SELECT COUNT(*) AS count FROM trips");
+  const tripCount = Number(tripRows[0]?.count ?? 0);
+
+  if (tripCount > 0) {
+    return;
+  }
+
+  await pool.execute(
+    `INSERT INTO trips
+      (id, name, destination, start_date, end_date, default_currencies, timezone, notes, is_active)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      activeTripId,
+      "Italy Trip 2026",
+      "Italy",
+      "2026-10-08",
+      "2026-10-18",
+      JSON.stringify(defaultTripCurrencies),
+      "Europe/Rome",
+      "Safe placeholder active trip settings for the private dashboard.",
+      1
+    ]
+  );
+
+  for (const traveler of travelers) {
+    await pool.execute(
+      `INSERT INTO trip_travelers
+        (id, trip_id, display_name, display_order, is_active)
+       VALUES (?, ?, ?, ?, ?)`,
+      [traveler.id, activeTripId, traveler.name, traveler.displayOrder, 1]
+    );
+  }
+
+  for (const [index, city] of defaultTripRouteStops.entries()) {
+    await pool.execute(
+      `INSERT INTO trip_route_stops
+        (id, trip_id, city, country, start_date, end_date, sort_order)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [`route-stop-${index + 1}`, activeTripId, city, "Italy", null, null, index + 1]
+    );
+  }
+}
+
 async function seedTables() {
   const pool = getAppPool();
+  await seedActiveTripSettings();
+
   const [reminderRows] = await pool.execute<DbRow[]>("SELECT COUNT(*) AS count FROM reminders");
   const reminderCount = Number(reminderRows[0]?.count ?? 0);
 
@@ -742,6 +913,39 @@ export async function ensureSharedDataStore() {
   await updateCurrencyEnums();
   await seedTables();
   initialized = true;
+}
+
+export async function getActiveTripSettings(): Promise<TripSettingsResponse> {
+  await ensureSharedDataStore();
+
+  const [tripRows] = await getAppPool().execute<DbRow[]>(
+    "SELECT * FROM trips WHERE is_active = 1 ORDER BY updated_at DESC, created_at DESC LIMIT 1"
+  );
+  const tripRow = tripRows[0];
+
+  if (!tripRow) {
+    throw new Error("Active trip settings were not found.");
+  }
+
+  const trip = mapTripSettings(tripRow);
+  const [travelerRows] = await getAppPool().execute<DbRow[]>(
+    `SELECT * FROM trip_travelers
+     WHERE trip_id = ?
+     ORDER BY is_active DESC, display_order ASC, display_name ASC, id ASC`,
+    [trip.id]
+  );
+  const [routeRows] = await getAppPool().execute<DbRow[]>(
+    `SELECT * FROM trip_route_stops
+     WHERE trip_id = ?
+     ORDER BY sort_order ASC, city ASC, id ASC`,
+    [trip.id]
+  );
+
+  return {
+    trip,
+    travelers: travelerRows.map(mapTripTraveler),
+    routeStops: routeRows.map(mapTripRouteStop)
+  };
 }
 
 export function validateReminderInput(input: Partial<ReminderInput>) {

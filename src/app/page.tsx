@@ -5,9 +5,10 @@ import { DashboardBudgetWidget } from "@/components/DashboardBudgetWidget";
 import { EmergencyQuickAccess } from "@/components/EmergencyQuickAccess";
 import { RemindersClient } from "@/components/RemindersClient";
 import { StatusBadge } from "@/components/StatusBadge";
-import { bookings, itinerary, tripInfo, type Booking } from "@/data/tripData";
+import { bookings, itinerary, type Booking } from "@/data/tripData";
 import { useLanguage } from "@/lib/i18n";
 import { translateText } from "@/lib/localize";
+import { useTripSettingsView } from "@/lib/useTripSettings";
 
 const attentionStatuses = ["Need Confirmation", "Not Booked", "Pending"] as const;
 
@@ -29,6 +30,7 @@ const quickActions = [
 
 export default function DashboardPage() {
   const { t } = useLanguage();
+  const { trip } = useTripSettingsView();
   const nextDay = itinerary[0];
   const pendingBookings = bookings.filter((booking) =>
     attentionStatuses.includes(booking.status as (typeof attentionStatuses)[number])
@@ -41,8 +43,9 @@ export default function DashboardPage() {
         left.date.localeCompare(right.date)
     )
     .slice(0, 3);
-  const cities = tripInfo.cities.join(" -> ");
-  const tripDates = `${formatDate(tripInfo.startDate)} - ${formatDate(tripInfo.endDate)}`;
+  const destinationRoute = trip.destination
+    ? `${trip.destination}: ${trip.routeLabel}`
+    : trip.routeLabel;
 
   return (
     <div className="space-y-5">
@@ -53,12 +56,12 @@ export default function DashboardPage() {
               {t("dashboard.eyebrow")}
             </p>
             <h1 className="mt-1 break-words text-2xl font-semibold text-ink sm:text-3xl">
-              {tripInfo.title}
+              {trip.name}
             </h1>
             <p className="mt-2 text-sm leading-6 text-zinc-600">
-              {tripDates} - {tripInfo.participants.length} {t("dashboard.travellers")}
+              {trip.dateRangeLabel} - {trip.travelerCount} {t("dashboard.travellers")}
             </p>
-            <p className="mt-1 break-words text-sm leading-6 text-zinc-600">{cities}</p>
+            <p className="mt-1 break-words text-sm leading-6 text-zinc-600">{destinationRoute}</p>
           </div>
           <EmergencyQuickAccess />
         </div>
@@ -73,7 +76,7 @@ export default function DashboardPage() {
 
       <section className="grid gap-5 lg:grid-cols-[1fr_0.95fr]">
         <DashboardBudgetWidget />
-        <RemindersClient participants={tripInfo.participants} />
+        <RemindersClient participants={trip.travelerDisplayNames} />
       </section>
     </div>
   );

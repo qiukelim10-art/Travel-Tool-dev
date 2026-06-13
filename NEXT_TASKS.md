@@ -2,6 +2,8 @@
 
 ## Current Priority
 
+- Review Phase 1 Active Trip Settings Foundation on desktop and a real phone: Dashboard trip header, Layout brand, `/api/trip-settings`, EN/Chinese toggle preserving trip name/route text, and no mobile horizontal scroll.
+- If approved, commit `codex/trip-settings-foundation` with `Add active trip settings foundation`; do not start `/settings` editing UI until this foundation is reviewed.
 - Review the Bookings / Itinerary / Packing / Documents i18n pass on desktop and a real phone: EN/Chinese switching, filters/forms/buttons/status labels, unchanged user-entered content, CRUD flows, protected Documents unlock, linked expenses, and no mobile horizontal scroll.
 - If approved, commit `codex/i18n-core-pages` with `Add i18n labels for core trip pages`, then merge it back to `master` in a separate safety pass.
 - Review the simplified Dashboard on desktop and a real phone: compact trip header, Next up card, Needs attention summary, Quick actions, Budget snapshot, folded reminders, and SOS access.
@@ -32,6 +34,8 @@
 
 ## Suggested Next Feature
 
+- After Phase 1 Active Trip Settings Foundation is approved, plan Phase 2 traveler source cleanup: make active trip travelers the shared source returned by relevant APIs while preserving existing `person_a` to `person_d` stable IDs and business table behavior.
+- Later, add a read/write `/settings` page for trip basics, travelers, currencies, and route stops; keep it separate from full multi-trip and avoid changing existing business tables until a dedicated migration phase.
 - After core page i18n approval, decide whether to connect the remaining secondary pages or pause i18n and move to reusable trip dashboard planning.
 - After Dashboard simplification is approved, plan reusable trip dashboard data-model work separately from UI redesign and bilingual switching.
 - After reviewing Documents, decide whether the current per-folder access code is enough for private folder links or whether a later whole-site protection layer is needed before entering more sensitive trip context.

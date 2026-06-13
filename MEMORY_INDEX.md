@@ -21,9 +21,12 @@
 - Bookings, Itinerary, Packing, and Documents system UI are now connected to the UI-only i18n foundation while keeping user-entered trip content untranslated.
 - The shared expense ledger now supports EUR, SGD, and MYR.
 - Real-data preparation docs now exist: `REAL_DATA_ENTRY_GUIDE.md` and `REAL_DATA_CHECKLIST.md`.
+- Phase 1 reusable trip dashboard foundation now exists on `codex/trip-settings-foundation`: active trip settings use `trips`, `trip_travelers`, and `trip_route_stops`, with read-only `/api/trip-settings`; Dashboard and Layout brand/header read those settings with `tripData.ts` fallback.
 
 ## Highest Priority Task
 
+- Review Phase 1 Active Trip Settings Foundation on desktop and a real phone before committing `codex/trip-settings-foundation`.
+- If approved, commit with `Add active trip settings foundation`; keep `/settings` editing UI and business table `trip_id` migrations for later phases.
 - Review the Bookings / Itinerary / Packing / Documents i18n pass on desktop and a real phone before committing `codex/i18n-core-pages`.
 - After approval, commit and merge the core page i18n branch back to `master` in separate verification steps.
 - Review the new shared Documents checklist and protected folder unlock flow on desktop and a real phone.
@@ -39,6 +42,8 @@
 ## Important Architecture Note
 
 - Most trip pages still use static data, but reminders, bookings, itinerary, and packing now use local Next API + MySQL prototype paths.
+- Active trip settings are now separate from business data: `trips`, `trip_travelers`, and `trip_route_stops` seed `active-trip` only when `trips` is empty. Existing reminders, bookings, itinerary, expenses, packing, and documents tables do not have `trip_id` yet.
+- `/api/trip-settings` returns the active trip, travelers, and route stops. Dashboard and Layout consume it for trip name, date range, destination/route, traveler count, and brand display; trip name, destination, city names, and traveler display names remain untranslated user/data content.
 - Documents uses `document_items` and `document_item_traveler_statuses` through local Next API + MySQL prototype paths; protected list responses intentionally hide `externalUrl`, passcode hash, and salt until `/api/documents/[id]/unlock` succeeds.
 - Budget renders the unified expense ledger client with summary cards, settlement suggestions, filters, expense cards, and miscellaneous expense CRUD.
 - Budget filters apply only to the visible expense list; summary cards and settlement suggestions intentionally stay based on the full ledger.

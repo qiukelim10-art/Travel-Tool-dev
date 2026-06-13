@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import { useLanguage, type TranslationKey } from "@/lib/i18n";
+import { useTripSettingsView } from "@/lib/useTripSettings";
 
 const navItems = [
   { href: "/", labelKey: "nav.dashboard", shortLabelKey: "nav.home" },
@@ -44,13 +45,14 @@ function LanguageToggle({ compact = false }: { compact?: boolean }) {
 function Navigation() {
   const pathname = usePathname();
   const { t } = useLanguage();
+  const { trip } = useTripSettingsView();
 
   return (
     <>
       <nav className="hidden border-b border-zinc-200 bg-white/90 backdrop-blur md:block">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <Link href="/" className="text-sm font-semibold text-ink">
-            Italy Trip 2026
+            {trip.name}
           </Link>
           <div className="flex flex-wrap items-center justify-end gap-2">
             {navItems.map((item) => {
@@ -77,7 +79,7 @@ function Navigation() {
       <header className="border-b border-zinc-200 bg-white/90 px-4 py-3 backdrop-blur md:hidden">
         <div className="mx-auto flex max-w-lg items-center justify-between gap-3">
           <Link href="/" className="min-w-0 truncate text-sm font-semibold text-ink">
-            Italy Trip 2026
+            {trip.name}
           </Link>
           <LanguageToggle compact />
         </div>
