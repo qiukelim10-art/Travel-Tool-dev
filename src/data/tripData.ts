@@ -185,6 +185,9 @@ export type DocumentLink = {
   notes?: string;
 };
 
+// Data safety note: values in this file are seed/demo data for planning only.
+// Replace them with real trip details only when they are non-sensitive.
+// Do not store passport numbers, payment details, full confirmations, or private files here.
 export const tripInfo = {
   title: "Italy Trip 2026",
   month: "October 2026",
@@ -216,6 +219,8 @@ export const tripInfo = {
   }
 };
 
+// Placeholder traveler identities. Keep these display names generic until the
+// group intentionally decides what non-sensitive names should appear on the site.
 export const travelers: Traveler[] = [
   { id: "person_a", name: "Person A", displayOrder: 1 },
   { id: "person_b", name: "Person B", displayOrder: 2 },
@@ -223,6 +228,8 @@ export const travelers: Traveler[] = [
   { id: "person_d", name: "Person D", displayOrder: 4 }
 ];
 
+// Safe demo itinerary seed data. Public place names are acceptable; hotel names,
+// tickets, costs, and notes are placeholders until real non-sensitive details are provided.
 export const itinerary: ItineraryDay[] = [
   {
     day: 1,
@@ -410,6 +417,8 @@ export const itinerary: ItineraryDay[] = [
   }
 ];
 
+// Safe demo booking seed data. Amounts are reference values only and do not count
+// in the expense ledger unless a linked expense is created.
 export const bookings: Booking[] = [
   {
     id: "flight-sin-rome",
@@ -468,6 +477,8 @@ export const bookings: Booking[] = [
   }
 ];
 
+// Safe demo expense seed data. Replace only with confirmed payments and never
+// store card, receipt, transfer, or confirmation identifiers here.
 export const expenses: Expense[] = [
   {
     id: "flight-deposit",
@@ -515,6 +526,8 @@ export const expenses: Expense[] = [
   }
 ];
 
+// Static emergency demo data retained for older/static views. Dashboard quick
+// access uses public emergency numbers from emergencyContacts.ts.
 export const emergencyInfo: EmergencyInfo[] = [
   {
     type: "Emergency Number",
@@ -588,6 +601,8 @@ export const emergencyInfo: EmergencyInfo[] = [
   }
 ];
 
+// Safe demo map embeds and searches. Prefer public Google Maps search links;
+// avoid exact private lodging details until access protection exists.
 export const tripMaps: TripMap[] = [
   {
     title: "Main trip map",
@@ -621,6 +636,8 @@ export const tripMaps: TripMap[] = [
   }
 ];
 
+// Safe demo location list. Public attractions and stations are fine; lodging
+// addresses remain broad placeholders until privacy handling is decided.
 export const mapLocations: MapLocation[] = [
   {
     name: "Rome hotel placeholder",
@@ -696,6 +713,8 @@ export const mapLocations: MapLocation[] = [
   }
 ];
 
+// Safe restaurant shortlist placeholders. Add real public restaurant names and
+// Maps links later, but keep private reservation references out of the repo.
 export const restaurants: Restaurant[] = [
   {
     name: "Rome pasta placeholder",
@@ -754,6 +773,8 @@ export const restaurants: Restaurant[] = [
   }
 ];
 
+// Safe public attraction placeholders. Do not add ticket barcodes, QR codes, or
+// complete booking references.
 export const attractions: Attraction[] = [
   {
     name: "Colosseum",
@@ -813,6 +834,8 @@ export const attractions: Attraction[] = [
   }
 ];
 
+// Safe packing checklist seed data. Track document presence only; do not store
+// document numbers, scans, or private medical details.
 export const packingItems: PackingItem[] = [
   {
     item: "Passport",
@@ -886,6 +909,8 @@ export const packingItems: PackingItem[] = [
   }
 ];
 
+// Placeholder document links only. Real files should stay in private storage
+// and the repo should not contain full confirmation numbers or identity details.
 export const documentLinks: DocumentLink[] = [
   {
     title: "Flight confirmation private link placeholder",

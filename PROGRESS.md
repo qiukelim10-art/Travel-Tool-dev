@@ -2,6 +2,9 @@
 
 ## 2026-06-13
 
+- Added real-data preparation docs before private trip details are entered: `REAL_DATA_ENTRY_GUIDE.md` and `REAL_DATA_CHECKLIST.md`.
+- Marked `src/data/tripData.ts` seed data as safe demo/placeholder data without changing data structure or CRUD logic.
+- Confirmed real passport numbers, payment card details, full confirmations, private document files, and personal contact details should still stay out of the repo unless protection is added later.
 - Moved Emergency access from a standalone navigation entry to a small Dashboard SOS quick-access panel with public Italy emergency numbers only.
 - `/emergency` now redirects to `/`; desktop and mobile navigation no longer show Emergency, and More has no Emergency entry.
 - Verified `npm.cmd run build`, `npm.cmd run lint`, desktop/LAN `/`, `/emergency` redirect, and `/budget`, `/itinerary`, `/bookings`, `/packing` HTTP 200 smoke checks.

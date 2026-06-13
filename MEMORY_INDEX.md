@@ -14,16 +14,18 @@
 - Budget now uses the shared expense ledger for its page UI and supports miscellaneous expense CRUD; Itinerary and Booking linked expense UI have been added.
 - Dashboard budget overview now reads the unified expense ledger through `/api/expenses` instead of static `tripData.ts` expenses.
 - The shared expense ledger now supports EUR, SGD, and MYR.
+- Real-data preparation docs now exist: `REAL_DATA_ENTRY_GUIDE.md` and `REAL_DATA_CHECKLIST.md`.
 
 ## Highest Priority Task
 
-- Wait for the user's next requested improvement to the trip website.
+- Manually replace safe placeholder data with non-sensitive real trip summaries using `REAL_DATA_ENTRY_GUIDE.md` and `REAL_DATA_CHECKLIST.md`.
 
 ## Key Known Issue
 
 - Real traveller and booking information has not been fully entered yet.
 - Some Phase 2 pages still use placeholder data only.
 - Shared reminders/bookings are verified locally, but there is still no password protection. Revisit security before storing real private trip details.
+- Real passport numbers, payment card details, full confirmations, private document files, and personal contact details should still not be entered unless protection is added later.
 
 ## Important Architecture Note
 
@@ -43,3 +45,4 @@
 - Each completed website change handoff must include verified desktop and phone LAN URLs, current port, desktop page HTTP status, phone LAN page HTTP status, and related API status; note that phone access requires the same Wi-Fi or hotspot when applicable.
 - Live food/place discovery currently uses Google Maps URLs only; ratings, reviews, opening hours, and reservation details are viewed in Google Maps, not rendered inside the website.
 - Google Maps search panels use mobile-safe anchor links first, with browser geolocation only as an enhancement.
+- `src/data/tripData.ts` is explicitly marked as safe demo/placeholder seed data; replace only with non-sensitive real details.

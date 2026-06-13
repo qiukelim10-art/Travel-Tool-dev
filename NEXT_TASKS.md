@@ -2,6 +2,8 @@
 
 ## Current Priority
 
+- Use `REAL_DATA_ENTRY_GUIDE.md` and `REAL_DATA_CHECKLIST.md` to manually replace safe placeholder data with non-sensitive real trip summaries.
+- Keep real private data out of the repo unless the user later asks to add protection first.
 - Review MYR support in Budget, Itinerary linked expenses, Booking linked expenses, and Dashboard ledger widgets on computer and phone.
 - Next likely Budget step: final review and commit MYR expense ledger support after user validation.
 - Review the shared reminders and bookings CRUD/filter UI on computer and phone when the user is ready.
@@ -15,6 +17,7 @@
 
 ## Data Safety
 
+- Follow `REAL_DATA_ENTRY_GUIDE.md` before entering real itinerary, booking, budget, packing, document, food, attraction, or emergency data.
 - Do not store real passport numbers, identity documents, payment card details, insurance certificates, or booking confirmation files in the repo.
 - Use safe summaries, placeholders, or non-sensitive references for private booking details unless the user explicitly asks for a different handling approach.
 
