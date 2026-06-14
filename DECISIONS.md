@@ -20,3 +20,5 @@
 ## 2026-06-14
 
 - For public preview deployment, prioritize zero-cost services only: Vercel Hobby for hosting and Aiven for MySQL free tier for shared editable data. Do not create PlanetScale resources unless the user later accepts paid database costs.
+- Keep the Vercel deployment URL-accessible without whole-site password protection for now; only existing Documents external links keep per-link passcode protection. Revisit access control before entering sensitive real trip data.
+- Use a static `mysql2/promise` import in server data access code because Vercel/Next serverless bundling cannot reliably trace the previous dynamic `eval("require")` loader.

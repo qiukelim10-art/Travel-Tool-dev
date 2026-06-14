@@ -2,6 +2,10 @@
 
 ## 2026-06-14
 
+- Completed the zero-cost production deployment path on `codex/public-vercel-deploy`: the app is live on Vercel Hobby at `https://italy-trip-2026-cyan.vercel.app` and uses an Aiven Free MySQL service for shared editable data.
+- Applied the hosted schema and safe preview seed to Aiven MySQL, set the required Vercel Production environment variables without committing secrets, and kept whole-site password protection out of scope while preserving Documents per-link passcode protection.
+- Fixed the Vercel serverless database runtime failure by replacing the dynamic `eval("require")` MySQL loader with a static `mysql2/promise` import so Next/Vercel can bundle the dependency.
+- Verified production deployment with `npm run lint`, `npm run build`, Vercel production build, public HTTP 200 checks for `/`, `/api/health`, `/api/trip-settings`, `/api/reminders`, `/api/bookings`, `/api/itinerary`, `/api/expenses`, `/api/packing`, and `/api/documents`, plus a temporary reminder create/delete write test that was cleaned up.
 - Prepared the `codex/public-vercel-deploy` branch for Vercel + hosted MySQL preview review without changing UI or app features: package scripts now use portable Next/TypeScript commands, npm is the intended package manager, stale pnpm lockfile was removed, and shared MySQL initialization can be disabled for managed schemas with `MYSQL_MANAGED_SCHEMA=true`.
 - Added `MYSQL_SSL` support for hosted MySQL connections and made `.env.example` trackable while keeping real `.env.local` secrets ignored.
 - Added `DEPLOYMENT_PREVIEW_GUIDE.md` and `database/preview-seed.sql` so a managed hosted MySQL preview database can be prepared without relying on runtime schema creation; the seed contains only safe placeholder active trip settings, travelers, and route stops.

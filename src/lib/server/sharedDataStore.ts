@@ -1,4 +1,5 @@
 import { createHash, randomBytes, randomUUID, timingSafeEqual } from "crypto";
+import mysql from "mysql2/promise";
 import { bookings, documentLinks, expenses, itinerary, packingItems, travelers, tripInfo } from "@/data/tripData";
 import {
   bookingCategories,
@@ -55,10 +56,6 @@ type MysqlConnection = {
   release(): void;
 };
 
-type MysqlModule = {
-  createPool(config: Record<string, unknown>): MysqlPool;
-};
-
 type SharedDataStoreState = {
   serverPool: MysqlPool | null;
   appPool: MysqlPool | null;
@@ -86,15 +83,6 @@ const priorityRank: Record<string, number> = {
 const activeTripId = "active-trip";
 const defaultTripCurrencies = ["EUR", "SGD", "MYR"] as const satisfies readonly SharedCurrency[];
 const defaultTripRouteStops = ["Rome", "Florence", "Venice", "Milan"] as const;
-
-function getMysql(): MysqlModule {
-  try {
-    const requireFunc = eval("require") as NodeRequire;
-    return requireFunc("mysql2/promise") as MysqlModule;
-  } catch {
-    throw new Error("mysql2 is not installed. Run `npm install` or `corepack pnpm install` before using shared data APIs.");
-  }
-}
 
 function getDbName() {
   return process.env.MYSQL_DATABASE || "italy_trip_2026";
@@ -135,7 +123,7 @@ function baseConfig() {
 
 function getServerPool() {
   if (!sharedDataStoreState.serverPool) {
-    sharedDataStoreState.serverPool = getMysql().createPool(baseConfig());
+    sharedDataStoreState.serverPool = mysql.createPool(baseConfig()) as unknown as MysqlPool;
   }
 
   return sharedDataStoreState.serverPool;
@@ -143,10 +131,10 @@ function getServerPool() {
 
 function getAppPool() {
   if (!sharedDataStoreState.appPool) {
-    sharedDataStoreState.appPool = getMysql().createPool({
+    sharedDataStoreState.appPool = mysql.createPool({
       ...baseConfig(),
       database: getDbName()
-    });
+    }) as unknown as MysqlPool;
   }
 
   return sharedDataStoreState.appPool;

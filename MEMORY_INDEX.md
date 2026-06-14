@@ -3,7 +3,7 @@
 ## Project Status
 
 - The project is a private, mobile-first Italy trip dashboard for 4 travellers in October 2026.
-- `codex/public-vercel-deploy` is being redirected from PlanetScale to a zero-cost Vercel Hobby + Aiven Free MySQL preview path; no deploy, data migration, or new commit has been done after that direction change.
+- `codex/public-vercel-deploy` has a zero-cost production deployment path on Vercel Hobby + Aiven Free MySQL; the live URL is `https://italy-trip-2026-cyan.vercel.app`.
 - The user will gradually provide real trip information to replace placeholder data.
 - The dashboard's purpose is to keep all 4 travellers synchronized before and during the trip, with fast phone-friendly access to key travel information.
 - Phase 1 core areas are complete: Dashboard, Itinerary, Bookings, Budget, and Dashboard-based Emergency quick access.
@@ -27,6 +27,7 @@
 
 ## Highest Priority Task
 
+- Review the uncommitted deployment follow-up changes on `codex/public-vercel-deploy`, then commit if approved.
 - Keep memory files focused on current active work; branch-specific review, commit, and merge tasks should only be reintroduced when the user explicitly resumes that branch.
 - Decide whether to add simple shared-password protection before entering real private trip details.
 - Manually replace safe placeholder data with non-sensitive real trip summaries using `REAL_DATA_ENTRY_GUIDE.md` and `REAL_DATA_CHECKLIST.md` when the user provides approved details.
@@ -37,11 +38,13 @@
 - Real traveller and booking information has not been fully entered yet.
 - Some trip content still uses placeholder data only.
 - Shared reminders/bookings are verified locally, but there is still no password protection. Revisit security before storing real private trip details.
+- The public Vercel deployment is intentionally URL-accessible: anyone with the live link can view and edit shared trip data. Do not enter sensitive real trip details before approving an access-control approach.
 - Real passport numbers, payment card details, full confirmations, private document files, and personal contact details should still not be entered. Documents can store folder links, but real files must stay in permission-controlled cloud storage and passcodes must not be written in notes.
 
 ## Important Architecture Note
 
 - Deployment prep now supports hosted MySQL configuration with `MYSQL_SSL=true` and can skip runtime schema creation/seed on managed databases with `MYSQL_MANAGED_SCHEMA=true`; local development still defaults to automatic local schema setup.
+- Vercel serverless functions require `mysql2/promise` to be statically imported so the dependency is bundled; avoid dynamic `eval("require")` for this runtime dependency.
 - Zero-cost Vercel/Aiven preparation files now include `DEPLOYMENT_PREVIEW_GUIDE.md`, `database/managed-schema.sql`, `database/preview-seed.sql`, and `/api/health` for deployment smoke checks.
 - Most trip pages still use static data, but reminders, bookings, itinerary, and packing now use local Next API + MySQL prototype paths.
 - Active trip settings are now separate from business data: `trips`, `trip_travelers`, and `trip_route_stops` seed `active-trip` only when `trips` is empty. Existing reminders, bookings, itinerary, expenses, packing, and documents tables do not have `trip_id` yet.

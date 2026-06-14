@@ -2,8 +2,8 @@
 
 ## Current Priority
 
-- Review the uncommitted `codex/public-vercel-deploy` zero-cost deployment direction change before any deploy, data migration, or commit.
-- For zero-cost deployment, follow `DEPLOYMENT_PREVIEW_GUIDE.md`: use Vercel Hobby, create an Aiven for MySQL free tier service, apply `database/managed-schema.sql`, apply `database/preview-seed.sql`, set Vercel Preview env vars, and use `MYSQL_MANAGED_SCHEMA=true`, `MYSQL_SSL=true`, and `MYSQL_SSL_CA`.
+- Review the uncommitted `codex/public-vercel-deploy` production deployment follow-up changes before commit: `.gitignore`, `src/app/api/health/route.ts`, `src/lib/server/sharedDataStore.ts`, and memory file updates.
+- The zero-cost production deployment is live at `https://italy-trip-2026-cyan.vercel.app` using Vercel Hobby + Aiven Free MySQL; keep using free-tier resources only.
 - Stop immediately if Vercel or Aiven asks for a paid plan or payment method.
 - Confirm the active branch and current user request before resuming any old branch-specific work.
 - Decide whether to add simple shared-password protection before entering real private trip details.

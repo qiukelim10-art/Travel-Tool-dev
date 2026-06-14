@@ -10,7 +10,12 @@ export async function GET() {
       database: "ready",
       activeTripId: settings.trip.id
     });
-  } catch {
+  } catch (error) {
+    console.error("Health check failed", {
+      name: error instanceof Error ? error.name : "UnknownError",
+      message: error instanceof Error ? error.message : "Unknown database error"
+    });
+
     return NextResponse.json(
       {
         status: "error",

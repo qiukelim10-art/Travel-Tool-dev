@@ -9,3 +9,5 @@ dist
 *.tsbuildinfo
 .dev-server*.log
 .prod-server*.log
+
+.vercel
