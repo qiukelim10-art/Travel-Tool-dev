@@ -3,6 +3,7 @@
 ## 2026-06-14
 
 - Fixed two post-deploy UI data-source mismatches without changing the broader UI style: Dashboard booking attention now reads `/api/bookings` instead of static seed bookings, clears stale booking rows on request failure/timeout, and Itinerary city filter buttons are generated from current itinerary API items instead of a hardcoded city list.
+- Fixed the matching Dashboard itinerary summary mismatch: both Dashboard Next up cards now read `/api/itinerary`, show loading/error/empty states, and no longer display static seed itinerary items when the itinerary page has no shared items.
 - Verified the UI data-source fix with `npm run build`, sequential `npm run lint`, local `/`, `/itinerary`, `/api/bookings`, `/api/itinerary` HTTP 200 checks, LAN `192.168.0.2:3000` page/API HTTP 200 checks, and confirmed the live production `/api/bookings` and `/api/itinerary` currently return empty arrays.
 - Completed the zero-cost production deployment path on `codex/public-vercel-deploy`: the app is live on Vercel Hobby at `https://italy-trip-2026-cyan.vercel.app` and uses an Aiven Free MySQL service for shared editable data.
 - Applied the hosted schema and safe preview seed to Aiven MySQL, set the required Vercel Production environment variables without committing secrets, and kept whole-site password protection out of scope while preserving Documents per-link passcode protection.

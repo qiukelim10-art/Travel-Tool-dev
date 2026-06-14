@@ -6,10 +6,9 @@ import { DashboardBudgetWidget } from "@/components/DashboardBudgetWidget";
 import { EmergencyQuickAccess } from "@/components/EmergencyQuickAccess";
 import { RemindersClient } from "@/components/RemindersClient";
 import { StatusBadge } from "@/components/StatusBadge";
-import { itinerary } from "@/data/tripData";
 import { useLanguage } from "@/lib/i18n";
 import { translateText } from "@/lib/localize";
-import type { SharedBooking } from "@/lib/sharedDataTypes";
+import type { SharedBooking, SharedItineraryItem } from "@/lib/sharedDataTypes";
 import { useTripSettingsView } from "@/lib/useTripSettings";
 
 const attentionStatuses = ["Need Confirmation", "Not Booked", "Pending"] as const;
@@ -21,7 +20,10 @@ export default function DashboardPage() {
   const [bookings, setBookings] = useState<SharedBooking[]>([]);
   const [bookingsLoading, setBookingsLoading] = useState(true);
   const [bookingsError, setBookingsError] = useState<string | null>(null);
-  const nextDay = itinerary[0];
+  const [itineraryItems, setItineraryItems] = useState<SharedItineraryItem[]>([]);
+  const [itineraryLoading, setItineraryLoading] = useState(true);
+  const [itineraryError, setItineraryError] = useState<string | null>(null);
+  const nextItineraryItem = itineraryItems[0] ?? null;
   const pendingBookings = useMemo(
     () =>
       bookings.filter((booking) =>
@@ -101,6 +103,62 @@ export default function DashboardPage() {
     };
   }, [t]);
 
+  useEffect(() => {
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => controller.abort(), requestTimeoutMs);
+    let isActive = true;
+
+    async function loadItinerary() {
+      setItineraryLoading(true);
+      setItineraryError(null);
+      setItineraryItems([]);
+
+      try {
+        const response = await fetch("/api/itinerary", { signal: controller.signal });
+        const data = (await response.json()) as { itineraryItems?: unknown; error?: string };
+
+        if (!response.ok) {
+          throw new Error(data.error ?? t("itinerary.errorLoad"));
+        }
+
+        if (!Array.isArray(data.itineraryItems)) {
+          throw new Error(t("itinerary.errorLoad"));
+        }
+
+        if (!isActive) {
+          return;
+        }
+
+        setItineraryItems(data.itineraryItems.filter(isSharedItineraryItem));
+      } catch (error) {
+        if (!isActive) {
+          return;
+        }
+
+        setItineraryItems([]);
+
+        if (error instanceof DOMException && error.name === "AbortError") {
+          setItineraryError(`${t("itinerary.errorLoad")} Request timed out. Please retry.`);
+        } else {
+          setItineraryError(error instanceof Error ? error.message : t("itinerary.errorLoad"));
+        }
+      } finally {
+        window.clearTimeout(timeoutId);
+        if (isActive) {
+          setItineraryLoading(false);
+        }
+      }
+    }
+
+    void loadItinerary();
+
+    return () => {
+      isActive = false;
+      controller.abort();
+      window.clearTimeout(timeoutId);
+    };
+  }, [t]);
+
   return (
     <div className="space-y-5">
       <section className="travel-cover p-5 sm:p-6">
@@ -146,14 +204,22 @@ export default function DashboardPage() {
             </div>
           </div>
           <div className="grid gap-3">
-            <NextPlanMini day={nextDay} />
+            <NextPlanMini
+              item={nextItineraryItem}
+              loading={itineraryLoading}
+              error={itineraryError}
+            />
             <EmergencyQuickAccess />
           </div>
         </div>
       </section>
 
       <section className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
-        <NextPlanCard day={nextDay} />
+        <NextPlanCard
+          item={nextItineraryItem}
+          loading={itineraryLoading}
+          error={itineraryError}
+        />
         <NeedsAttentionCard
           bookings={priorityBookings}
           totalCount={pendingBookings.length}
@@ -209,7 +275,15 @@ function TripSignal({
   );
 }
 
-function NextPlanMini({ day }: { day: (typeof itinerary)[number] }) {
+function NextPlanMini({
+  error,
+  item,
+  loading
+}: {
+  error: string | null;
+  item: SharedItineraryItem | null;
+  loading: boolean;
+}) {
   const { t } = useLanguage();
 
   return (
@@ -217,12 +291,25 @@ function NextPlanMini({ day }: { day: (typeof itinerary)[number] }) {
       <p className="text-xs font-semibold uppercase tracking-[0.08em] text-stamp">
         {t("dashboard.nextUp")}
       </p>
-      <p className="mt-1 line-clamp-1 break-words text-base font-semibold text-ink">
-        {t("dashboard.day", { day: day.day })}: {day.title}
-      </p>
-      <p className="mt-1 text-sm text-zinc-600">
-        {formatDate(day.date)} - {day.city}
-      </p>
+      {loading ? (
+        <p className="mt-1 text-sm text-zinc-600">{t("itinerary.loading")}</p>
+      ) : null}
+      {error && !loading ? (
+        <p className="mt-1 text-sm text-red-700">{error}</p>
+      ) : null}
+      {!loading && !error && item ? (
+        <>
+          <p className="mt-1 line-clamp-1 break-words text-base font-semibold text-ink">
+            {item.title}
+          </p>
+          <p className="mt-1 text-sm text-zinc-600">
+            {formatDate(item.travelDate)} - {item.city}
+          </p>
+        </>
+      ) : null}
+      {!loading && !error && !item ? (
+        <p className="mt-1 text-sm text-zinc-600">{t("dashboard.noItineraryItems")}</p>
+      ) : null}
       <Link
         href="/itinerary"
         className="mt-3 inline-flex min-h-10 w-full items-center justify-center rounded-md bg-moss px-3 py-2 text-sm font-semibold text-white shadow-sm sm:w-auto"
@@ -233,7 +320,15 @@ function NextPlanMini({ day }: { day: (typeof itinerary)[number] }) {
   );
 }
 
-function NextPlanCard({ day }: { day: (typeof itinerary)[number] }) {
+function NextPlanCard({
+  error,
+  item,
+  loading
+}: {
+  error: string | null;
+  item: SharedItineraryItem | null;
+  loading: boolean;
+}) {
   const { t } = useLanguage();
 
   return (
@@ -245,13 +340,30 @@ function NextPlanCard({ day }: { day: (typeof itinerary)[number] }) {
             <p className="text-xs font-semibold uppercase tracking-[0.08em] text-stamp">
               {t("dashboard.nextUp")}
             </p>
-            <h2 className="mt-1 break-words text-lg font-semibold text-ink">
-              {t("dashboard.day", { day: day.day })}: {day.title}
-            </h2>
-            <p className="mt-1 text-sm text-zinc-500">
-              {formatDate(day.date)} - {day.city}
-            </p>
-            <p className="mt-2 line-clamp-2 text-sm leading-6 text-zinc-600">{day.highlight}</p>
+            {loading ? (
+              <p className="mt-1 text-sm text-zinc-600">{t("itinerary.loading")}</p>
+            ) : null}
+            {error && !loading ? (
+              <p className="mt-1 text-sm text-red-700">{error}</p>
+            ) : null}
+            {!loading && !error && item ? (
+              <>
+                <h2 className="mt-1 break-words text-lg font-semibold text-ink">
+                  {item.title}
+                </h2>
+                <p className="mt-1 text-sm text-zinc-500">
+                  {formatDate(item.travelDate)} - {item.city}
+                </p>
+                {item.details ? (
+                  <p className="mt-2 line-clamp-2 text-sm leading-6 text-zinc-600">{item.details}</p>
+                ) : null}
+              </>
+            ) : null}
+            {!loading && !error && !item ? (
+              <p className="mt-1 text-sm leading-6 text-zinc-600">
+                {t("dashboard.noItineraryItems")}
+              </p>
+            ) : null}
           </div>
         </div>
         <Link
@@ -365,6 +477,20 @@ function isSharedBooking(value: unknown): value is SharedBooking {
     typeof booking.date === "string" &&
     typeof booking.bookedBy === "string" &&
     typeof booking.status === "string"
+  );
+}
+
+function isSharedItineraryItem(value: unknown): value is SharedItineraryItem {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+
+  const item = value as Partial<SharedItineraryItem>;
+  return (
+    typeof item.id === "string" &&
+    typeof item.travelDate === "string" &&
+    typeof item.city === "string" &&
+    typeof item.title === "string"
   );
 }
 

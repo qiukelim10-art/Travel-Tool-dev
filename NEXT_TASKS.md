@@ -2,7 +2,7 @@
 
 ## Current Priority
 
-- Deploy the approved UI data-source fix on `codex/public-vercel-deploy`: Dashboard booking attention now uses shared bookings, clears stale rows on load failure, and Itinerary city filters now derive from current itinerary items.
+- Review and deploy the next Dashboard shared-data fix on `codex/public-vercel-deploy`: Dashboard Next up now uses `/api/itinerary` and no longer shows static itinerary seed items when the itinerary page is empty.
 - The zero-cost production deployment is live at `https://italy-trip-2026-cyan.vercel.app` using Vercel Hobby + Aiven Free MySQL; keep using free-tier resources only.
 - Stop immediately if Vercel or Aiven asks for a paid plan or payment method.
 - Confirm the active branch and current user request before resuming any old branch-specific work.
