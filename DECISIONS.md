@@ -16,3 +16,7 @@
 
 - For Phase 3 Documents, protect individual folder links with per-item access codes only; do not add whole-site password protection yet.
 - Store Documents access codes as salted SHA-256 hashes using Node crypto, never as plaintext, and keep real document files in permission-controlled cloud storage outside the repo.
+
+## 2026-06-14
+
+- For public preview deployment, prioritize zero-cost services only: Vercel Hobby for hosting and Aiven for MySQL free tier for shared editable data. Do not create PlanetScale resources unless the user later accepts paid database costs.

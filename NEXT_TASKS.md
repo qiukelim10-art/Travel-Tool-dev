@@ -2,8 +2,9 @@
 
 ## Current Priority
 
-- Review the uncommitted `codex/public-vercel-deploy` pre-launch deployment-prep changes before any deploy, data migration, or commit.
-- After review approval, commit the pre-launch prep changes, then follow `DEPLOYMENT_PREVIEW_GUIDE.md`: create the remote MySQL schema with `database/managed-schema.sql`, apply `database/preview-seed.sql`, set Vercel Preview env vars, and use `MYSQL_MANAGED_SCHEMA=true` plus `MYSQL_SSL=true`.
+- Review the uncommitted `codex/public-vercel-deploy` zero-cost deployment direction change before any deploy, data migration, or commit.
+- For zero-cost deployment, follow `DEPLOYMENT_PREVIEW_GUIDE.md`: use Vercel Hobby, create an Aiven for MySQL free tier service, apply `database/managed-schema.sql`, apply `database/preview-seed.sql`, set Vercel Preview env vars, and use `MYSQL_MANAGED_SCHEMA=true`, `MYSQL_SSL=true`, and `MYSQL_SSL_CA`.
+- Stop immediately if Vercel or Aiven asks for a paid plan or payment method.
 - Confirm the active branch and current user request before resuming any old branch-specific work.
 - Decide whether to add simple shared-password protection before entering real private trip details.
 - Use `REAL_DATA_ENTRY_GUIDE.md` and `REAL_DATA_CHECKLIST.md` when replacing placeholder data with safe, non-sensitive real trip summaries.

@@ -126,7 +126,8 @@ function baseConfig() {
   };
 
   if (isEnvEnabled("MYSQL_SSL")) {
-    config.ssl = { rejectUnauthorized: true };
+    const ca = String(process.env.MYSQL_SSL_CA ?? "").trim();
+    config.ssl = ca ? { rejectUnauthorized: true, ca } : { rejectUnauthorized: true };
   }
 
   return config;

@@ -1,19 +1,35 @@
-# Vercel + PlanetScale Preview Guide
+# Zero-Cost Vercel + Aiven MySQL Preview Guide
 
-This branch prepares the app for a Vercel Preview deployment backed by PlanetScale MySQL.
+This branch prepares the app for a zero-cost public preview deployment.
 
-No whole-site password protection is planned for this preview. Anyone with the Preview URL can view and edit shared trip data. Keep real passport numbers, identity documents, payment card details, insurance files, full booking confirmations, and document passcodes out of the app and repo.
+The intended setup is:
+
+- Vercel Hobby plan for the Next.js app
+- Aiven for MySQL free tier for shared editable data
+- No whole-site password protection
+- Existing per-document passcode protection only for protected external document links
+
+Do not create PlanetScale resources for this zero-cost deployment. PlanetScale currently has no free database plan.
+
+Anyone with the Preview URL can view and edit shared trip data. Keep real passport numbers, identity documents, payment card details, insurance files, full booking confirmations, and document passcodes out of the app and repo.
 
 ## Current Deployment Boundary
 
 - Target branch: `codex/public-vercel-deploy`
-- Target platform: Vercel Preview
-- Target database: PlanetScale MySQL
+- Target platform: Vercel Preview on the Hobby plan
+- Target database: Aiven for MySQL free tier
 - Package manager: npm
 - Node.js: 24.x
 - Site access: URL-based access only
-- Documents access: keep existing per-document passcode protection for protected external links
 - Data migration: not performed in this preparation step
+
+## Cost Guardrails
+
+- Use Vercel Hobby, not Pro.
+- Use Aiven for MySQL free tier, not a paid service plan or trial-only paid resource.
+- Do not add a payment method for this deployment unless the user explicitly changes the budget requirement.
+- Keep the database under the free tier limits.
+- If any provider asks for a paid upgrade, stop instead of continuing.
 
 ## Vercel Settings
 
@@ -29,29 +45,29 @@ Recommended project settings:
 Preview environment variables:
 
 ```env
-MYSQL_HOST=<planetscale-host>
-MYSQL_PORT=3306
-MYSQL_DATABASE=<planetscale-database>
-MYSQL_USER=<planetscale-user>
-MYSQL_PASSWORD=<planetscale-password>
+MYSQL_HOST=<aiven-mysql-host>
+MYSQL_PORT=<aiven-mysql-port>
+MYSQL_DATABASE=<aiven-database>
+MYSQL_USER=<aiven-user>
+MYSQL_PASSWORD=<aiven-password>
 MYSQL_SSL=true
+MYSQL_SSL_CA=<aiven-ca-certificate-content>
 MYSQL_MANAGED_SCHEMA=true
 ```
 
 Do not add `.env.local` or real database credentials to git.
 
-## PlanetScale Setup
+## Aiven MySQL Setup
 
-1. Create the PlanetScale database and preview branch.
-2. Enable foreign key constraints before applying this project's schema, because `database/schema.sql` uses foreign keys with cascade delete.
-3. Create a password for the preview branch using a primary connection.
-4. Apply the table schema from `database/managed-schema.sql`.
-5. Apply the minimal safe starter records from `database/preview-seed.sql`.
-6. Add the PlanetScale credentials to Vercel Preview environment variables.
+1. Create an Aiven account without adding a payment method.
+2. Create an Aiven for MySQL free tier service.
+3. From the Aiven service overview, copy host, port, database name, user, and password.
+4. Download the CA certificate and store its full text in the Vercel `MYSQL_SSL_CA` environment variable.
+5. Apply the table schema from `database/managed-schema.sql`.
+6. Apply the minimal safe starter records from `database/preview-seed.sql`.
+7. Add the Aiven credentials to Vercel Preview environment variables.
 
-If foreign key constraints are not enabled, do not apply the current schema yet. The alternative is a separate no-foreign-key schema pass, which should be handled as its own focused change.
-
-`database/schema.sql` remains the local-development schema because it includes `CREATE DATABASE` and `USE`. `database/managed-schema.sql` is the safer file for a hosted database branch where the database already exists.
+`database/schema.sql` remains the local-development schema because it includes `CREATE DATABASE` and `USE`. `database/managed-schema.sql` is the safer file for a hosted database where the database already exists.
 
 ## Preview Smoke Checks
 
