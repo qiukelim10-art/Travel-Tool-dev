@@ -5,6 +5,7 @@
 - The project is a private, mobile-first Italy trip dashboard for 4 travellers in October 2026.
 - `codex/public-vercel-deploy` has a zero-cost production deployment path on Vercel Hobby + Aiven Free MySQL; the live URL is `https://italy-trip-2026-cyan.vercel.app`.
 - The user will gradually provide real trip information to replace placeholder data.
+- The user has shared the live site link with the 4 travelers for collaborative editing.
 - The dashboard's purpose is to keep all 4 travellers synchronized before and during the trip, with fast phone-friendly access to key travel information.
 - Phase 1 core areas are complete: Dashboard, Itinerary, Bookings, Budget, and Dashboard-based Emergency quick access.
 - More now links to Packing and Documents only; standalone Map, Food, and Attractions pages have been removed from navigation and redirect to `/more`.
@@ -22,12 +23,14 @@
 - Bookings, Itinerary, Packing, and Documents system UI are now connected to the UI-only i18n foundation while keeping user-entered trip content untranslated.
 - The shared expense ledger now supports EUR, SGD, and MYR.
 - Real-data preparation docs now exist: `REAL_DATA_ENTRY_GUIDE.md` and `REAL_DATA_CHECKLIST.md`.
+- A concise bilingual traveler-facing quick-start guide now exists at `USER_GUIDE.md` and `Italy Trip 2026 Quick User Guide.docx`.
 - Phase 1 reusable trip dashboard foundation now exists on `codex/trip-settings-foundation`: active trip settings use `trips`, `trip_travelers`, and `trip_route_stops`; `/api/trip-settings` supports read/write for the single active trip, and `/settings` edits trip basics, currencies, timezone, notes, travelers, and route stops.
 - The second-round Universal Travel Cockpit UI polish was committed on `codex/ui-skill-research` and merged into `master`; final build/lint, desktop/LAN page/API checks, and mobile no-horizontal-overflow QA passed before merge.
 
 ## Highest Priority Task
 
-- Review the uncommitted deployment follow-up changes on `codex/public-vercel-deploy`, then commit if approved.
+- The live site is stable for now; the user and travel group will enter safe real trip data through the UI.
+- Keep `Italy Trip 2026 Quick User Guide.docx` as the traveler quick-start guide.
 - Keep memory files focused on current active work; branch-specific review, commit, and merge tasks should only be reintroduced when the user explicitly resumes that branch.
 - Decide whether to add simple shared-password protection before entering real private trip details.
 - Manually replace safe placeholder data with non-sensitive real trip summaries using `REAL_DATA_ENTRY_GUIDE.md` and `REAL_DATA_CHECKLIST.md` when the user provides approved details.

@@ -2,7 +2,9 @@
 
 ## Current Priority
 
-- Review and deploy the next Dashboard shared-data fix on `codex/public-vercel-deploy`: Dashboard Next up now uses `/api/itinerary` and no longer shows static itinerary seed items when the itinerary page is empty.
+- The website is stable for now; the user plans to enter safe real trip data directly through the live UI.
+- The user has shared the live site link with the 4 travelers for collaborative editing.
+- Keep `Italy Trip 2026 Quick User Guide.docx` available as the short traveler quick-start guide.
 - The zero-cost production deployment is live at `https://italy-trip-2026-cyan.vercel.app` using Vercel Hobby + Aiven Free MySQL; keep using free-tier resources only.
 - Stop immediately if Vercel or Aiven asks for a paid plan or payment method.
 - Confirm the active branch and current user request before resuming any old branch-specific work.
