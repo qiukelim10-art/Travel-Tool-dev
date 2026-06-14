@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { StatusBadge } from "@/components/StatusBadge";
 import { formatMoney } from "@/lib/budget";
 import { useLanguage } from "@/lib/i18n";
@@ -620,34 +620,12 @@ export function BookingsClient({ participants }: BookingsClientProps) {
               const activeExpenseForm = expenseFormBookingId === booking.id ? expenseForm : null;
 
               return (
-                <Fragment key={booking.id}>
-                  <tr>
-                    <td className="px-4 py-4 font-medium text-ink">{translateOption(language, booking.category)}</td>
-                    <td className="px-4 py-4">
-                      <p className="font-medium text-ink">{booking.description}</p>
-                      <p className="mt-1 text-zinc-500">{booking.location ?? booking.notes ?? t("common.tbc")}</p>
-                    </td>
-                    <td className="px-4 py-4 text-zinc-600">{booking.date}</td>
-                    <td className="px-4 py-4 text-zinc-600">{booking.bookedBy}</td>
-                    <td className="px-4 py-4 text-zinc-600">
-                      {booking.amount && booking.currency
-                        ? formatMoney(booking.amount, booking.currency)
-                        : t("common.tbc")}
-                    </td>
-                    <td className="px-4 py-4">
-                      <StatusBadge status={booking.status} />
-                    </td>
-                    <td className="px-4 py-4">
-                      <ActionButtons
-                        booking={booking}
-                        deletingId={deletingId}
-                        onEdit={startEditing}
-                        onDelete={removeBooking}
-                      />
-                    </td>
-                  </tr>
-                  <tr>
-                    <td colSpan={7} className="bg-sandlight px-4 py-4">
+                <tr key={booking.id}>
+                  <td className="px-4 py-4 font-medium text-ink">{translateOption(language, booking.category)}</td>
+                  <td className="px-4 py-4">
+                    <p className="font-medium text-ink">{booking.description}</p>
+                    <p className="mt-1 text-zinc-500">{booking.location ?? booking.notes ?? t("common.tbc")}</p>
+                    <div className="max-w-2xl">
                       <BookingExpensesSection
                         booking={booking}
                         expenses={bookingExpenses}
@@ -666,9 +644,27 @@ export function BookingsClient({ participants }: BookingsClientProps) {
                           setExpenseForm((current) => (current ? updater(current) : current))
                         }
                       />
-                    </td>
-                  </tr>
-                </Fragment>
+                    </div>
+                  </td>
+                  <td className="px-4 py-4 text-zinc-600">{booking.date}</td>
+                  <td className="px-4 py-4 text-zinc-600">{booking.bookedBy}</td>
+                  <td className="px-4 py-4 text-zinc-600">
+                    {booking.amount && booking.currency
+                      ? formatMoney(booking.amount, booking.currency)
+                      : t("common.tbc")}
+                  </td>
+                  <td className="px-4 py-4">
+                    <StatusBadge status={booking.status} />
+                  </td>
+                  <td className="px-4 py-4">
+                    <ActionButtons
+                      booking={booking}
+                      deletingId={deletingId}
+                      onEdit={startEditing}
+                      onDelete={removeBooking}
+                    />
+                  </td>
+                </tr>
               );
             })}
           </tbody>
@@ -839,35 +835,39 @@ function BookingExpensesSection({
   }
 
   return (
-    <section className="mt-4 rounded-lg border border-route/15 bg-sandlight p-3">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div className="min-w-0">
+    <section className="mt-3 border-t border-route/10 pt-2">
+      <div className="flex items-center justify-between gap-2">
+        <div className="min-w-0 flex-1">
           <p className="text-xs font-semibold uppercase tracking-[0.08em] text-terracotta">
             {t("linkedExpenses.title")}
           </p>
-          <div className="mt-2 flex flex-wrap gap-2 text-sm text-zinc-700">
-            <span className="rounded-md bg-zinc-50 px-2.5 py-1">
+          <div className="mt-1 flex flex-wrap gap-1.5 text-xs text-zinc-700 sm:text-sm">
+            <span className="rounded-md bg-zinc-50 px-2 py-1">
               {t("linkedExpenses.expensesCount", { count: expenses.length })}
             </span>
-            <span className="rounded-md bg-zinc-50 px-2.5 py-1">
+            <span className="rounded-md bg-zinc-50 px-2 py-1">
               {t("linkedExpenses.outstanding", { amount: outstandingSummary })}
             </span>
           </div>
         </div>
-          <div className="grid w-full grid-cols-2 gap-2 sm:w-auto sm:flex-none sm:grid-cols-none sm:flex sm:flex-row">
-            <button
-              type="button"
-              onClick={() => setDetailsOpen((current) => !current)}
-              className="max-w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold text-ink"
-            >
-            {detailsVisible ? t("linkedExpenses.hideDetails") : t("linkedExpenses.showDetails")}
+        <div className="flex shrink-0 gap-1.5 sm:gap-2">
+          <button
+            type="button"
+            onClick={() => setDetailsOpen((current) => !current)}
+            className="rounded-md border border-zinc-200 bg-white px-2 py-1.5 text-xs font-semibold text-ink sm:px-3 sm:py-2 sm:text-sm"
+          >
+            <span className="sm:hidden">{t("linkedExpenses.detailsShort")}</span>
+            <span className="hidden sm:inline">
+              {detailsVisible ? t("linkedExpenses.hideDetails") : t("linkedExpenses.showDetails")}
+            </span>
           </button>
-            <button
-              type="button"
-              onClick={handleAddExpense}
-              className="max-w-full rounded-md bg-moss px-3 py-2 text-sm font-semibold text-white"
-            >
-            {t("linkedExpenses.add")}
+          <button
+            type="button"
+            onClick={handleAddExpense}
+            className="rounded-md bg-moss px-2 py-1.5 text-xs font-semibold text-white sm:px-3 sm:py-2 sm:text-sm"
+          >
+            <span className="sm:hidden">{t("linkedExpenses.addShort")}</span>
+            <span className="hidden sm:inline">{t("linkedExpenses.add")}</span>
           </button>
         </div>
       </div>

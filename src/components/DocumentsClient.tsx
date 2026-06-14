@@ -770,9 +770,9 @@ function DocumentCard({
   const folderUrl = document.externalUrl ?? unlockedUrl ?? null;
 
   return (
-    <article className="checklist-band p-4 shadow-soft">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div className="min-w-0">
+    <article className="checklist-band p-3 shadow-soft sm:p-4">
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <span className={`rounded-full px-2 py-1 text-xs font-semibold ring-1 ${priorityClass[document.priority]}`}>
               {translateOption(language, document.priority)}
@@ -786,14 +786,14 @@ function DocumentCard({
               </span>
             ) : null}
           </div>
-          <h3 className="mt-2 break-words text-lg font-semibold text-ink">{document.title}</h3>
+          <h3 className="mt-1.5 break-words text-base font-semibold text-ink sm:text-lg">{document.title}</h3>
           <p className="mt-1 text-sm text-zinc-500">{translateOption(language, document.category)}</p>
         </div>
-        <div className="flex shrink-0 flex-wrap gap-2">
+        <div className="flex shrink-0 gap-1.5 sm:gap-2">
           <button
             type="button"
             onClick={() => onEdit(document)}
-            className="rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold text-ink"
+            className="rounded-md border border-zinc-200 bg-white px-2 py-1.5 text-xs font-semibold text-ink sm:px-3 sm:py-2 sm:text-sm"
           >
             {t("common.edit")}
           </button>
@@ -801,37 +801,36 @@ function DocumentCard({
             type="button"
             onClick={() => void onDelete(document)}
             disabled={deletingId === document.id}
-            className="rounded-md border border-red-200 bg-white px-3 py-2 text-sm font-semibold text-red-700 disabled:opacity-60"
+            className="rounded-md border border-red-200 bg-white px-2 py-1.5 text-xs font-semibold text-red-700 disabled:opacity-60 sm:px-3 sm:py-2 sm:text-sm"
           >
             {deletingId === document.id ? t("common.deleting") : t("common.delete")}
           </button>
         </div>
       </div>
 
-      {document.notes ? <p className="mt-3 break-words text-sm leading-6 text-zinc-600">{document.notes}</p> : null}
+      {document.notes ? <p className="mt-2 break-words text-sm leading-5 text-zinc-600">{document.notes}</p> : null}
 
-      <div className="mt-4 grid gap-2 sm:grid-cols-2">
+      <div className="mt-3 flex flex-wrap gap-1.5">
         {document.statuses.map((status) => (
-          <div key={status.travelerId} className="rounded-lg bg-white/75 p-3">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <p className="text-sm font-semibold text-ink">
-                {travelerNameById.get(status.travelerId) ?? status.travelerId}
-              </p>
-              <span className={`rounded-full px-2 py-1 text-xs font-semibold ring-1 ${travelerStatusClass[status.status]}`}>
-                {translateOption(language, status.status)}
-              </span>
-            </div>
-          </div>
+          <span
+            key={status.travelerId}
+            className="inline-flex max-w-full items-center gap-1 rounded-md bg-white/75 px-2 py-1 text-xs font-semibold text-ink"
+          >
+            <span className="max-w-[8rem] truncate">{travelerNameById.get(status.travelerId) ?? status.travelerId}</span>
+            <span className={`shrink-0 rounded-full px-1.5 py-0.5 text-[0.65rem] font-semibold ring-1 ${travelerStatusClass[status.status]}`}>
+              {translateOption(language, status.status)}
+            </span>
+          </span>
         ))}
       </div>
 
-      <div className="mt-4 rounded-lg bg-white/70 p-3">
+      <div className="mt-3 border-t border-route/10 pt-2">
         {folderUrl ? (
           <a
             href={folderUrl}
             target="_blank"
             rel="noreferrer"
-            className="inline-flex w-full max-w-full justify-center rounded-md bg-moss px-3 py-2 text-sm font-semibold text-white sm:w-auto"
+            className="inline-flex max-w-full justify-center rounded-md bg-moss px-2.5 py-1.5 text-xs font-semibold text-white sm:px-3 sm:py-2 sm:text-sm"
           >
             {t("documents.openFolder")}
           </a>
@@ -850,13 +849,13 @@ function DocumentCard({
               type="button"
               onClick={() => void onUnlock(document)}
               disabled={unlockingId === document.id}
-              className="w-full max-w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold text-ink disabled:opacity-60 sm:w-auto"
+              className="w-full max-w-full rounded-md border border-zinc-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-ink disabled:opacity-60 sm:w-auto sm:px-3 sm:py-2 sm:text-sm"
             >
               {unlockingId === document.id ? t("documents.unlocking") : t("documents.unlockFolder")}
             </button>
           </div>
         ) : (
-          <p className="text-sm text-zinc-600">{t("documents.noFolder")}</p>
+          <p className="text-xs text-zinc-600 sm:text-sm">{t("documents.noFolder")}</p>
         )}
       </div>
     </article>

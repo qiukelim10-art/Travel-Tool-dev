@@ -65,8 +65,8 @@ function emptyExpenseForm(item: SharedItineraryItem, travelers: Traveler[]): Exp
 
   return {
     title: item.title,
-    amount: item.costAmount === null || item.costAmount === undefined ? "" : String(item.costAmount),
-    currency: item.currency ?? "EUR",
+    amount: "",
+    currency: "EUR",
     category: "Other",
     expenseDate: item.travelDate,
     paidByTravelerId: orderedTravelers[0]?.id ?? "person_a",
@@ -207,8 +207,8 @@ export function ItineraryClient() {
       details: item.details ?? "",
       transport: item.transport ?? "",
       meal: item.meal ?? "",
-      costAmount: item.costAmount,
-      currency: item.currency,
+      costAmount: null,
+      currency: "EUR",
       notes: item.notes ?? "",
       mapQuery: item.mapQuery ?? "",
       sortOrder: item.sortOrder
@@ -528,23 +528,6 @@ export function ItineraryClient() {
               value={form.location ?? ""}
               onChange={(value) => setForm((current) => ({ ...current, location: value }))}
               placeholder="Colosseum, Rome"
-            />
-            <TextField
-              name="itinerary-cost-amount"
-              label={t("itinerary.form.costAmount")}
-              type="number"
-              value={form.costAmount === null || form.costAmount === undefined ? "" : String(form.costAmount)}
-              onChange={(value) =>
-                setForm((current) => ({ ...current, costAmount: value ? Number(value) : null }))
-              }
-              placeholder="0"
-            />
-            <SelectField
-              name="itinerary-currency"
-              label={t("common.currency")}
-              value={form.currency ?? "EUR"}
-              options={bookingCurrencies}
-              onChange={(value) => setForm((current) => ({ ...current, currency: value as SharedCurrency }))}
             />
             <TextField
               name="itinerary-map-query"
@@ -869,23 +852,34 @@ function ItineraryCard({
   }
 
   return (
-    <article className="travel-panel p-3 sm:p-4">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
+    <article className="travel-panel p-3">
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0 flex-1">
           <p className="text-xs font-semibold uppercase tracking-[0.08em] text-stamp">
             {formatTimeRange(item, t("itinerary.flexibleTime"))}
           </p>
-          <h3 className="mt-1 text-xl font-semibold text-ink">{item.title}</h3>
-          <div className="mt-2 flex flex-wrap gap-2 text-sm text-zinc-600">
+          <h3 className="mt-1 text-lg font-semibold text-ink sm:text-xl">{item.title}</h3>
+          <div className="mt-1 flex flex-wrap gap-1.5 text-sm text-zinc-600">
             <span>{item.city}</span>
             {item.location ? <span>- {item.location}</span> : null}
           </div>
         </div>
-        <div className="flex shrink-0 flex-wrap gap-2">
+        <div className="flex max-w-[52%] shrink-0 flex-wrap justify-end gap-1.5 sm:max-w-none sm:gap-2">
+          {mapsQuery ? (
+            <a
+              href={googleMapsSearchUrl(mapsQuery)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="rounded-md bg-moss px-2 py-1.5 text-xs font-semibold text-white sm:px-3 sm:py-2 sm:text-sm"
+            >
+              <span className="sm:hidden">{t("common.map")}</span>
+              <span className="hidden sm:inline">{t("itinerary.openMaps")}</span>
+            </a>
+          ) : null}
           <button
             type="button"
             onClick={() => onEdit(item)}
-            className="rounded-md border border-zinc-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-ink sm:px-3 sm:py-2 sm:text-sm"
+            className="rounded-md border border-zinc-200 bg-white px-2 py-1.5 text-xs font-semibold text-ink sm:px-3 sm:py-2 sm:text-sm"
           >
             {t("common.edit")}
           </button>
@@ -893,69 +887,53 @@ function ItineraryCard({
             type="button"
             onClick={() => void onDelete(item)}
             disabled={deletingId === item.id}
-            className="rounded-md border border-red-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-red-700 disabled:opacity-60 sm:px-3 sm:py-2 sm:text-sm"
+            className="rounded-md border border-red-200 bg-white px-2 py-1.5 text-xs font-semibold text-red-700 disabled:opacity-60 sm:px-3 sm:py-2 sm:text-sm"
           >
             {deletingId === item.id ? t("common.deleting") : t("common.delete")}
           </button>
         </div>
       </div>
 
-      <div className="mt-4 grid gap-4 lg:grid-cols-[1.4fr_1fr]">
-        <div className="space-y-3">
-          <RichTextBlock title={t("itinerary.details")} value={item.details} />
-          <RichTextBlock title={t("common.notes")} value={item.notes} />
-        </div>
-        <aside className="status-strip space-y-3 p-3">
-          <RichTextBlock title={t("itinerary.transport")} value={item.transport} />
-          <RichTextBlock title={t("itinerary.meal")} value={item.meal} />
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.08em] text-zinc-500">{t("itinerary.cost")}</p>
-            <p className="mt-1 text-sm text-zinc-700">
-              {item.costAmount !== null ? formatMoney(item.costAmount, item.currency) : t("common.tbc")}
-            </p>
-          </div>
-          {mapsQuery ? (
-            <a
-              href={googleMapsSearchUrl(mapsQuery)}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex rounded-md bg-moss px-3 py-2 text-sm font-semibold text-white"
-            >
-              {t("itinerary.openMaps")}
-            </a>
-          ) : null}
-        </aside>
+      <div className="mt-3 grid gap-3 md:grid-cols-2">
+        <RichTextBlock title={t("itinerary.details")} value={item.details} />
+        <RichTextBlock title={t("itinerary.transport")} value={item.transport} />
+        <RichTextBlock title={t("itinerary.meal")} value={item.meal} />
+        <RichTextBlock title={t("common.notes")} value={item.notes} />
       </div>
 
-      <section className="mt-4 rounded-lg border border-route/15 bg-sandlight p-3">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-          <div className="min-w-0">
+      <section className="mt-3 border-t border-route/10 pt-2">
+        <div className="flex items-center justify-between gap-2">
+          <div className="min-w-0 flex-1">
             <p className="text-xs font-semibold uppercase tracking-[0.08em] text-terracotta">
               {t("linkedExpenses.title")}
             </p>
-            <div className="mt-2 flex flex-wrap gap-2 text-sm text-zinc-700">
-              <span className="rounded-md bg-zinc-50 px-2.5 py-1">
+            <div className="mt-1 flex flex-wrap gap-1.5 text-xs text-zinc-700 sm:text-sm">
+              <span className="rounded-md bg-zinc-50 px-2 py-1">
                 {t("linkedExpenses.expensesCount", { count: expenses.length })}
               </span>
-              <span className="rounded-md bg-zinc-50 px-2.5 py-1">
+              <span className="rounded-md bg-zinc-50 px-2 py-1">
                 {t("linkedExpenses.outstanding", { amount: outstandingSummary })}
               </span>
             </div>
           </div>
-          <div className="grid w-full grid-cols-2 gap-2 sm:w-auto sm:flex-none sm:grid-cols-none sm:flex sm:flex-row">
+          <div className="flex shrink-0 gap-1.5 sm:gap-2">
             <button
               type="button"
               onClick={() => setExpenseDetailsOpen((current) => !current)}
-              className="max-w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold text-ink"
+              className="rounded-md border border-zinc-200 bg-white px-2 py-1.5 text-xs font-semibold text-ink sm:px-3 sm:py-2 sm:text-sm"
             >
-              {expenseDetailsVisible ? t("linkedExpenses.hideDetails") : t("linkedExpenses.showDetails")}
+              <span className="sm:hidden">{t("linkedExpenses.detailsShort")}</span>
+              <span className="hidden sm:inline">
+                {expenseDetailsVisible ? t("linkedExpenses.hideDetails") : t("linkedExpenses.showDetails")}
+              </span>
             </button>
             <button
               type="button"
               onClick={handleAddExpense}
-              className="max-w-full rounded-md bg-moss px-3 py-2 text-sm font-semibold text-white"
+              className="rounded-md bg-moss px-2 py-1.5 text-xs font-semibold text-white sm:px-3 sm:py-2 sm:text-sm"
             >
-              {t("linkedExpenses.add")}
+              <span className="sm:hidden">{t("linkedExpenses.addShort")}</span>
+              <span className="hidden sm:inline">{t("linkedExpenses.add")}</span>
             </button>
           </div>
         </div>
@@ -1055,11 +1033,6 @@ function ItineraryExpenseForm({
             {editingExpenseId ? t("linkedExpenses.itineraryEditTitle") : t("linkedExpenses.itineraryAddTitle")}
           </h4>
         </div>
-        {item.costAmount !== null ? (
-          <p className="rounded-md bg-white px-3 py-2 text-xs font-medium text-zinc-600">
-            {t("linkedExpenses.estimate")}: {formatMoney(item.costAmount, item.currency)}
-          </p>
-        ) : null}
       </div>
 
       <div className="mt-3 grid min-w-0 grid-cols-1 gap-3 md:grid-cols-2">
