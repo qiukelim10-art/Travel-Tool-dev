@@ -2,7 +2,7 @@
 
 ## Current Priority
 
-- Review the uncommitted `codex/public-vercel-deploy` production deployment follow-up changes before commit: `.gitignore`, `src/app/api/health/route.ts`, `src/lib/server/sharedDataStore.ts`, and memory file updates.
+- Deploy the approved UI data-source fix on `codex/public-vercel-deploy`: Dashboard booking attention now uses shared bookings, clears stale rows on load failure, and Itinerary city filters now derive from current itinerary items.
 - The zero-cost production deployment is live at `https://italy-trip-2026-cyan.vercel.app` using Vercel Hobby + Aiven Free MySQL; keep using free-tier resources only.
 - Stop immediately if Vercel or Aiven asks for a paid plan or payment method.
 - Confirm the active branch and current user request before resuming any old branch-specific work.

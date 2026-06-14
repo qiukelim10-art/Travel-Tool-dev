@@ -1,35 +1,105 @@
 "use client";
 
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { DashboardBudgetWidget } from "@/components/DashboardBudgetWidget";
 import { EmergencyQuickAccess } from "@/components/EmergencyQuickAccess";
 import { RemindersClient } from "@/components/RemindersClient";
 import { StatusBadge } from "@/components/StatusBadge";
-import { bookings, itinerary, type Booking } from "@/data/tripData";
+import { itinerary } from "@/data/tripData";
 import { useLanguage } from "@/lib/i18n";
 import { translateText } from "@/lib/localize";
+import type { SharedBooking } from "@/lib/sharedDataTypes";
 import { useTripSettingsView } from "@/lib/useTripSettings";
 
 const attentionStatuses = ["Need Confirmation", "Not Booked", "Pending"] as const;
+const requestTimeoutMs = 10000;
 
 export default function DashboardPage() {
   const { t } = useLanguage();
   const { trip } = useTripSettingsView();
+  const [bookings, setBookings] = useState<SharedBooking[]>([]);
+  const [bookingsLoading, setBookingsLoading] = useState(true);
+  const [bookingsError, setBookingsError] = useState<string | null>(null);
   const nextDay = itinerary[0];
-  const pendingBookings = bookings.filter((booking) =>
-    attentionStatuses.includes(booking.status as (typeof attentionStatuses)[number])
+  const pendingBookings = useMemo(
+    () =>
+      bookings.filter((booking) =>
+        attentionStatuses.includes(booking.status as (typeof attentionStatuses)[number])
+      ),
+    [bookings]
   );
-  const priorityBookings = pendingBookings
-    .slice()
-    .sort(
-      (left, right) =>
-        attentionScore(right.status) - attentionScore(left.status) ||
-        left.date.localeCompare(right.date)
-    )
-    .slice(0, 3);
+  const priorityBookings = useMemo(
+    () =>
+      pendingBookings
+        .slice()
+        .sort(
+          (left, right) =>
+            attentionScore(right.status) - attentionScore(left.status) ||
+            left.date.localeCompare(right.date)
+        )
+        .slice(0, 3),
+    [pendingBookings]
+  );
   const destinationRoute = trip.destination
     ? `${trip.destination}: ${trip.routeLabel}`
     : trip.routeLabel;
+
+  useEffect(() => {
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => controller.abort(), requestTimeoutMs);
+    let isActive = true;
+
+    async function loadBookings() {
+      setBookingsLoading(true);
+      setBookingsError(null);
+      setBookings([]);
+
+      try {
+        const response = await fetch("/api/bookings", { signal: controller.signal });
+        const data = (await response.json()) as { bookings?: unknown; error?: string };
+
+        if (!response.ok) {
+          throw new Error(data.error ?? t("bookings.errorLoad"));
+        }
+
+        if (!Array.isArray(data.bookings)) {
+          throw new Error(t("bookings.errorLoad"));
+        }
+
+        if (!isActive) {
+          return;
+        }
+
+        setBookings(data.bookings.filter(isSharedBooking));
+      } catch (error) {
+        if (!isActive) {
+          return;
+        }
+
+        setBookings([]);
+
+        if (error instanceof DOMException && error.name === "AbortError") {
+          setBookingsError(`${t("bookings.errorLoad")} Request timed out. Please retry.`);
+        } else {
+          setBookingsError(error instanceof Error ? error.message : t("bookings.errorLoad"));
+        }
+      } finally {
+        window.clearTimeout(timeoutId);
+        if (isActive) {
+          setBookingsLoading(false);
+        }
+      }
+    }
+
+    void loadBookings();
+
+    return () => {
+      isActive = false;
+      controller.abort();
+      window.clearTimeout(timeoutId);
+    };
+  }, [t]);
 
   return (
     <div className="space-y-5">
@@ -84,7 +154,12 @@ export default function DashboardPage() {
 
       <section className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
         <NextPlanCard day={nextDay} />
-        <NeedsAttentionCard bookings={priorityBookings} totalCount={pendingBookings.length} />
+        <NeedsAttentionCard
+          bookings={priorityBookings}
+          totalCount={pendingBookings.length}
+          loading={bookingsLoading}
+          error={bookingsError}
+        />
       </section>
 
       <section className="grid gap-5 lg:grid-cols-[1fr_0.95fr]">
@@ -192,9 +267,13 @@ function NextPlanCard({ day }: { day: (typeof itinerary)[number] }) {
 
 function NeedsAttentionCard({
   bookings,
+  error,
+  loading,
   totalCount
 }: {
-  bookings: Booking[];
+  bookings: SharedBooking[];
+  error: string | null;
+  loading: boolean;
   totalCount: number;
 }) {
   const { language, t } = useLanguage();
@@ -223,31 +302,41 @@ function NeedsAttentionCard({
       </div>
 
       <div className="mt-3 space-y-2">
-        {bookings.length === 0 ? (
+        {loading ? (
+          <p className="rounded-md bg-white/70 px-3 py-3 text-sm text-zinc-600">
+            {t("bookings.loading")}
+          </p>
+        ) : null}
+        {error && !loading ? (
+          <p className="rounded-md bg-red-50 px-3 py-3 text-sm text-red-700">
+            {error}
+          </p>
+        ) : null}
+        {!loading && !error && bookings.length === 0 ? (
           <p className="rounded-md bg-white/70 px-3 py-3 text-sm text-zinc-600">
             {t("dashboard.noBookingAttention")}
           </p>
         ) : null}
-        {bookings.map((booking) => (
+        {!loading && !error ? bookings.map((booking) => (
           <div
             key={booking.id}
             className="flex min-w-0 flex-col gap-2 rounded-md bg-white/72 px-3 py-2 sm:flex-row sm:items-center sm:justify-between"
           >
             <div className="min-w-0">
-              <p className="break-words text-sm font-semibold text-ink">{booking.title}</p>
+              <p className="break-words text-sm font-semibold text-ink">{booking.description}</p>
               <p className="mt-0.5 text-xs text-zinc-500">
                 {translateText(language, booking.category)} - {booking.date}
               </p>
             </div>
             <StatusBadge status={booking.status} />
           </div>
-        ))}
+        )) : null}
       </div>
     </article>
   );
 }
 
-function attentionScore(status: Booking["status"]) {
+function attentionScore(status: SharedBooking["status"]) {
   if (status === "Need Confirmation") {
     return 3;
   }
@@ -261,6 +350,22 @@ function attentionScore(status: Booking["status"]) {
   }
 
   return 0;
+}
+
+function isSharedBooking(value: unknown): value is SharedBooking {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+
+  const booking = value as Partial<SharedBooking>;
+  return (
+    typeof booking.id === "string" &&
+    typeof booking.category === "string" &&
+    typeof booking.description === "string" &&
+    typeof booking.date === "string" &&
+    typeof booking.bookedBy === "string" &&
+    typeof booking.status === "string"
+  );
 }
 
 function formatDate(value: string) {

@@ -16,11 +16,10 @@ import {
 } from "@/lib/sharedDataTypes";
 import type { Traveler } from "@/data/tripData";
 
-const cityFilters = ["All", "Rome", "Vatican City", "Florence", "Venice", "Milan"] as const;
 const requestTimeoutMs = 10000;
 const monthLabels = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-type CityFilter = (typeof cityFilters)[number];
+type CityFilter = "All" | string;
 type DateFilter = "All";
 type ItineraryApiResponse = {
   itineraryItems?: SharedItineraryItem[];
@@ -102,6 +101,10 @@ export function ItineraryClient() {
     () => Array.from(new Set(items.map((item) => item.travelDate))).sort(),
     [items]
   );
+  const cityFilters = useMemo(
+    () => ["All", ...Array.from(new Set(items.map((item) => item.city).filter(Boolean))).sort()],
+    [items]
+  );
 
   const visibleItems = useMemo(
     () =>
@@ -166,6 +169,12 @@ export function ItineraryClient() {
   useEffect(() => {
     void loadItems();
   }, []);
+
+  useEffect(() => {
+    if (selectedCity !== "All" && !cityFilters.includes(selectedCity)) {
+      setSelectedCity("All");
+    }
+  }, [cityFilters, selectedCity]);
 
   function resetForm() {
     setEditingId(null);
