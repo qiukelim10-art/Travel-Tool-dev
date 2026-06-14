@@ -21,6 +21,7 @@ import {
   packingTravelerStatuses,
   reminderPriorities,
   type BookingInput,
+  type ExpenseCategory,
   type ExpenseInput,
   type PackingCategory,
   type PackingInput,
@@ -1332,6 +1333,13 @@ export function validateBookingInput(input: Partial<BookingInput>) {
   const currency = input.currency || null;
   const notes = String(input.notes ?? "").trim();
   const status = input.status;
+  const budgetPaidByTravelerId = String(input.budgetPaidByTravelerId ?? "").trim();
+  const budgetSplitTravelerIds = Array.isArray(input.budgetSplitTravelerIds)
+    ? Array.from(
+        new Set(input.budgetSplitTravelerIds.map((travelerId) => String(travelerId).trim()).filter(Boolean))
+      )
+    : undefined;
+  const budgetSettled = Boolean(input.budgetSettled);
 
   if (!category || !(bookingCategories as readonly string[]).includes(category)) {
     throw new Error("Booking category is invalid.");
@@ -1353,6 +1361,10 @@ export function validateBookingInput(input: Partial<BookingInput>) {
     throw new Error("Amount must be zero or greater.");
   }
 
+  if (amount !== null && amount > 0 && !currency) {
+    throw new Error("Currency is required when amount is set.");
+  }
+
   if (currency !== null && !(bookingCurrencies as readonly string[]).includes(currency)) {
     throw new Error("Currency is invalid.");
   }
@@ -1370,7 +1382,10 @@ export function validateBookingInput(input: Partial<BookingInput>) {
     amount,
     currency,
     notes: notes || undefined,
-    status
+    status,
+    budgetPaidByTravelerId: budgetPaidByTravelerId || undefined,
+    budgetSplitTravelerIds,
+    budgetSettled
   };
 }
 
@@ -1760,54 +1775,234 @@ export async function listBookings() {
   return rows.map(mapBooking);
 }
 
+function bookingCategoryToExpenseCategory(category: SharedBooking["category"]): ExpenseCategory {
+  switch (category) {
+    case "Flight":
+      return "Flight";
+    case "Hotel":
+      return "Accommodation";
+    case "Train":
+      return "Transport";
+    case "Attraction":
+      return "Attraction";
+    case "Restaurant":
+      return "Food";
+    case "Insurance":
+      return "Insurance";
+    default:
+      return "Other";
+  }
+}
+
+function findTravelerByDisplayName(bookedBy: string, travelers: TripTraveler[]) {
+  const normalizedBookedBy = bookedBy.trim().toLowerCase();
+
+  return travelers.find((traveler) => {
+    const names = [traveler.id, traveler.name, traveler.displayName].map((name) => name.trim().toLowerCase());
+    return names.includes(normalizedBookedBy);
+  });
+}
+
+async function getExpenseSplitTravelerIds(executor: MysqlConnection | MysqlPool, expenseId: string) {
+  const [splitRows] = await executor.execute<DbRow[]>(
+    "SELECT traveler_id FROM expense_splits WHERE expense_id = ? ORDER BY created_at ASC, traveler_id ASC",
+    [expenseId]
+  );
+
+  return splitRows.map((row) => asString(row.traveler_id));
+}
+
+async function syncBookingBudgetExpense(
+  executor: MysqlConnection | MysqlPool,
+  bookingId: string,
+  input: BookingInput,
+  options: { preserveExistingBudgetFields?: boolean } = {}
+) {
+  const [existingExpenseRows] = await executor.execute<DbRow[]>(
+    "SELECT * FROM expenses WHERE source_type = 'booking' AND source_id = ? ORDER BY created_at ASC, id ASC",
+    [bookingId]
+  );
+  const primaryExpense = existingExpenseRows[0];
+
+  if (!input.amount || input.amount <= 0 || !input.currency) {
+    await executor.execute("DELETE FROM expenses WHERE source_type = 'booking' AND source_id = ?", [bookingId]);
+    return;
+  }
+
+  const tripTravelers = await listTripTravelersForBusinessData();
+  const fallbackTravelers = tripTravelers.filter((traveler) => traveler.isActive);
+  const eligibleTravelers = fallbackTravelers.length > 0 ? fallbackTravelers : tripTravelers;
+  const allowedTravelerIds = new Set(tripTravelers.map((traveler) => traveler.id));
+  const matchedBookedByTraveler = findTravelerByDisplayName(input.bookedBy, eligibleTravelers);
+  const existingSplitTravelerIds = primaryExpense
+    ? (await getExpenseSplitTravelerIds(executor, asString(primaryExpense.id))).filter((travelerId) =>
+        allowedTravelerIds.has(travelerId)
+      )
+    : [];
+  const providedSplitTravelerIds = input.budgetSplitTravelerIds;
+  const paidByTravelerId =
+    input.budgetPaidByTravelerId && allowedTravelerIds.has(input.budgetPaidByTravelerId)
+      ? input.budgetPaidByTravelerId
+      : options.preserveExistingBudgetFields &&
+          primaryExpense &&
+          allowedTravelerIds.has(asString(primaryExpense.paid_by_traveler_id))
+        ? asString(primaryExpense.paid_by_traveler_id)
+        : matchedBookedByTraveler?.id ?? eligibleTravelers[0]?.id;
+  const splitTravelerIds =
+    providedSplitTravelerIds === undefined
+      ? options.preserveExistingBudgetFields && existingSplitTravelerIds.length > 0
+        ? existingSplitTravelerIds
+        : eligibleTravelers.map((traveler) => traveler.id)
+      : providedSplitTravelerIds;
+
+  if (!paidByTravelerId) {
+    throw new Error("Paid by traveler is required for booking budget sync.");
+  }
+
+  if (splitTravelerIds.length === 0) {
+    throw new Error("Select at least one traveler to split this booking cost.");
+  }
+
+  for (const travelerId of splitTravelerIds) {
+    assertTravelerId(travelerId, allowedTravelerIds, "Split traveler");
+  }
+
+  const expenseId = primaryExpense ? asString(primaryExpense.id) : randomUUID();
+  const settled =
+    input.budgetSettled ??
+    (options.preserveExistingBudgetFields && primaryExpense ? asBoolean(primaryExpense.settled) : false);
+
+  if (primaryExpense) {
+    await executor.execute(
+      `UPDATE expenses
+       SET title = ?, category = ?, amount = ?, currency = ?,
+           paid_by_traveler_id = ?, settled = ?, expense_date = ?, notes = ?
+       WHERE id = ?`,
+      [
+        input.description,
+        bookingCategoryToExpenseCategory(input.category),
+        input.amount,
+        input.currency,
+        paidByTravelerId,
+        settled ? 1 : 0,
+        input.date,
+        input.notes || null,
+        expenseId
+      ]
+    );
+    await executor.execute("DELETE FROM expenses WHERE source_type = 'booking' AND source_id = ? AND id <> ?", [
+      bookingId,
+      expenseId
+    ]);
+    await executor.execute("DELETE FROM expense_splits WHERE expense_id = ?", [expenseId]);
+  } else {
+    await executor.execute(
+      `INSERT INTO expenses
+        (id, source_type, source_id, title, category, amount, currency,
+         paid_by_traveler_id, settled, expense_date, notes)
+       VALUES (?, 'booking', ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        expenseId,
+        bookingId,
+        input.description,
+        bookingCategoryToExpenseCategory(input.category),
+        input.amount,
+        input.currency,
+        paidByTravelerId,
+        settled ? 1 : 0,
+        input.date,
+        input.notes || null
+      ]
+    );
+  }
+
+  await insertExpenseSplits(executor, expenseId, splitTravelerIds);
+}
+
 export async function createBooking(input: BookingInput) {
   await ensureSharedDataStore();
   const id = randomUUID();
-  await getAppPool().execute(
-    `INSERT INTO booking_items
-      (id, category, description, booking_date, location, booked_by, amount, currency, notes, status)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [
-      id,
-      input.category,
-      input.description,
-      input.date,
-      input.location || null,
-      input.bookedBy,
-      input.amount ?? null,
-      input.currency ?? null,
-      input.notes || null,
-      input.status
-    ]
-  );
-  return id;
+  const connection = await getAppPool().getConnection();
+
+  try {
+    await connection.beginTransaction();
+    await connection.execute(
+      `INSERT INTO booking_items
+        (id, category, description, booking_date, location, booked_by, amount, currency, notes, status)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        id,
+        input.category,
+        input.description,
+        input.date,
+        input.location || null,
+        input.bookedBy,
+        input.amount ?? null,
+        input.currency ?? null,
+        input.notes || null,
+        input.status
+      ]
+    );
+    await syncBookingBudgetExpense(connection, id, input);
+    await connection.commit();
+    return id;
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
+  }
 }
 
 export async function updateBooking(id: string, input: BookingInput) {
   await ensureSharedDataStore();
-  await getAppPool().execute(
-    `UPDATE booking_items
-     SET category = ?, description = ?, booking_date = ?, location = ?, booked_by = ?,
-         amount = ?, currency = ?, notes = ?, status = ?
-     WHERE id = ?`,
-    [
-      input.category,
-      input.description,
-      input.date,
-      input.location || null,
-      input.bookedBy,
-      input.amount ?? null,
-      input.currency ?? null,
-      input.notes || null,
-      input.status,
-      id
-    ]
-  );
+  const connection = await getAppPool().getConnection();
+
+  try {
+    await connection.beginTransaction();
+    await connection.execute(
+      `UPDATE booking_items
+       SET category = ?, description = ?, booking_date = ?, location = ?, booked_by = ?,
+           amount = ?, currency = ?, notes = ?, status = ?
+       WHERE id = ?`,
+      [
+        input.category,
+        input.description,
+        input.date,
+        input.location || null,
+        input.bookedBy,
+        input.amount ?? null,
+        input.currency ?? null,
+        input.notes || null,
+        input.status,
+        id
+      ]
+    );
+    await syncBookingBudgetExpense(connection, id, input);
+    await connection.commit();
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
+  }
 }
 
 export async function deleteBooking(id: string) {
   await ensureSharedDataStore();
-  await getAppPool().execute("DELETE FROM booking_items WHERE id = ?", [id]);
+  const connection = await getAppPool().getConnection();
+
+  try {
+    await connection.beginTransaction();
+    await connection.execute("DELETE FROM expenses WHERE source_type = 'booking' AND source_id = ?", [id]);
+    await connection.execute("DELETE FROM booking_items WHERE id = ?", [id]);
+    await connection.commit();
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
+  }
 }
 
 export async function listItineraryItems() {
@@ -1914,7 +2109,7 @@ export async function listExpenses() {
 }
 
 async function insertExpenseSplits(
-  executor: MysqlConnection,
+  executor: MysqlConnection | MysqlPool,
   expenseId: string,
   splitTravelerIds: string[]
 ) {

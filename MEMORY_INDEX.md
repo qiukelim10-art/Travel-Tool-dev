@@ -13,7 +13,7 @@
 - English/Simplified Chinese switching exists for system UI labels, but full bilingual/content translation is not the current priority; user-entered trip content should remain untranslated.
 - Google Maps links remain available inside travel content where already useful, but standalone Map/Food/Attractions pages are no longer maintained.
 - Shared reminders, bookings, itinerary, and packing now use local Next API + MySQL prototype paths with CRUD and filtering.
-- Budget now uses the shared expense ledger for its page UI and supports miscellaneous expense CRUD; Itinerary and Booking linked expense UI have been added.
+- Budget now uses the shared expense ledger for its page UI and supports miscellaneous expense CRUD; Itinerary still has linked expense UI, while Booking amounts now auto-sync into Budget as single booking-source expenses.
 - Documents is now a shared MySQL/API CRUD checklist with per-traveler statuses and optional protected folder links.
 - Bookings, Itinerary, and Budget have a second mobile polish pass focused on collapsed sections and lighter first-screen page weight.
 - Dashboard budget overview now reads the unified expense ledger through `/api/expenses` instead of static `tripData.ts` expenses.
@@ -61,11 +61,12 @@
 - Dashboard money snapshot intentionally stays compact; full expense ledger review and management should remain on `/budget`.
 - Budget and Dashboard summarize EUR, SGD, and MYR separately; the app does not perform exchange-rate conversion.
 - Itinerary cards can display, add, edit, and delete linked ledger expenses where `sourceType = itinerary` and `sourceId` is the itinerary item id.
-- Booking rows/cards can display, add, edit, and delete linked ledger expenses where `sourceType = booking` and `sourceId` is the booking item id.
-- Booking Add/Edit is collapsed by default on the page, while Booking and Itinerary linked expense sections keep Add expense visible and move full expense lists/forms behind a details toggle.
-- Bookings, Budget, and Itinerary linked expense mobile forms use scoped `mobile-safe-form` protection to reduce iPhone Safari input/date/select overflow risk.
+- Booking rows/cards no longer expose separate linked expense controls; a positive Booking `amount/currency` automatically creates or updates one `sourceType = booking` expense with paid-by, split traveler, and settled fields from the Booking form.
+- Booking-to-Budget sync must stay on Booking create/update/delete only; `/api/bookings` and `/api/expenses` GET paths must remain read-only to avoid concurrent `expense_splits` duplicate-key and deadlock errors.
+- Booking Add/Edit is collapsed by default on the page, and its form includes Budget split controls only when amount is filled. Itinerary linked expense sections still keep Add expense visible and move full expense lists/forms behind a details toggle.
+- Budget and Itinerary linked expense mobile forms use scoped `mobile-safe-form` protection to reduce iPhone Safari input/date/select overflow risk; Booking uses the same mobile-safe form pattern for its main form and Budget split controls.
 - Expense ledger uses stable traveler IDs (`person_a`, `person_b`, `person_c`, `person_d`) for payer and split values; display names should remain presentation-only.
-- Itinerary `cost_amount` and booking `amount` are reference fields only unless the user explicitly creates linked ledger expenses from them.
+- Itinerary `cost_amount` is not used for Budget; Booking `amount/currency` is the Booking-to-Budget entry point and auto-syncs a single booking-source ledger expense when amount is positive.
 - Desktop navigation shows the main pages except Emergency; mobile bottom navigation includes Dashboard, Itinerary, Bookings, Budget, and More.
 - Emergency access is now a small SOS quick-action panel on the Dashboard, and `/emergency` redirects back to `/`.
 - Do not require every new website change to be bilingual yet; revisit full English/Simplified Chinese switching after the site structure and content are mostly finalized.

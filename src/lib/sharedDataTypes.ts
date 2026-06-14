@@ -193,6 +193,9 @@ export type BookingInput = {
   currency?: SharedCurrency | null;
   notes?: string;
   status: BookingStatus;
+  budgetPaidByTravelerId?: string | null;
+  budgetSplitTravelerIds?: string[];
+  budgetSettled?: boolean;
 };
 
 export type SharedPackingTravelerStatus = {

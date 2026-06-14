@@ -8,6 +8,7 @@
 - The zero-cost production deployment is live at `https://italy-trip-2026-cyan.vercel.app` using Vercel Hobby + Aiven Free MySQL; keep using free-tier resources only.
 - Stop immediately if Vercel or Aiven asks for a paid plan or payment method.
 - Confirm the active branch and current user request before resuming any old branch-specific work.
+- Commit the approved Booking-to-Budget auto-sync change on `codex/compact-itinerary-cards`, then deploy it when the user asks to proceed.
 - Decide whether to add simple shared-password protection before entering real private trip details.
 - Use `REAL_DATA_ENTRY_GUIDE.md` and `REAL_DATA_CHECKLIST.md` when replacing placeholder data with safe, non-sensitive real trip summaries.
 - Keep real private data out of the repo unless the user explicitly asks for a protected handling approach first.

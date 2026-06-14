@@ -2,6 +2,15 @@
 
 ## 2026-06-14
 
+- User reviewed the Booking-to-Budget auto-sync change on desktop and phone and confirmed the feature is satisfactory.
+- Re-ran final verification for the approved change: `npm run lint`, `npm run build`, desktop/LAN page and API HTTP 200 checks, and concurrent read checks all passed.
+- Prepared a temporary handoff document for the next session and a suggested commit message; no commit has been made yet.
+- Fixed the Booking-to-Budget auto-sync regression that caused duplicate `expense_splits` and MySQL deadlock errors on Dashboard, Bookings, Itinerary, and Budget: booking/expense GET paths are read-only again, and booking-source expense sync now runs only during Booking create/update/delete.
+- Verified the regression fix with sequential `npm run lint`, `npm run build`, local/LAN page and API HTTP 200 checks, 30 concurrent API reads with all 200 responses, and a temporary Booking create/delete sync test that was cleaned up.
+- Reworked Booking budget integration on `codex/compact-itinerary-cards`: Booking no longer exposes separate linked expense controls, and a positive booking `amount/currency` now automatically syncs one `sourceType=booking` expense for Budget summary, Dashboard money snapshot, and settlement suggestions.
+- Added Booking form budget split controls for paid-by traveler, split travelers, and settled state; empty or zero booking amounts do not create Budget expenses.
+- Added idempotent cleanup/sync for existing booking-source expenses so each booking keeps at most one automatic Budget expense and stale booking expenses are removed when booking amount is empty.
+- Verified with `npm run build`, sequential `npm run lint`, local and LAN `/bookings`, `/budget`, `/api/bookings`, `/api/expenses` HTTP 200 checks, temporary booking amount sync create/update/clear/delete cleanup, and Chrome desktop/mobile no-horizontal-overflow QA.
 - Checkpoint: the user has shared the live site link with the travel group for collaborative editing; no further UI work is planned unless issues are reported later.
 - Added a concise bilingual Chinese/English traveler quick-start guide in both `USER_GUIDE.md` and `Italy Trip 2026 Quick User Guide.docx`, covering where to find information, basic add/edit/delete actions, linked expenses, document access codes, and sensitive information that must not be entered.
 - Fixed two post-deploy UI data-source mismatches without changing the broader UI style: Dashboard booking attention now reads `/api/bookings` instead of static seed bookings, clears stale booking rows on request failure/timeout, and Itinerary city filter buttons are generated from current itinerary API items instead of a hardcoded city list.
