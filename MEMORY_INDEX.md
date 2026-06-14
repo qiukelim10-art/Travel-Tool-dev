@@ -22,12 +22,11 @@
 - The shared expense ledger now supports EUR, SGD, and MYR.
 - Real-data preparation docs now exist: `REAL_DATA_ENTRY_GUIDE.md` and `REAL_DATA_CHECKLIST.md`.
 - Phase 1 reusable trip dashboard foundation now exists on `codex/trip-settings-foundation`: active trip settings use `trips`, `trip_travelers`, and `trip_route_stops`; `/api/trip-settings` supports read/write for the single active trip, and `/settings` edits trip basics, currencies, timezone, notes, travelers, and route stops.
-- The second-round Universal Travel Cockpit UI polish is user-approved on `codex/ui-skill-research`; final build/lint, desktop/LAN page/API checks, and mobile no-horizontal-overflow QA passed. Commit is pending an explicit user request.
+- The second-round Universal Travel Cockpit UI polish was committed on `codex/ui-skill-research` and merged into `master`; final build/lint, desktop/LAN page/API checks, and mobile no-horizontal-overflow QA passed before merge.
 
 ## Highest Priority Task
 
 - Keep memory files focused on current active work; branch-specific review, commit, and merge tasks should only be reintroduced when the user explicitly resumes that branch.
-- Commit the user-approved `codex/ui-skill-research` UI polish only when the user explicitly asks to commit or publish it.
 - Decide whether to add simple shared-password protection before entering real private trip details.
 - Manually replace safe placeholder data with non-sensitive real trip summaries using `REAL_DATA_ENTRY_GUIDE.md` and `REAL_DATA_CHECKLIST.md` when the user provides approved details.
 - Keep sensitive documents, passport numbers, payment details, insurance files, and full booking confirmations out of the repo.

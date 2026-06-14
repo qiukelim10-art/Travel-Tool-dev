@@ -3,6 +3,7 @@
 ## 2026-06-14
 
 - Completed the user-approved second-round Universal Travel Cockpit UI polish on `codex/ui-skill-research`: the Dashboard, Itinerary, Bookings, Budget, Documents, Packing, reminders, and shared navigation now use a denser mobile-first travel control-panel layout while preserving existing functionality.
+- Committed the approved UI polish as `24beeab` and merged `codex/ui-skill-research` back into `master`.
 - Final verification passed with `npm run build`, sequential `npm run lint`, desktop and phone LAN page/API HTTP 200 checks on port 3000, and Chrome 390px/360px/768px no-horizontal-overflow QA across the main pages.
 - Increased mobile information density across the review surfaces: reminder, itinerary, booking, and budget item actions now sit closer to their primary information instead of taking separate full-width rows where possible.
 - Reworked Packing item cards into compact checklist rows: traveler statuses now show as four small status cells per item, low-value default metadata is hidden from the list view, and the filter/add area is more compact so users can scan more items without excessive scrolling.
