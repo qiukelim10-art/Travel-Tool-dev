@@ -2,6 +2,8 @@
 
 ## Current Priority
 
+- Review the uncommitted `codex/public-vercel-deploy` pre-launch deployment-prep changes before any deploy, data migration, or commit.
+- After review approval, commit the pre-launch prep changes, then follow `DEPLOYMENT_PREVIEW_GUIDE.md`: create the remote MySQL schema with `database/managed-schema.sql`, apply `database/preview-seed.sql`, set Vercel Preview env vars, and use `MYSQL_MANAGED_SCHEMA=true` plus `MYSQL_SSL=true`.
 - Confirm the active branch and current user request before resuming any old branch-specific work.
 - Decide whether to add simple shared-password protection before entering real private trip details.
 - Use `REAL_DATA_ENTRY_GUIDE.md` and `REAL_DATA_CHECKLIST.md` when replacing placeholder data with safe, non-sensitive real trip summaries.

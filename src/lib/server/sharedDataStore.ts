@@ -106,8 +106,16 @@ function assertSafeIdentifier(value: string) {
   }
 }
 
+function isEnvEnabled(name: string) {
+  return ["1", "true", "yes", "on"].includes(String(process.env[name] ?? "").trim().toLowerCase());
+}
+
+function usesManagedSchema() {
+  return isEnvEnabled("MYSQL_MANAGED_SCHEMA");
+}
+
 function baseConfig() {
-  return {
+  const config: Record<string, unknown> = {
     host: process.env.MYSQL_HOST || "127.0.0.1",
     port: Number(process.env.MYSQL_PORT || 3306),
     user: process.env.MYSQL_USER || "root",
@@ -116,6 +124,12 @@ function baseConfig() {
     connectionLimit: 5,
     namedPlaceholders: false
   };
+
+  if (isEnvEnabled("MYSQL_SSL")) {
+    config.ssl = { rejectUnauthorized: true };
+  }
+
+  return config;
 }
 
 function getServerPool() {
@@ -1082,10 +1096,13 @@ export async function ensureSharedDataStore() {
   }
 
   sharedDataStoreState.initializePromise = (async () => {
-    await ensureDatabase();
-    await createTables();
-    await updateCurrencyEnums();
-    await seedTables();
+    if (!usesManagedSchema()) {
+      await ensureDatabase();
+      await createTables();
+      await updateCurrencyEnums();
+      await seedTables();
+    }
+
     sharedDataStoreState.initialized = true;
   })();
 

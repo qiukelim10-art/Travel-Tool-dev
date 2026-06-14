@@ -2,6 +2,11 @@
 
 ## 2026-06-14
 
+- Prepared the `codex/public-vercel-deploy` branch for Vercel + PlanetScale preview review without changing UI or app features: package scripts now use portable Next/TypeScript commands, npm is the intended package manager, stale pnpm lockfile was removed, and shared MySQL initialization can be disabled for managed schemas with `MYSQL_MANAGED_SCHEMA=true`.
+- Added `MYSQL_SSL` support for hosted MySQL connections and made `.env.example` trackable while keeping real `.env.local` secrets ignored.
+- Added `DEPLOYMENT_PREVIEW_GUIDE.md` and `database/preview-seed.sql` so a managed PlanetScale preview database can be prepared without relying on runtime schema creation; the seed contains only safe placeholder active trip settings, travelers, and route stops.
+- Added `database/managed-schema.sql` for hosted database setup and `/api/health` for deployment smoke checks without exposing database error details.
+- Verified the deployment-prep changes with `npm.cmd run lint`, `npm.cmd run build`, and a temporary production server smoke check on port 3148 for `/`, `/api/health`, `/api/trip-settings`, `/api/reminders`, `/api/bookings`, `/api/itinerary`, `/api/expenses`, `/api/packing`, and `/api/documents`; all returned HTTP 200.
 - Completed the user-approved second-round Universal Travel Cockpit UI polish on `codex/ui-skill-research`: the Dashboard, Itinerary, Bookings, Budget, Documents, Packing, reminders, and shared navigation now use a denser mobile-first travel control-panel layout while preserving existing functionality.
 - Committed the approved UI polish as `24beeab` and merged `codex/ui-skill-research` back into `master`.
 - Final verification passed with `npm run build`, sequential `npm run lint`, desktop and phone LAN page/API HTTP 200 checks on port 3000, and Chrome 390px/360px/768px no-horizontal-overflow QA across the main pages.

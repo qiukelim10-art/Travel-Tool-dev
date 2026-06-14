@@ -3,11 +3,15 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "\"C:\\Users\\qiuke\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\node\\bin\\node.exe\" node_modules/next/dist/bin/next dev --webpack",
-    "build": "\"C:\\Users\\qiuke\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\node\\bin\\node.exe\" node_modules/next/dist/bin/next build --webpack",
-    "start": "\"C:\\Users\\qiuke\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\node\\bin\\node.exe\" node_modules/next/dist/bin/next start",
-    "lint": "\"C:\\Users\\qiuke\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\node\\bin\\node.exe\" node_modules/typescript/bin/tsc --noEmit"
+    "dev": "next dev --webpack",
+    "build": "next build --webpack",
+    "start": "next start",
+    "lint": "tsc --noEmit"
   },
+  "engines": {
+    "node": "24.x"
+  },
+  "packageManager": "npm@11.13.0",
   "dependencies": {
     "mysql2": "^3.11.5",
     "next": "16.2.9",
