@@ -168,18 +168,18 @@ export function RemindersClient({ participants }: RemindersClientProps) {
             {t("reminders.description")}
           </p>
         </div>
-        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+        <div className="grid w-full grid-cols-2 gap-2 sm:w-auto">
           <button
             type="button"
             onClick={startAdding}
-            className="w-full rounded-md bg-moss px-3 py-2 text-sm font-semibold text-white sm:w-auto"
+            className="rounded-md bg-moss px-3 py-2 text-sm font-semibold text-white"
           >
             {t("reminders.add")}
           </button>
           <button
             type="button"
             onClick={() => setExpanded((current) => !current)}
-            className="w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold text-ink sm:w-auto"
+            className="rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold text-ink"
           >
             {expanded ? t("reminders.showLess") : t("reminders.manage")}
           </button>
@@ -297,8 +297,8 @@ export function RemindersClient({ participants }: RemindersClientProps) {
 
       <ul className="mt-4 space-y-2">
         {displayedReminders.map((reminder) => (
-          <li key={reminder.id} className="rounded-lg bg-zinc-50 px-3 py-3 text-sm text-zinc-700">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <li key={reminder.id} className="rounded-lg bg-zinc-50 px-3 py-2 text-sm text-zinc-700">
+            <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className={`rounded-full px-2 py-1 text-xs font-semibold ${priorityClass[reminder.priority]}`}>
@@ -308,13 +308,13 @@ export function RemindersClient({ participants }: RemindersClientProps) {
                     {t("common.by")} {reminder.createdBy}
                   </span>
                 </div>
-                <p className="mt-2 break-words leading-6 text-ink">{reminder.text}</p>
+                <p className="mt-2 break-words leading-5 text-ink">{reminder.text}</p>
               </div>
-              <div className="flex shrink-0 gap-2">
+              <div className="flex shrink-0 gap-1.5">
                 <button
                   type="button"
                   onClick={() => startEditing(reminder)}
-                  className="rounded-md border border-zinc-200 bg-white px-2 py-1 text-xs font-semibold text-ink"
+                  className="rounded-md border border-zinc-200 bg-white px-2 py-1.5 text-xs font-semibold text-ink"
                 >
                   {t("common.edit")}
                 </button>
@@ -322,7 +322,7 @@ export function RemindersClient({ participants }: RemindersClientProps) {
                   type="button"
                   onClick={() => void removeReminder(reminder)}
                   disabled={deletingId === reminder.id}
-                  className="rounded-md border border-red-200 bg-white px-2 py-1 text-xs font-semibold text-red-700 disabled:opacity-60"
+                  className="rounded-md border border-red-200 bg-white px-2 py-1.5 text-xs font-semibold text-red-700 disabled:opacity-60"
                 >
                   {deletingId === reminder.id ? t("reminders.deleting") : t("common.delete")}
                 </button>

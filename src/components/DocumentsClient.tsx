@@ -342,23 +342,23 @@ export function DocumentsClient({ travelers: initialTravelers }: DocumentsClient
 
   return (
     <div className="w-full max-w-full min-w-0 overflow-x-hidden space-y-5">
-      <section className="rounded-lg border border-red-200 bg-red-50 p-4 shadow-soft">
-        <h2 className="text-lg font-semibold text-red-800">{t("documents.warningTitle")}</h2>
-        <p className="mt-2 text-sm leading-6 text-red-800">
+      <section className="checklist-band p-4 shadow-soft">
+        <h2 className="text-lg font-semibold text-ink">{t("documents.warningTitle")}</h2>
+        <p className="mt-2 text-sm leading-6 text-zinc-700">
           {t("documents.warningDescription")}
         </p>
       </section>
 
-      <div className="compact-stats-strip grid grid-cols-2 gap-2 p-2 lg:grid-cols-4">
+      <div className="status-strip grid grid-cols-2 gap-2 p-2 lg:grid-cols-4">
         <CompactStat label={t("documents.summary.total")} value={String(documents.length)} />
         <CompactStat label={t("documents.summary.highPriority")} value={String(highPriorityCount)} />
         <CompactStat label={t("documents.summary.readySaved")} value={String(readySavedCount)} />
         <CompactStat label={t("documents.summary.protectedLinks")} value={String(protectedCount)} warm={protectedCount > 0} />
       </div>
 
-      <div className="flex flex-col gap-3 rounded-lg border border-zinc-200 bg-white p-3 shadow-soft sm:flex-row sm:items-center sm:justify-between">
+      <div className="travel-panel flex flex-col gap-3 p-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
-          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-terracotta">{t("documents.checklist")}</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-stamp">{t("documents.checklist")}</p>
           <p className="mt-1 text-sm text-zinc-600">
             {t("documents.visibleSummary", { visible: visibleDocuments.length, total: documents.length })}
           </p>
@@ -478,7 +478,9 @@ function CompactStat({
 }) {
   return (
     <div className={`compact-stat ${warm ? "bg-amber-50" : ""}`}>
-      <p className="truncate text-xs font-semibold uppercase tracking-[0.08em] text-zinc-500">{label}</p>
+      <p className="min-h-8 break-words text-[0.65rem] font-semibold uppercase leading-4 tracking-[0.08em] text-zinc-500 sm:min-h-0 sm:text-xs">
+        {label}
+      </p>
       <p className={`mt-1 text-xl font-semibold ${warm ? "text-amber-800" : "text-ink"}`}>{value}</p>
     </div>
   );
@@ -684,10 +686,10 @@ function FilterSection({
   const { language, t } = useLanguage();
 
   return (
-    <section className="rounded-lg border border-zinc-200 bg-white p-3 shadow-soft">
+    <section className="travel-panel p-3">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
-          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-terracotta">{t("documents.filters.title")}</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-stamp">{t("documents.filters.title")}</p>
           <p className="mt-1 text-sm text-zinc-600">
             {translateOption(language, categoryFilter)} / {translateOption(language, priorityFilter)} / {translateOption(language, statusFilter)} / {translateOption(language, protectedFilter)}
           </p>
@@ -768,7 +770,7 @@ function DocumentCard({
   const folderUrl = document.externalUrl ?? unlockedUrl ?? null;
 
   return (
-    <article className="rounded-lg border border-zinc-200 bg-white p-4 shadow-soft">
+    <article className="checklist-band p-4 shadow-soft">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
@@ -810,7 +812,7 @@ function DocumentCard({
 
       <div className="mt-4 grid gap-2 sm:grid-cols-2">
         {document.statuses.map((status) => (
-          <div key={status.travelerId} className="rounded-lg bg-zinc-50 p-3">
+          <div key={status.travelerId} className="rounded-lg bg-white/75 p-3">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <p className="text-sm font-semibold text-ink">
                 {travelerNameById.get(status.travelerId) ?? status.travelerId}
@@ -823,7 +825,7 @@ function DocumentCard({
         ))}
       </div>
 
-      <div className="mt-4 rounded-lg bg-zinc-50 p-3">
+      <div className="mt-4 rounded-lg bg-white/70 p-3">
         {folderUrl ? (
           <a
             href={folderUrl}

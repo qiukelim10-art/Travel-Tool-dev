@@ -398,7 +398,7 @@ export function ItineraryClient() {
 
   return (
     <div className="w-full max-w-full min-w-0 space-y-5">
-      <div className="flex w-full max-w-full min-w-0 flex-col gap-3 rounded-lg border border-zinc-200 bg-white p-3 shadow-soft md:flex-row md:items-center md:justify-between">
+      <div className="travel-panel flex w-full max-w-full min-w-0 flex-col gap-3 p-3 md:flex-row md:items-center md:justify-between">
         <div className="scroll-fade-x -mx-1 flex max-w-full min-w-0 gap-2 overflow-x-auto px-1 pb-1 md:mx-0 md:pb-0">
           {cityFilters.map((city) => (
             <button
@@ -587,13 +587,23 @@ export function ItineraryClient() {
             />
           </div>
 
-          <button
-            type="submit"
-            disabled={submitting}
-            className="mt-4 box-border w-full max-w-full rounded-md bg-moss px-3 py-2 text-base font-semibold text-white disabled:opacity-60 sm:w-auto sm:text-sm"
-          >
-            {submitting ? t("common.saving") : editingId ? t("bookings.saveChanges") : t("itinerary.addButton")}
-          </button>
+          <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+            <button
+              type="submit"
+              disabled={submitting}
+              className="box-border w-full max-w-full rounded-md bg-moss px-3 py-2 text-base font-semibold text-white disabled:opacity-60 sm:w-auto sm:text-sm"
+            >
+              {submitting ? t("common.saving") : editingId ? t("bookings.saveChanges") : t("itinerary.addButton")}
+            </button>
+            <button
+              type="button"
+              onClick={resetForm}
+              disabled={submitting}
+              className="box-border w-full max-w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-base font-semibold text-ink disabled:opacity-60 sm:w-auto sm:text-sm"
+            >
+              {editingId ? t("itinerary.cancelEdit") : t("itinerary.closeForm")}
+            </button>
+          </div>
         </form>
       ) : null}
 
@@ -638,10 +648,11 @@ export function ItineraryClient() {
 
       <div className="space-y-5">
         {groupedItems.map((group) => (
-          <section key={group.date} className="space-y-3">
-            <div className="flex items-center gap-3">
+          <section key={group.date} className="route-line space-y-3 pl-9">
+            <div className="relative flex items-center gap-3">
+              <span className="route-dot absolute -left-9 top-0" />
               <h2 className="text-lg font-semibold text-ink">{group.date}</h2>
-              <span className="h-px flex-1 bg-zinc-200" />
+              <span className="h-px flex-1 bg-route/20" />
             </div>
             <div className="grid gap-3">
               {group.items.map((item) => (
@@ -849,10 +860,10 @@ function ItineraryCard({
   }
 
   return (
-    <article className="rounded-lg border border-zinc-200 bg-white p-4 shadow-soft">
-      <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+    <article className="travel-panel p-3 sm:p-4">
+      <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-terracotta">
+          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-stamp">
             {formatTimeRange(item, t("itinerary.flexibleTime"))}
           </p>
           <h3 className="mt-1 text-xl font-semibold text-ink">{item.title}</h3>
@@ -865,7 +876,7 @@ function ItineraryCard({
           <button
             type="button"
             onClick={() => onEdit(item)}
-            className="rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold text-ink"
+            className="rounded-md border border-zinc-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-ink sm:px-3 sm:py-2 sm:text-sm"
           >
             {t("common.edit")}
           </button>
@@ -873,7 +884,7 @@ function ItineraryCard({
             type="button"
             onClick={() => void onDelete(item)}
             disabled={deletingId === item.id}
-            className="rounded-md border border-red-200 bg-white px-3 py-2 text-sm font-semibold text-red-700 disabled:opacity-60"
+            className="rounded-md border border-red-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-red-700 disabled:opacity-60 sm:px-3 sm:py-2 sm:text-sm"
           >
             {deletingId === item.id ? t("common.deleting") : t("common.delete")}
           </button>
@@ -885,7 +896,7 @@ function ItineraryCard({
           <RichTextBlock title={t("itinerary.details")} value={item.details} />
           <RichTextBlock title={t("common.notes")} value={item.notes} />
         </div>
-        <aside className="space-y-3 rounded-lg border border-zinc-200 bg-zinc-50 p-3">
+        <aside className="status-strip space-y-3 p-3">
           <RichTextBlock title={t("itinerary.transport")} value={item.transport} />
           <RichTextBlock title={t("itinerary.meal")} value={item.meal} />
           <div>
@@ -907,7 +918,7 @@ function ItineraryCard({
         </aside>
       </div>
 
-      <section className="mt-4 rounded-lg border border-zinc-200 bg-white p-3">
+      <section className="mt-4 rounded-lg border border-route/15 bg-sandlight p-3">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
             <p className="text-xs font-semibold uppercase tracking-[0.08em] text-terracotta">
@@ -922,18 +933,18 @@ function ItineraryCard({
               </span>
             </div>
           </div>
-          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+          <div className="grid w-full grid-cols-2 gap-2 sm:w-auto sm:flex-none sm:grid-cols-none sm:flex sm:flex-row">
             <button
               type="button"
               onClick={() => setExpenseDetailsOpen((current) => !current)}
-              className="w-full max-w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold text-ink sm:w-auto"
+              className="max-w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold text-ink"
             >
               {expenseDetailsVisible ? t("linkedExpenses.hideDetails") : t("linkedExpenses.showDetails")}
             </button>
             <button
               type="button"
               onClick={handleAddExpense}
-              className="w-full max-w-full rounded-md bg-moss px-3 py-2 text-sm font-semibold text-white sm:w-auto"
+              className="max-w-full rounded-md bg-moss px-3 py-2 text-sm font-semibold text-white"
             >
               {t("linkedExpenses.add")}
             </button>

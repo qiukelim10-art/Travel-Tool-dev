@@ -8,6 +8,7 @@
 - Keep real private data out of the repo unless the user explicitly asks for a protected handling approach first.
 - Keep standalone Map, Food, and Attractions pages removed unless the user later asks for a real in-app feature beyond Google Maps app links.
 - Keep the mobile browsing experience clear, practical, and easy for all 4 travellers.
+- Commit the user-approved second-round Universal Travel Cockpit UI polish only when the user explicitly asks to commit or publish it.
 - When a website change is ready for review, give both the computer URL and phone URL with verified page/API status.
 - If phone loading appears again after changing Wi-Fi/hotspot, check whether the new LAN IP needs to be added to `next.config.mjs` `allowedDevOrigins`.
 

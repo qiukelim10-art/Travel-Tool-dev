@@ -75,6 +75,9 @@ const translations = {
 
     "dashboard.eyebrow": "Private trip dashboard",
     "dashboard.travellers": "travellers",
+    "dashboard.dates": "Dates",
+    "dashboard.route": "Route",
+    "dashboard.crew": "Crew",
     "dashboard.nextUp": "Next up",
     "dashboard.day": "Day {day}",
     "dashboard.viewItinerary": "View itinerary",
@@ -515,6 +518,9 @@ const translations = {
 
     "dashboard.eyebrow": "私人旅行总览",
     "dashboard.travellers": "位成员",
+    "dashboard.dates": "日期",
+    "dashboard.route": "路线",
+    "dashboard.crew": "成员",
     "dashboard.nextUp": "下一步",
     "dashboard.day": "第 {day} 天",
     "dashboard.viewItinerary": "查看行程",

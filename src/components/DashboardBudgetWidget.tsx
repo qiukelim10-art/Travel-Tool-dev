@@ -73,10 +73,10 @@ export function DashboardBudgetWidget() {
   }, []);
 
   return (
-    <section className="rounded-lg border border-zinc-200 bg-white p-4 shadow-soft">
+    <section className="travel-panel p-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
-          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-terracotta">
+          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-stamp">
             {t("budgetWidget.eyebrow")}
           </p>
           <h2 className="mt-1 text-lg font-semibold text-ink">{t("budgetWidget.title")}</h2>
@@ -121,7 +121,7 @@ export function DashboardBudgetWidget() {
         <div className="mt-4 space-y-4">
           <div className="grid gap-2 sm:grid-cols-2">
             {summaries.map((summary) => (
-              <article key={summary.currency} className="rounded-lg bg-zinc-50 p-3">
+              <article key={summary.currency} className="ledger-row p-3">
                 <p className="text-xs font-semibold uppercase tracking-[0.08em] text-zinc-500">
                   {summary.currency}
                 </p>
@@ -135,7 +135,7 @@ export function DashboardBudgetWidget() {
             ))}
           </div>
 
-          <section className="rounded-lg bg-zinc-50 p-3">
+          <section className="status-strip p-3">
             <h3 className="text-sm font-semibold text-ink">{t("budgetWidget.topSettlements")}</h3>
             {settlementSuggestions.length > 0 ? (
               <ul className="mt-2 space-y-1.5">
@@ -163,7 +163,7 @@ export function DashboardBudgetWidget() {
           </section>
 
           {recentExpenses.length > 0 ? (
-            <section className="rounded-lg bg-zinc-50 p-3">
+            <section className="rounded-lg bg-sandlight p-3">
               <h3 className="text-sm font-semibold text-ink">{t("budgetWidget.recentExpenses")}</h3>
               <ul className="mt-2 space-y-1.5">
                 {recentExpenses.map((expense) => (

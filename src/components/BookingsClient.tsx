@@ -399,17 +399,17 @@ export function BookingsClient({ participants }: BookingsClientProps) {
 
   return (
     <div className="w-full max-w-full min-w-0 space-y-5">
-      <div className="compact-stats-strip grid grid-cols-3 gap-2 p-2">
+      <div className="status-strip grid grid-cols-3 gap-2 p-2">
         <SummaryPill label={t("bookings.summary.total")} value={String(bookings.length)} />
         <SummaryPill label={t("bookings.summary.needAction")} value={String(incompleteCount)} />
         <SummaryPill label={t("common.visible")} value={String(visibleBookings.length)} />
       </div>
 
       {!formOpen ? (
-        <section className="rounded-lg border border-zinc-200 bg-white p-3 shadow-soft">
+        <section className="travel-panel p-3">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0">
-              <p className="text-xs font-semibold uppercase tracking-[0.08em] text-terracotta">
+              <p className="text-xs font-semibold uppercase tracking-[0.08em] text-stamp">
                 {t("bookings.editor.eyebrow")}
               </p>
               <p className="mt-1 text-sm text-zinc-600">
@@ -535,7 +535,7 @@ export function BookingsClient({ participants }: BookingsClientProps) {
         </form>
       )}
 
-      <div className="grid gap-3 rounded-lg border border-zinc-200 bg-white p-3 sm:grid-cols-3">
+      <div className="travel-panel grid gap-3 p-3 sm:grid-cols-3">
         <SelectField
           name="booking-filter-category"
           label={t("common.category")}
@@ -601,9 +601,9 @@ export function BookingsClient({ participants }: BookingsClientProps) {
         </p>
       ) : null}
 
-      <div className="hidden overflow-hidden rounded-lg border border-zinc-200 bg-white shadow-soft lg:block">
+      <div className="hidden overflow-hidden rounded-lg border border-route/15 bg-white shadow-soft lg:block">
         <table className="w-full text-left text-sm">
-          <thead className="bg-zinc-50 text-xs uppercase tracking-[0.08em] text-zinc-500">
+          <thead className="bg-sky/35 text-xs uppercase tracking-[0.08em] text-zinc-500">
             <tr>
               <th className="px-4 py-3">{t("common.category")}</th>
               <th className="px-4 py-3">{t("common.description")}</th>
@@ -647,7 +647,7 @@ export function BookingsClient({ participants }: BookingsClientProps) {
                     </td>
                   </tr>
                   <tr>
-                    <td colSpan={7} className="bg-zinc-50 px-4 py-4">
+                    <td colSpan={7} className="bg-sandlight px-4 py-4">
                       <BookingExpensesSection
                         booking={booking}
                         expenses={bookingExpenses}
@@ -745,17 +745,25 @@ function BookingCard({
   const { language, t } = useLanguage();
 
   return (
-    <article className="rounded-lg border border-zinc-200 bg-white p-4 shadow-soft">
+    <article className="travel-panel p-3 sm:p-4">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-zinc-500">
+          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-stamp">
             {translateOption(language, booking.category)}
           </p>
           <h2 className="mt-1 break-words text-lg font-semibold text-ink">{booking.description}</h2>
         </div>
-        <StatusBadge status={booking.status} />
+        <div className="flex shrink-0 flex-col items-end gap-2">
+          <StatusBadge status={booking.status} />
+          <ActionButtons
+            booking={booking}
+            deletingId={deletingId}
+            onEdit={onEdit}
+            onDelete={onDelete}
+          />
+        </div>
       </div>
-      <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
+      <dl className="mt-3 grid grid-cols-2 gap-3 text-sm">
         <Field label={t("common.date")} value={booking.date} />
         <Field label={t("common.location")} value={booking.location ?? t("common.tbc")} />
         <Field label={t("bookings.form.bookedBy")} value={booking.bookedBy} />
@@ -768,15 +776,7 @@ function BookingCard({
           }
         />
       </dl>
-      {booking.notes ? <p className="mt-3 break-words text-sm leading-6 text-zinc-600">{booking.notes}</p> : null}
-      <div className="mt-4">
-        <ActionButtons
-          booking={booking}
-          deletingId={deletingId}
-          onEdit={onEdit}
-          onDelete={onDelete}
-        />
-      </div>
+      {booking.notes ? <p className="mt-2 break-words text-sm leading-6 text-zinc-600">{booking.notes}</p> : null}
       <BookingExpensesSection
         booking={booking}
         expenses={expenses}
@@ -839,7 +839,7 @@ function BookingExpensesSection({
   }
 
   return (
-    <section className="mt-4 rounded-lg border border-zinc-200 bg-white p-3">
+    <section className="mt-4 rounded-lg border border-route/15 bg-sandlight p-3">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
           <p className="text-xs font-semibold uppercase tracking-[0.08em] text-terracotta">
@@ -854,19 +854,19 @@ function BookingExpensesSection({
             </span>
           </div>
         </div>
-        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
-          <button
-            type="button"
-            onClick={() => setDetailsOpen((current) => !current)}
-            className="w-full max-w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold text-ink sm:w-auto"
-          >
+          <div className="grid w-full grid-cols-2 gap-2 sm:w-auto sm:flex-none sm:grid-cols-none sm:flex sm:flex-row">
+            <button
+              type="button"
+              onClick={() => setDetailsOpen((current) => !current)}
+              className="max-w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold text-ink"
+            >
             {detailsVisible ? t("linkedExpenses.hideDetails") : t("linkedExpenses.showDetails")}
           </button>
-          <button
-            type="button"
-            onClick={handleAddExpense}
-            className="w-full max-w-full rounded-md bg-moss px-3 py-2 text-sm font-semibold text-white sm:w-auto"
-          >
+            <button
+              type="button"
+              onClick={handleAddExpense}
+              className="max-w-full rounded-md bg-moss px-3 py-2 text-sm font-semibold text-white"
+            >
             {t("linkedExpenses.add")}
           </button>
         </div>
@@ -1158,7 +1158,9 @@ function BookingExpenseCard({
 function SummaryPill({ label, value }: { label: string; value: string }) {
   return (
     <div className="compact-stat">
-      <p className="truncate text-xs font-semibold uppercase tracking-[0.08em] text-zinc-500">{label}</p>
+      <p className="min-h-8 break-words text-[0.65rem] font-semibold uppercase leading-4 tracking-[0.08em] text-zinc-500 sm:min-h-0 sm:text-xs">
+        {label}
+      </p>
       <p className="mt-1 text-xl font-semibold text-ink sm:text-2xl">{value}</p>
     </div>
   );
@@ -1257,11 +1259,11 @@ function ActionButtons({
   const { t } = useLanguage();
 
   return (
-    <div className="flex flex-wrap gap-2">
+    <div className="flex flex-wrap justify-end gap-1.5">
       <button
         type="button"
         onClick={() => onEdit(booking)}
-        className="rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold text-ink"
+        className="rounded-md border border-zinc-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-ink sm:px-3 sm:py-2 sm:text-sm"
       >
         {t("common.edit")}
       </button>
@@ -1269,7 +1271,7 @@ function ActionButtons({
         type="button"
         onClick={() => void onDelete(booking)}
         disabled={deletingId === booking.id}
-        className="rounded-md border border-red-200 bg-white px-3 py-2 text-sm font-semibold text-red-700 disabled:opacity-60"
+        className="rounded-md border border-red-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-red-700 disabled:opacity-60 sm:px-3 sm:py-2 sm:text-sm"
       >
         {deletingId === booking.id ? t("common.deleting") : t("common.delete")}
       </button>
