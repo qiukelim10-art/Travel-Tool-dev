@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { DashboardCard } from "@/components/DashboardCard";
 import type { Traveler } from "@/data/tripData";
 import { useLanguage } from "@/lib/i18n";
 import { translateOption } from "@/lib/localize";
@@ -73,6 +72,29 @@ function getOverallStatus(item: SharedPackingItem): OverallStatus {
   }
 
   return activeStatuses.every((status) => status.status === "packed") ? "Completed" : "Pending";
+}
+
+function shortTravelerName(name: string) {
+  const initials = name
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((part) => part[0])
+    .join("")
+    .slice(0, 3);
+
+  return initials || name.slice(0, 3);
+}
+
+function shortPackingStatus(status: PackingTravelerStatus) {
+  if (status === "packed") {
+    return "OK";
+  }
+
+  if (status === "not_needed") {
+    return "Skip";
+  }
+
+  return "Need";
 }
 
 function isPackingResponse(data: unknown): data is { items: SharedPackingItem[] } {
@@ -308,16 +330,17 @@ export function PackingClient({ travelers }: PackingClientProps) {
 
   return (
     <div className="space-y-5">
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <DashboardCard label={t("packing.summary.total")} value={String(items.length)} />
-        <DashboardCard label={t("packing.summary.highPriority")} value={String(highPriorityCount)} />
-        <DashboardCard label={t("packing.summary.requiredPeopleItems")} value={String(requiredPeopleItems)} />
-        <DashboardCard label={t("packing.summary.packedProgress")} value={`${packedPeopleItems} / ${requiredPeopleItems}`} />
+      <div className="status-strip grid grid-cols-2 gap-2 p-2 lg:grid-cols-4">
+        <PackingStat label={t("packing.summary.total")} value={String(items.length)} />
+        <PackingStat label={t("packing.summary.highPriority")} value={String(highPriorityCount)} warm={highPriorityCount > 0} />
+        <PackingStat label={t("packing.summary.requiredPeopleItems")} value={String(requiredPeopleItems)} />
+        <PackingStat label={t("packing.summary.packedProgress")} value={`${packedPeopleItems} / ${requiredPeopleItems}`} />
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="grid flex-1 gap-3 rounded-lg border border-zinc-200 bg-white p-3 sm:grid-cols-3">
+      <div className="travel-panel grid w-full gap-2 p-3 sm:grid-cols-[1fr_1fr_1fr_auto] sm:items-end">
+        <div className="grid grid-cols-2 gap-2 sm:contents">
           <SelectField
+            name="packing-filter-category"
             label={t("common.category")}
             value={categoryFilter}
             options={["All", ...packingCategories]}
@@ -325,6 +348,7 @@ export function PackingClient({ travelers }: PackingClientProps) {
             onChange={(value) => setCategoryFilter(value as typeof categoryFilter)}
           />
           <SelectField
+            name="packing-filter-priority"
             label={t("common.priority")}
             value={priorityFilter}
             options={["All", ...packingPriorities]}
@@ -332,6 +356,7 @@ export function PackingClient({ travelers }: PackingClientProps) {
             onChange={(value) => setPriorityFilter(value as typeof priorityFilter)}
           />
           <SelectField
+            name="packing-filter-status"
             label={t("common.status")}
             value={statusFilter}
             options={["All", "Incomplete only", "Completed only", "Unassigned only"]}
@@ -349,7 +374,7 @@ export function PackingClient({ travelers }: PackingClientProps) {
       </div>
 
       {formOpen ? (
-        <form onSubmit={submitPackingItem} className="rounded-lg border border-zinc-200 bg-white p-4 shadow-soft">
+        <form onSubmit={submitPackingItem} className="mobile-safe-form travel-panel p-4">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.08em] text-terracotta">
@@ -370,12 +395,14 @@ export function PackingClient({ travelers }: PackingClientProps) {
 
           <div className="mt-4 grid min-w-0 gap-3 md:grid-cols-2">
             <TextField
+              name="packing-item-name"
               label={t("packing.form.itemName")}
               value={form.name}
               onChange={(value) => setForm((current) => ({ ...current, name: value }))}
               placeholder={t("packing.form.itemPlaceholder")}
             />
             <SelectField
+              name="packing-category"
               label={t("common.category")}
               value={form.category}
               options={packingCategories}
@@ -383,6 +410,7 @@ export function PackingClient({ travelers }: PackingClientProps) {
               onChange={(value) => changeCategory(value as PackingCategory)}
             />
             <SelectField
+              name="packing-priority"
               label={t("common.priority")}
               value={form.priority}
               options={packingPriorities}
@@ -390,6 +418,7 @@ export function PackingClient({ travelers }: PackingClientProps) {
               onChange={(value) => setForm((current) => ({ ...current, priority: value as PackingPriority }))}
             />
             <TextField
+              name="packing-quantity"
               label={t("common.quantity")}
               type="number"
               value={form.quantity === null || form.quantity === undefined ? "" : String(form.quantity)}
@@ -399,6 +428,7 @@ export function PackingClient({ travelers }: PackingClientProps) {
               placeholder="1"
             />
             <TextField
+              name="packing-sort-order"
               label={t("common.sortOrder")}
               type="number"
               value={String(form.sortOrder ?? 0)}
@@ -410,6 +440,8 @@ export function PackingClient({ travelers }: PackingClientProps) {
           <label className="mt-3 block text-sm font-semibold text-ink">
             {t("common.notes")}
             <textarea
+              name="packing-notes"
+              autoComplete="off"
               value={form.notes ?? ""}
               onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))}
               className="mt-2 min-h-24 w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-700"
@@ -417,7 +449,7 @@ export function PackingClient({ travelers }: PackingClientProps) {
             />
           </label>
 
-          <div className="mt-4 rounded-lg bg-zinc-50 p-3">
+          <div className="traveler-matrix mt-4 p-3">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <p className="text-sm font-semibold text-ink">{t("packing.form.travelerStatuses")}</p>
@@ -437,6 +469,7 @@ export function PackingClient({ travelers }: PackingClientProps) {
               {activeTravelers.map((traveler) => (
                 <SelectField
                   key={traveler.id}
+                  name={`packing-traveler-${traveler.id}-status`}
                   label={traveler.name}
                   value={
                     form.statuses.find((status) => status.travelerId === traveler.id)?.status ??
@@ -461,7 +494,10 @@ export function PackingClient({ travelers }: PackingClientProps) {
       ) : null}
 
       {error ? (
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+        <div
+          role="alert"
+          className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
+        >
           <p>{error}</p>
           <button
             type="button"
@@ -473,7 +509,11 @@ export function PackingClient({ travelers }: PackingClientProps) {
         </div>
       ) : null}
 
-      {loading ? <p className="text-sm text-zinc-600">{t("packing.loading")}</p> : null}
+      {loading ? (
+        <p role="status" aria-live="polite" className="text-sm text-zinc-600">
+          {t("packing.loading")}
+        </p>
+      ) : null}
 
       {!loading && visibleItems.length === 0 ? (
         <p className="rounded-lg border border-zinc-200 bg-white px-4 py-8 text-sm text-zinc-600 shadow-soft">
@@ -484,8 +524,11 @@ export function PackingClient({ travelers }: PackingClientProps) {
       <div className="space-y-5">
         {groupedItems.map((group) => (
           <section key={group.category}>
-            <h2 className="mb-3 text-lg font-semibold text-ink">{translateOption(language, group.category)}</h2>
-            <div className="grid gap-3 lg:grid-cols-2">
+            <div className="mb-3 flex items-center gap-3">
+              <h2 className="text-lg font-semibold text-ink">{translateOption(language, group.category)}</h2>
+              <span className="h-px flex-1 bg-route/20" />
+            </div>
+            <div className="grid gap-2">
               {group.items.map((item) => (
                 <PackingItemCard
                   key={item.id}
@@ -521,9 +564,9 @@ function PackingItemCard({
   const overallStatus = getOverallStatus(item);
 
   return (
-    <article className="rounded-lg border border-zinc-200 bg-white p-4 shadow-soft">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0">
+    <article className="checklist-band p-3 shadow-soft">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <span className={`rounded-full px-2 py-1 text-xs font-semibold ring-1 ${priorityClass[item.priority]}`}>
               {translateOption(language, item.priority)}
@@ -531,15 +574,22 @@ function PackingItemCard({
             <span className={`rounded-full px-2 py-1 text-xs font-semibold ring-1 ${overallClass[overallStatus]}`}>
               {translateOption(language, overallStatus)}
             </span>
+            <span className="rounded-full bg-white/75 px-2 py-1 text-xs font-semibold text-zinc-600 ring-1 ring-zinc-200">
+              {translateOption(language, item.category)}
+            </span>
           </div>
-          <h3 className="mt-2 text-lg font-semibold text-ink">{item.name}</h3>
-          <p className="mt-1 text-sm text-zinc-500">{translateOption(language, item.category)}</p>
+          <h3 className="mt-1.5 break-words text-base font-semibold text-ink sm:text-lg">{item.name}</h3>
+          {item.quantity !== null ? (
+            <p className="mt-0.5 text-xs text-zinc-500">
+              {t("common.quantity")}: {item.quantity}
+            </p>
+          ) : null}
         </div>
-        <div className="flex shrink-0 gap-2">
+        <div className="flex shrink-0 gap-1.5">
           <button
             type="button"
             onClick={() => onEdit(item)}
-            className="rounded-md border border-zinc-200 bg-white px-2 py-1 text-xs font-semibold text-ink"
+            className="rounded-md border border-zinc-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-ink"
           >
             {t("common.edit")}
           </button>
@@ -547,48 +597,61 @@ function PackingItemCard({
             type="button"
             onClick={() => void onDelete(item)}
             disabled={deletingId === item.id}
-            className="rounded-md border border-red-200 bg-white px-2 py-1 text-xs font-semibold text-red-700 disabled:opacity-60"
+            className="rounded-md border border-red-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-red-700 disabled:opacity-60"
           >
             {deletingId === item.id ? t("common.deleting") : t("common.delete")}
           </button>
         </div>
       </div>
 
-      <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
-        <Field label={t("common.quantity")} value={item.quantity === null ? t("common.tbc") : String(item.quantity)} />
-        <Field label={t("common.sortOrder")} value={String(item.sortOrder)} />
-      </dl>
+      {item.notes ? <p className="mt-1.5 line-clamp-1 text-sm leading-5 text-zinc-600">{item.notes}</p> : null}
 
-      {item.notes ? <p className="mt-3 text-sm leading-6 text-zinc-600">{item.notes}</p> : null}
-
-      <div className="mt-4 grid gap-2 sm:grid-cols-2">
-        {item.statuses.map((status) => (
-          <div key={status.travelerId} className="rounded-lg bg-zinc-50 p-3">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <p className="text-sm font-semibold text-ink">
-                {travelerNameById.get(status.travelerId) ?? status.travelerId}
-              </p>
-              <span className={`rounded-full px-2 py-1 text-xs font-semibold ring-1 ${statusClass[status.status]}`}>
-                {translateOption(language, status.status)}
-              </span>
-            </div>
-            <p className="mt-1 text-xs text-zinc-500">
-              {translateOption(language, status.status === "required" ? "Not packed yet" : status.status)}
-            </p>
+      <div className="mt-2 grid grid-cols-4 gap-1.5">
+        {item.statuses.map((status) => {
+          const travelerName = travelerNameById.get(status.travelerId) ?? status.travelerId;
+          return (
+          <div
+            key={status.travelerId}
+            className="flex min-w-0 items-center justify-between gap-1 rounded-md border border-white/75 bg-white/70 px-1.5 py-1"
+            title={`${travelerName}: ${translateOption(language, status.status)}`}
+          >
+            <span className="min-w-0 truncate text-xs font-semibold text-ink">
+              {shortTravelerName(travelerName)}
+            </span>
+            <span
+              className={`shrink-0 rounded-full px-1.5 py-0.5 text-[0.65rem] font-semibold ring-1 ${statusClass[status.status]}`}
+              title={translateOption(language, status.status)}
+            >
+              {shortPackingStatus(status.status)}
+            </span>
           </div>
-        ))}
+          );
+        })}
       </div>
     </article>
   );
 }
 
+function PackingStat({ label, value, warm = false }: { label: string; value: string; warm?: boolean }) {
+  return (
+    <div className={`compact-stat ${warm ? "bg-amber-50" : "bg-white/70"}`}>
+      <p className="min-h-8 break-words text-[0.65rem] font-semibold uppercase leading-4 tracking-[0.08em] text-zinc-500 sm:min-h-0 sm:text-xs">
+        {label}
+      </p>
+      <p className={`mt-1 text-xl font-semibold ${warm ? "text-amber-800" : "text-ink"}`}>{value}</p>
+    </div>
+  );
+}
+
 function SelectField({
+  name,
   label,
   value,
   options,
   onChange,
   getOptionLabel
 }: {
+  name: string;
   label: string;
   value: string;
   options: readonly string[];
@@ -599,6 +662,7 @@ function SelectField({
     <label className="min-w-0 text-sm font-semibold text-ink">
       {label}
       <select
+        name={name}
         value={value}
         onChange={(event) => onChange(event.target.value)}
         className="mt-2 w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-700"
@@ -614,12 +678,14 @@ function SelectField({
 }
 
 function TextField({
+  name,
   label,
   value,
   onChange,
   placeholder,
   type = "text"
 }: {
+  name: string;
   label: string;
   value: string;
   onChange: (value: string) => void;
@@ -630,7 +696,10 @@ function TextField({
     <label className="min-w-0 text-sm font-semibold text-ink">
       {label}
       <input
+        name={name}
         type={type}
+        autoComplete="off"
+        inputMode={type === "number" ? "numeric" : undefined}
         value={value}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
@@ -642,11 +711,3 @@ function TextField({
   );
 }
 
-function Field({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <dt className="text-xs font-semibold uppercase tracking-[0.08em] text-zinc-500">{label}</dt>
-      <dd className="mt-1 text-zinc-700">{value}</dd>
-    </div>
-  );
-}

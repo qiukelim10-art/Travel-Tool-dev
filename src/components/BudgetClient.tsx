@@ -274,9 +274,9 @@ export function BudgetClient() {
 
   return (
     <div className="w-full max-w-full min-w-0 overflow-x-hidden space-y-5">
-      <div className="flex flex-col gap-3 rounded-lg border border-zinc-200 bg-white p-3 shadow-soft sm:flex-row sm:items-center sm:justify-between">
+      <div className="travel-panel flex flex-col gap-3 p-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
-          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-terracotta">{t("budget.eyebrow")}</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-stamp">{t("budget.eyebrow")}</p>
           <p className="mt-1 text-sm text-zinc-600">
             {t("budget.description")}
           </p>
@@ -292,7 +292,10 @@ export function BudgetClient() {
       </div>
 
       {error ? (
-        <div className="flex flex-col gap-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 sm:flex-row sm:items-center sm:justify-between">
+        <div
+          role="alert"
+          className="flex flex-col gap-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 sm:flex-row sm:items-center sm:justify-between"
+        >
           <p>{error}</p>
           <button
             type="button"
@@ -306,24 +309,19 @@ export function BudgetClient() {
       ) : null}
 
       {notice ? (
-        <p className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+        <p
+          role="status"
+          aria-live="polite"
+          className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800"
+        >
           {notice}
         </p>
       ) : null}
 
-      {loading ? <p className="text-sm text-zinc-600">{t("budget.loadingLedger")}</p> : null}
-
-      {!loading && expenses.length === 0 ? (
-        <p className="rounded-lg border border-zinc-200 bg-white px-4 py-8 text-sm text-zinc-600 shadow-soft">
-          {t("budget.emptyLedger")}
+      {loading ? (
+        <p role="status" aria-live="polite" className="text-sm text-zinc-600">
+          {t("budget.loadingLedger")}
         </p>
-      ) : null}
-
-      {!loading && expenses.length > 0 ? (
-        <>
-          <SummarySection summaries={summaries} travelers={orderedTravelers} t={t} />
-          <SettlementSection summaries={summaries} travelerNameById={travelerNameById} t={t} />
-        </>
       ) : null}
 
       {formOpen ? (
@@ -338,6 +336,19 @@ export function BudgetClient() {
           language={language}
           t={t}
         />
+      ) : null}
+
+      {!loading && expenses.length === 0 ? (
+        <p className="rounded-lg border border-zinc-200 bg-white px-4 py-8 text-sm text-zinc-600 shadow-soft">
+          {t("budget.emptyLedger")}
+        </p>
+      ) : null}
+
+      {!loading && expenses.length > 0 ? (
+        <>
+          <SummarySection summaries={summaries} travelers={orderedTravelers} t={t} />
+          <SettlementSection summaries={summaries} travelerNameById={travelerNameById} t={t} />
+        </>
       ) : null}
 
       <FilterSection
@@ -384,13 +395,18 @@ function SummarySection({
   }
 
   return (
-    <section className="grid gap-4 lg:grid-cols-2">
+    <section className="grid gap-3 lg:grid-cols-2">
       {summaries.map((summary) => (
-        <article key={summary.currency} className="rounded-lg border border-zinc-200 bg-white p-4 shadow-soft">
-          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-terracotta">
-            {t("budget.summary.currencySummary", { currency: summary.currency })}
-          </p>
-          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+        <article key={summary.currency} className="ledger-row p-3">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-xs font-semibold uppercase tracking-[0.08em] text-stamp">
+              {t("budget.summary.currencySummary", { currency: summary.currency })}
+            </p>
+            <span className="rounded-full bg-moss/10 px-2.5 py-1 text-xs font-semibold text-moss">
+              {summary.currency}
+            </span>
+          </div>
+          <div className="mt-3 grid grid-cols-2 gap-2">
             <Metric label={t("budget.summary.totalSpent")} value={formatMoney(summary.totalSpent, summary.currency)} />
             <Metric label={t("budget.summary.outstanding")} value={formatMoney(summary.outstandingTotal, summary.currency)} />
             <Metric label={t("budget.summary.settled")} value={formatMoney(summary.settledTotal, summary.currency)} />
@@ -399,7 +415,7 @@ function SummarySection({
               value={formatMoney(summary.outstandingTotal / Math.max(travelers.length, 1), summary.currency)}
             />
           </div>
-          <div className="mt-4 rounded-lg bg-zinc-50 p-3">
+          <div className="mt-3 rounded-lg bg-sandlight p-3">
             <p className="text-xs font-semibold uppercase tracking-[0.08em] text-zinc-500">
               {t("budget.summary.outstandingByTraveler")}
             </p>
@@ -430,11 +446,11 @@ function SettlementSection({
   t: TFunction;
 }) {
   return (
-    <section className="rounded-lg border border-zinc-200 bg-white p-4 shadow-soft">
+    <section className="status-strip p-4 shadow-soft">
       <h2 className="text-lg font-semibold text-ink">{t("budget.settlements.title")}</h2>
       <div className="mt-3 grid gap-3 lg:grid-cols-2">
         {summaries.map((summary) => (
-          <article key={summary.currency} className="rounded-lg bg-zinc-50 p-3">
+          <article key={summary.currency} className="rounded-lg bg-white/75 p-3">
             <p className="text-xs font-semibold uppercase tracking-[0.08em] text-zinc-500">
               {summary.currency}
             </p>
@@ -514,12 +530,14 @@ function ExpenseForm({
 
       <div className="mt-4 grid min-w-0 grid-cols-1 gap-3 md:grid-cols-2">
         <TextField
+          name="expense-title"
           label={t("budget.form.title")}
           value={form.title}
           onChange={(value) => onChange((current) => ({ ...current, title: value }))}
           placeholder={t("budget.form.titlePlaceholder")}
         />
         <TextField
+          name="expense-amount"
           label={t("budget.form.amount")}
           type="number"
           value={form.amount}
@@ -527,12 +545,14 @@ function ExpenseForm({
           placeholder="0"
         />
         <SelectField
+          name="expense-currency"
           label={t("budget.form.currency")}
           value={form.currency}
           options={bookingCurrencies}
           onChange={(value) => onChange((current) => ({ ...current, currency: value as SharedCurrency }))}
         />
         <SelectField
+          name="expense-category"
           label={t("budget.form.category")}
           value={form.category}
           options={expenseCategories}
@@ -540,12 +560,14 @@ function ExpenseForm({
           onChange={(value) => onChange((current) => ({ ...current, category: value as ExpenseCategory }))}
         />
         <TextField
+          name="expense-date"
           label={t("budget.form.date")}
           type="date"
           value={form.expenseDate}
           onChange={(value) => onChange((current) => ({ ...current, expenseDate: value }))}
         />
         <SelectField
+          name="expense-paid-by"
           label={t("budget.form.paidBy")}
           value={form.paidByTravelerId}
           options={travelers.map((traveler) => traveler.id)}
@@ -561,6 +583,7 @@ function ExpenseForm({
             <label key={traveler.id} className="flex min-w-0 items-center gap-2 text-sm text-zinc-700">
               <input
                 type="checkbox"
+                name="expense-split-traveler"
                 checked={form.splitTravelerIds.includes(traveler.id)}
                 onChange={(event) =>
                   onChange((current) => ({
@@ -581,6 +604,7 @@ function ExpenseForm({
       <label className="mt-3 flex min-w-0 items-center gap-2 text-sm font-semibold text-ink">
         <input
           type="checkbox"
+          name="expense-settled"
           checked={form.settled}
           onChange={(event) => onChange((current) => ({ ...current, settled: event.target.checked }))}
           className="h-4 w-4 shrink-0 rounded border-zinc-300"
@@ -591,6 +615,8 @@ function ExpenseForm({
       <label className="mt-3 block w-full max-w-full min-w-0 text-sm font-semibold text-ink">
         {t("budget.form.notes")}
         <textarea
+          name="expense-notes"
+          autoComplete="off"
           value={form.notes}
           onChange={(event) => onChange((current) => ({ ...current, notes: event.target.value }))}
           className="mt-2 block box-border min-h-24 w-full max-w-full min-w-0 resize-y rounded-md border border-zinc-200 bg-white px-3 py-2 text-base text-zinc-700 sm:text-sm"
@@ -655,10 +681,10 @@ function FilterSection({
     .join(" / ");
 
   return (
-    <section className="rounded-lg border border-zinc-200 bg-white p-3 shadow-soft">
+    <section className="travel-panel p-3">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
-          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-terracotta">{t("budget.filters.title")}</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-stamp">{t("budget.filters.title")}</p>
           <p className="mt-1 text-sm text-zinc-600">{filterSummary}</p>
         </div>
         <button
@@ -677,6 +703,7 @@ function FilterSection({
           </p>
           <div className="mt-3 grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
             <CompactSelect
+              name="budget-filter-currency"
               label={t("budget.filters.currency")}
               value={currencyFilter}
               options={["All", ...currencies]}
@@ -684,6 +711,7 @@ function FilterSection({
               onChange={(value) => onCurrencyChange(value as CurrencyFilter)}
             />
             <CompactSelect
+              name="budget-filter-category"
               label={t("budget.filters.category")}
               value={categoryFilter}
               options={["All", ...categories]}
@@ -691,6 +719,7 @@ function FilterSection({
               onChange={(value) => onCategoryChange(value as CategoryFilter)}
             />
             <CompactSelect
+              name="budget-filter-source"
               label={t("budget.filters.source")}
               value={sourceFilter}
               options={["All", ...expenseSourceTypes]}
@@ -698,6 +727,7 @@ function FilterSection({
               onChange={(value) => onSourceChange(value as SourceFilter)}
             />
             <CompactSelect
+              name="budget-filter-status"
               label={t("budget.filters.status")}
               value={statusFilter}
               options={["All", "Outstanding", "Settled"]}
@@ -781,11 +811,11 @@ function ExpenseCard({
     .join(", ");
 
   return (
-    <article className="rounded-lg border border-zinc-200 bg-white p-4 shadow-soft">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+    <article className="ledger-row p-3 sm:p-4">
+      <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <p className="text-xs font-semibold uppercase tracking-[0.08em] text-terracotta">
+            <p className="text-xs font-semibold uppercase tracking-[0.08em] text-stamp">
               {sourceTypeLabel(t, expense.sourceType)}
             </p>
             <StatusPill settled={expense.settled} t={t} />
@@ -795,9 +825,39 @@ function ExpenseCard({
             {translateOption(language, expense.category)} - {expense.expenseDate}
           </p>
         </div>
-        <p className="shrink-0 text-base font-semibold text-ink">
-          {formatMoney(expense.amount, expense.currency)}
-        </p>
+        <div className="flex shrink-0 flex-col items-end gap-2">
+          <p className="text-base font-semibold text-ink">
+            {formatMoney(expense.amount, expense.currency)}
+          </p>
+          <div className="flex flex-wrap justify-end gap-1.5">
+            <button
+              type="button"
+              onClick={() => setDetailsOpen((current) => !current)}
+              className="rounded-md border border-zinc-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-ink sm:px-3 sm:py-2 sm:text-sm"
+            >
+              {detailsOpen ? t("budget.expenses.hideDetails") : t("budget.expenses.details")}
+            </button>
+            {isMisc ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => onEdit(expense)}
+                  className="rounded-md border border-zinc-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-ink sm:px-3 sm:py-2 sm:text-sm"
+                >
+                  {t("common.edit")}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void onDelete(expense)}
+                  disabled={deletingId === expense.id}
+                  className="rounded-md border border-red-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-red-700 disabled:opacity-60 sm:px-3 sm:py-2 sm:text-sm"
+                >
+                  {deletingId === expense.id ? t("budget.expenses.deleting") : t("common.delete")}
+                </button>
+              </>
+            ) : null}
+          </div>
+        </div>
       </div>
 
       {detailsOpen ? (
@@ -815,47 +875,20 @@ function ExpenseCard({
         </>
       ) : null}
 
-      <div className="mt-4 flex flex-wrap gap-2">
-        <button
-          type="button"
-          onClick={() => setDetailsOpen((current) => !current)}
-          className="rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold text-ink"
-        >
-          {detailsOpen ? t("budget.expenses.hideDetails") : t("budget.expenses.details")}
-        </button>
-        {isMisc ? (
-          <>
-            <button
-              type="button"
-              onClick={() => onEdit(expense)}
-              className="rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold text-ink"
-            >
-              {t("common.edit")}
-            </button>
-            <button
-              type="button"
-              onClick={() => void onDelete(expense)}
-              disabled={deletingId === expense.id}
-              className="rounded-md border border-red-200 bg-white px-3 py-2 text-sm font-semibold text-red-700 disabled:opacity-60"
-            >
-              {deletingId === expense.id ? t("budget.expenses.deleting") : t("common.delete")}
-            </button>
-          </>
-        ) : (
-          <p className="rounded-md bg-zinc-100 px-3 py-2 text-sm font-medium text-zinc-600">
-            {t("budget.expenses.editFrom", { source: sourceEditPageLabel(t, expense.sourceType) })}
-          </p>
-        )}
-      </div>
+      {!isMisc ? (
+        <p className="mt-3 inline-flex rounded-md bg-zinc-100 px-3 py-2 text-sm font-medium text-zinc-600">
+          {t("budget.expenses.editFrom", { source: sourceEditPageLabel(t, expense.sourceType) })}
+        </p>
+      ) : null}
     </article>
   );
 }
 
 function Metric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg bg-zinc-50 p-3">
+    <div className="compact-stat">
       <p className="text-xs font-semibold uppercase tracking-[0.08em] text-zinc-500">{label}</p>
-      <p className="mt-1 break-words text-xl font-semibold text-ink">{value}</p>
+      <p className="mt-1 break-words text-lg font-semibold text-ink sm:text-xl">{value}</p>
     </div>
   );
 }
@@ -908,12 +941,14 @@ function formatFilterValue(language: ReturnType<typeof useLanguage>["language"],
 }
 
 function TextField({
+  name,
   label,
   value,
   onChange,
   placeholder,
   type = "text"
 }: {
+  name: string;
   label: string;
   value: string;
   onChange: (value: string) => void;
@@ -924,7 +959,10 @@ function TextField({
     <label className="block w-full max-w-full min-w-0 text-sm font-semibold text-ink">
       {label}
       <input
+        name={name}
         type={type}
+        autoComplete="off"
+        inputMode={type === "number" ? "decimal" : undefined}
         value={value}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
@@ -937,6 +975,7 @@ function TextField({
 }
 
 function SelectField({
+  name,
   label,
   value,
   options,
@@ -944,6 +983,7 @@ function SelectField({
   formatOption,
   onChange
 }: {
+  name: string;
   label: string;
   value: string;
   options: readonly string[];
@@ -955,6 +995,7 @@ function SelectField({
     <label className="block w-full max-w-full min-w-0 text-sm font-semibold text-ink">
       {label}
       <select
+        name={name}
         value={value}
         onChange={(event) => onChange(event.target.value)}
         className="mt-2 block box-border w-full max-w-full min-w-0 rounded-md border border-zinc-200 bg-white px-3 py-2 text-base text-zinc-700 sm:text-sm"
@@ -970,12 +1011,14 @@ function SelectField({
 }
 
 function CompactSelect({
+  name,
   label,
   value,
   options,
   formatOption,
   onChange
 }: {
+  name: string;
   label: string;
   value: string;
   options: readonly string[];
@@ -986,6 +1029,7 @@ function CompactSelect({
     <label className="block w-full max-w-full min-w-0 text-sm font-semibold text-ink">
       {label}
       <select
+        name={name}
         value={value}
         onChange={(event) => onChange(event.target.value)}
         className="mt-2 block box-border w-full max-w-full min-w-0 rounded-md border border-zinc-200 bg-white px-3 py-2 text-base text-zinc-700 sm:text-sm"

@@ -59,9 +59,23 @@ type MysqlModule = {
   createPool(config: Record<string, unknown>): MysqlPool;
 };
 
-let serverPool: MysqlPool | null = null;
-let appPool: MysqlPool | null = null;
-let initialized = false;
+type SharedDataStoreState = {
+  serverPool: MysqlPool | null;
+  appPool: MysqlPool | null;
+  initialized: boolean;
+  initializePromise: Promise<void> | null;
+};
+
+const sharedDataStoreState = (
+  globalThis as typeof globalThis & {
+    __italyTripSharedDataStore?: SharedDataStoreState;
+  }
+).__italyTripSharedDataStore ??= {
+  serverPool: null,
+  appPool: null,
+  initialized: false,
+  initializePromise: null
+};
 
 const priorityRank: Record<string, number> = {
   High: 1,
@@ -105,22 +119,22 @@ function baseConfig() {
 }
 
 function getServerPool() {
-  if (!serverPool) {
-    serverPool = getMysql().createPool(baseConfig());
+  if (!sharedDataStoreState.serverPool) {
+    sharedDataStoreState.serverPool = getMysql().createPool(baseConfig());
   }
 
-  return serverPool;
+  return sharedDataStoreState.serverPool;
 }
 
 function getAppPool() {
-  if (!appPool) {
-    appPool = getMysql().createPool({
+  if (!sharedDataStoreState.appPool) {
+    sharedDataStoreState.appPool = getMysql().createPool({
       ...baseConfig(),
       database: getDbName()
     });
   }
 
-  return appPool;
+  return sharedDataStoreState.appPool;
 }
 
 function asString(value: unknown) {
@@ -1059,15 +1073,27 @@ async function seedTables() {
 }
 
 export async function ensureSharedDataStore() {
-  if (initialized) {
+  if (sharedDataStoreState.initialized) {
     return;
   }
 
-  await ensureDatabase();
-  await createTables();
-  await updateCurrencyEnums();
-  await seedTables();
-  initialized = true;
+  if (sharedDataStoreState.initializePromise) {
+    return sharedDataStoreState.initializePromise;
+  }
+
+  sharedDataStoreState.initializePromise = (async () => {
+    await ensureDatabase();
+    await createTables();
+    await updateCurrencyEnums();
+    await seedTables();
+    sharedDataStoreState.initialized = true;
+  })();
+
+  try {
+    await sharedDataStoreState.initializePromise;
+  } finally {
+    sharedDataStoreState.initializePromise = null;
+  }
 }
 
 export async function getActiveTripSettings(): Promise<TripSettingsResponse> {

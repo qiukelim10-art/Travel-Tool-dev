@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { DashboardCard } from "@/components/DashboardCard";
 import type { Traveler } from "@/data/tripData";
 import { useLanguage } from "@/lib/i18n";
 import { translateOption } from "@/lib/localize";
@@ -343,23 +342,23 @@ export function DocumentsClient({ travelers: initialTravelers }: DocumentsClient
 
   return (
     <div className="w-full max-w-full min-w-0 overflow-x-hidden space-y-5">
-      <section className="rounded-lg border border-red-200 bg-red-50 p-4 shadow-soft">
-        <h2 className="text-lg font-semibold text-red-800">{t("documents.warningTitle")}</h2>
-        <p className="mt-2 text-sm leading-6 text-red-800">
+      <section className="checklist-band p-4 shadow-soft">
+        <h2 className="text-lg font-semibold text-ink">{t("documents.warningTitle")}</h2>
+        <p className="mt-2 text-sm leading-6 text-zinc-700">
           {t("documents.warningDescription")}
         </p>
       </section>
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <DashboardCard label={t("documents.summary.total")} value={String(documents.length)} />
-        <DashboardCard label={t("documents.summary.highPriority")} value={String(highPriorityCount)} />
-        <DashboardCard label={t("documents.summary.readySaved")} value={String(readySavedCount)} />
-        <DashboardCard label={t("documents.summary.protectedLinks")} value={String(protectedCount)} tone={protectedCount > 0 ? "warm" : "default"} />
+      <div className="status-strip grid grid-cols-2 gap-2 p-2 lg:grid-cols-4">
+        <CompactStat label={t("documents.summary.total")} value={String(documents.length)} />
+        <CompactStat label={t("documents.summary.highPriority")} value={String(highPriorityCount)} />
+        <CompactStat label={t("documents.summary.readySaved")} value={String(readySavedCount)} />
+        <CompactStat label={t("documents.summary.protectedLinks")} value={String(protectedCount)} warm={protectedCount > 0} />
       </div>
 
-      <div className="flex flex-col gap-3 rounded-lg border border-zinc-200 bg-white p-3 shadow-soft sm:flex-row sm:items-center sm:justify-between">
+      <div className="travel-panel flex flex-col gap-3 p-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
-          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-terracotta">{t("documents.checklist")}</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-stamp">{t("documents.checklist")}</p>
           <p className="mt-1 text-sm text-zinc-600">
             {t("documents.visibleSummary", { visible: visibleDocuments.length, total: documents.length })}
           </p>
@@ -401,7 +400,10 @@ export function DocumentsClient({ travelers: initialTravelers }: DocumentsClient
       />
 
       {error ? (
-        <div className="flex flex-col gap-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 sm:flex-row sm:items-center sm:justify-between">
+        <div
+          role="alert"
+          className="flex flex-col gap-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 sm:flex-row sm:items-center sm:justify-between"
+        >
           <p>{error}</p>
           <button
             type="button"
@@ -415,12 +417,20 @@ export function DocumentsClient({ travelers: initialTravelers }: DocumentsClient
       ) : null}
 
       {notice ? (
-        <p className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+        <p
+          role="status"
+          aria-live="polite"
+          className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800"
+        >
           {notice}
         </p>
       ) : null}
 
-      {loading ? <p className="text-sm text-zinc-600">{t("documents.loading")}</p> : null}
+      {loading ? (
+        <p role="status" aria-live="polite" className="text-sm text-zinc-600">
+          {t("documents.loading")}
+        </p>
+      ) : null}
 
       {!loading && documents.length === 0 ? (
         <p className="rounded-lg border border-zinc-200 bg-white px-4 py-8 text-sm text-zinc-600 shadow-soft">
@@ -453,6 +463,25 @@ export function DocumentsClient({ travelers: initialTravelers }: DocumentsClient
           />
         ))}
       </section>
+    </div>
+  );
+}
+
+function CompactStat({
+  label,
+  value,
+  warm = false
+}: {
+  label: string;
+  value: string;
+  warm?: boolean;
+}) {
+  return (
+    <div className={`compact-stat ${warm ? "bg-amber-50" : ""}`}>
+      <p className="min-h-8 break-words text-[0.65rem] font-semibold uppercase leading-4 tracking-[0.08em] text-zinc-500 sm:min-h-0 sm:text-xs">
+        {label}
+      </p>
+      <p className={`mt-1 text-xl font-semibold ${warm ? "text-amber-800" : "text-ink"}`}>{value}</p>
     </div>
   );
 }
@@ -504,12 +533,14 @@ function DocumentForm({
 
       <div className="mt-4 grid w-full max-w-full min-w-0 grid-cols-1 gap-3 md:grid-cols-2">
         <TextField
+          name="document-title"
           label={t("common.title")}
           value={form.title}
           onChange={(value) => onChange((current) => ({ ...current, title: value }))}
           placeholder="Hotel bookings folder"
         />
         <SelectField
+          name="document-category"
           label={t("common.category")}
           value={form.category}
           options={documentCategories}
@@ -517,6 +548,7 @@ function DocumentForm({
           onChange={(value) => onChange((current) => ({ ...current, category: value as DocumentCategory }))}
         />
         <SelectField
+          name="document-priority"
           label={t("common.priority")}
           value={form.priority}
           options={documentPriorities}
@@ -524,6 +556,7 @@ function DocumentForm({
           onChange={(value) => onChange((current) => ({ ...current, priority: value as DocumentPriority }))}
         />
         <SelectField
+          name="document-status"
           label={t("common.status")}
           value={form.status}
           options={documentStatuses}
@@ -531,6 +564,7 @@ function DocumentForm({
           onChange={(value) => onChange((current) => ({ ...current, status: value as DocumentStatus }))}
         />
         <TextField
+          name="document-external-folder"
           label={t("documents.form.externalFolder")}
           type="url"
           value={String(form.externalUrl ?? "")}
@@ -538,6 +572,7 @@ function DocumentForm({
           placeholder="https://drive.google.com/..."
         />
         <TextField
+          name="document-sort-order"
           label={t("common.sortOrder")}
           type="number"
           value={String(form.sortOrder ?? 0)}
@@ -549,6 +584,7 @@ function DocumentForm({
       <label className="mt-3 flex w-full max-w-full min-w-0 items-start gap-3 text-sm font-semibold text-ink">
         <input
           type="checkbox"
+          name="document-requires-passcode"
           checked={form.requiresPasscode}
           onChange={(event) =>
             onChange((current) => ({ ...current, requiresPasscode: event.target.checked }))
@@ -562,6 +598,7 @@ function DocumentForm({
 
       {form.requiresPasscode ? (
         <TextField
+          name="document-passcode"
           label={editingId ? t("documents.form.accessCodeKeep") : t("documents.form.accessCode")}
           type="password"
           value={String(form.passcode ?? "")}
@@ -573,6 +610,8 @@ function DocumentForm({
       <label className="mt-3 block w-full max-w-full min-w-0 text-sm font-semibold text-ink">
         {t("common.notes")}
         <textarea
+          name="document-notes"
+          autoComplete="off"
           value={String(form.notes ?? "")}
           onChange={(event) => onChange((current) => ({ ...current, notes: event.target.value }))}
           className="mt-2 block box-border min-h-24 w-full max-w-full min-w-0 resize-y rounded-md border border-zinc-200 bg-white px-3 py-2 text-base text-zinc-700 sm:text-sm"
@@ -586,6 +625,7 @@ function DocumentForm({
           {travelers.map((traveler) => (
             <SelectField
               key={traveler.id}
+              name={`document-traveler-${traveler.id}-status`}
               label={traveler.name}
               value={
                 form.statuses.find((status) => status.travelerId === traveler.id)?.status ??
@@ -646,10 +686,10 @@ function FilterSection({
   const { language, t } = useLanguage();
 
   return (
-    <section className="rounded-lg border border-zinc-200 bg-white p-3 shadow-soft">
+    <section className="travel-panel p-3">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
-          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-terracotta">{t("documents.filters.title")}</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-stamp">{t("documents.filters.title")}</p>
           <p className="mt-1 text-sm text-zinc-600">
             {translateOption(language, categoryFilter)} / {translateOption(language, priorityFilter)} / {translateOption(language, statusFilter)} / {translateOption(language, protectedFilter)}
           </p>
@@ -666,6 +706,7 @@ function FilterSection({
       {filtersOpen ? (
         <div className="mt-3 grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
           <SelectField
+            name="documents-filter-category"
             label={t("common.category")}
             value={categoryFilter}
             options={["All", ...documentCategories]}
@@ -673,6 +714,7 @@ function FilterSection({
             onChange={(value) => onCategoryChange(value as FilterValue | DocumentCategory)}
           />
           <SelectField
+            name="documents-filter-priority"
             label={t("common.priority")}
             value={priorityFilter}
             options={["All", ...documentPriorities]}
@@ -680,6 +722,7 @@ function FilterSection({
             onChange={(value) => onPriorityChange(value as FilterValue | DocumentPriority)}
           />
           <SelectField
+            name="documents-filter-status"
             label={t("common.status")}
             value={statusFilter}
             options={["All", ...documentStatuses]}
@@ -687,6 +730,7 @@ function FilterSection({
             onChange={(value) => onStatusChange(value as FilterValue | DocumentStatus)}
           />
           <SelectField
+            name="documents-filter-link-access"
             label={t("documents.filters.linkAccess")}
             value={protectedFilter}
             options={["All", "Protected", "Open"]}
@@ -726,7 +770,7 @@ function DocumentCard({
   const folderUrl = document.externalUrl ?? unlockedUrl ?? null;
 
   return (
-    <article className="rounded-lg border border-zinc-200 bg-white p-4 shadow-soft">
+    <article className="checklist-band p-4 shadow-soft">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
@@ -768,7 +812,7 @@ function DocumentCard({
 
       <div className="mt-4 grid gap-2 sm:grid-cols-2">
         {document.statuses.map((status) => (
-          <div key={status.travelerId} className="rounded-lg bg-zinc-50 p-3">
+          <div key={status.travelerId} className="rounded-lg bg-white/75 p-3">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <p className="text-sm font-semibold text-ink">
                 {travelerNameById.get(status.travelerId) ?? status.travelerId}
@@ -781,7 +825,7 @@ function DocumentCard({
         ))}
       </div>
 
-      <div className="mt-4 rounded-lg bg-zinc-50 p-3">
+      <div className="mt-4 rounded-lg bg-white/70 p-3">
         {folderUrl ? (
           <a
             href={folderUrl}
@@ -795,6 +839,8 @@ function DocumentCard({
           <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
             <input
               type="password"
+              name={`document-${document.id}-unlock-code`}
+              autoComplete="off"
               value={passcodeValue}
               onChange={(event) => onPasscodeChange(event.target.value)}
               placeholder={t("documents.form.accessCode")}
@@ -818,12 +864,14 @@ function DocumentCard({
 }
 
 function TextField({
+  name,
   label,
   value,
   onChange,
   placeholder,
   type = "text"
 }: {
+  name: string;
   label: string;
   value: string;
   onChange: (value: string) => void;
@@ -834,7 +882,10 @@ function TextField({
     <label className="block w-full max-w-full min-w-0 text-sm font-semibold text-ink">
       {label}
       <input
+        name={name}
         type={type}
+        autoComplete={type === "url" ? "url" : "off"}
+        inputMode={type === "number" ? "numeric" : undefined}
         value={value}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
@@ -847,6 +898,7 @@ function TextField({
 }
 
 function SelectField({
+  name,
   label,
   value,
   options,
@@ -854,6 +906,7 @@ function SelectField({
   formatOption,
   onChange
 }: {
+  name: string;
   label: string;
   value: string;
   options: readonly string[];
@@ -865,6 +918,7 @@ function SelectField({
     <label className="block w-full max-w-full min-w-0 text-sm font-semibold text-ink">
       {label}
       <select
+        name={name}
         value={value}
         onChange={(event) => onChange(event.target.value)}
         className="mt-2 block box-border w-full max-w-full min-w-0 rounded-md border border-zinc-200 bg-white px-3 py-2 text-base text-zinc-700 sm:text-sm"

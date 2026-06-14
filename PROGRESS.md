@@ -1,5 +1,26 @@
 # Progress
 
+## 2026-06-14
+
+- Completed the user-approved second-round Universal Travel Cockpit UI polish on `codex/ui-skill-research`: the Dashboard, Itinerary, Bookings, Budget, Documents, Packing, reminders, and shared navigation now use a denser mobile-first travel control-panel layout while preserving existing functionality.
+- Final verification passed with `npm run build`, sequential `npm run lint`, desktop and phone LAN page/API HTTP 200 checks on port 3000, and Chrome 390px/360px/768px no-horizontal-overflow QA across the main pages.
+- Increased mobile information density across the review surfaces: reminder, itinerary, booking, and budget item actions now sit closer to their primary information instead of taking separate full-width rows where possible.
+- Reworked Packing item cards into compact checklist rows: traveler statuses now show as four small status cells per item, low-value default metadata is hidden from the list view, and the filter/add area is more compact so users can scan more items without excessive scrolling.
+- Verified the dense UI pass with `npm run build`, sequential `npm run lint`, Chrome 390px QA for Dashboard/Itinerary/Bookings/Budget/Packing with no horizontal overflow, desktop/LAN page HTTP 200 checks, and reminders/bookings/expenses/itinerary/packing API HTTP 200 checks.
+- Improved Budget and Itinerary form ergonomics after user review: the Budget miscellaneous expense form now opens above summaries/settlements, and the Itinerary add/edit form now has a bottom Close form/Cancel edit button so mobile users do not need to scroll back to the top to dismiss it.
+- Verified the form ergonomics update with `npm run build`, sequential `npm run lint`, Chrome 390px Budget/Itinerary form QA, desktop/LAN `/budget` and `/itinerary` HTTP 200 checks, and `/api/expenses` plus `/api/itinerary` HTTP 200 checks.
+- Cleaned up the mobile Dashboard after user review: moved the cover dashed border outward, increased cover padding, removed the redundant Quick Actions panel because bottom navigation already provides those entries, and disabled the Next dev indicator so the black bottom-left circle no longer appears during review.
+- Verified the cleanup with `npm run build`, sequential `npm run lint`, Chrome 390px screenshot/DOM QA, desktop/LAN page HTTP 200 checks, and core API HTTP 200 checks.
+- Restored local review access after the dev server had stopped and the active Wi-Fi LAN IP changed from `192.168.0.9` to `192.168.0.2`: added the new LAN IP to `next.config.mjs`, restarted Next dev on `0.0.0.0:3000`, and verified desktop/LAN pages plus core APIs return 200.
+- Refined the mobile Dashboard trip cover after user review: Dates and Crew are now explicit Settings links, Route spans the mobile cover width and links to Plan with the full route visible, and Next up now includes a clear View itinerary button.
+- Verified the Dashboard refinement with `npm run build`, sequential `npm run lint`, Chrome 390px mobile QA, and no horizontal overflow on the Dashboard.
+- Fixed the latest second-pass UI review issues on `codex/ui-skill-research`: Dashboard quick-action initials were replaced with icons, the SOS panel now opens as a fixed mobile-safe overlay, and the large decorative circles were replaced with lighter route-line accents.
+- Diagnosed and fixed the local `Too many connections` failure: stale Next dev/start processes were stopped, and the shared MySQL data store now keeps pools and initialization state on `globalThis` with an initialization promise guard to reduce dev hot-reload pool leaks and concurrent initialization spikes.
+- Verified `npm run lint`, `npm run build`, desktop/LAN page and API HTTP 200 checks on port 3000, 60 parallel API requests with all 200 responses, and Browser QA for 390px, 360px, and 768px viewports with no horizontal overflow.
+- Implemented the second UI polish pass on `codex/ui-skill-research` using a generic Universal Travel Cockpit direction: abstract route/map/stamp styling, Dashboard trip cover, page-specific timeline/confirmation/ledger/checklist/matrix surfaces, and mobile-first layout tuning.
+- Preserved existing functionality, API endpoints, database schema, CRUD flows, filters, language switching, first-round safe-area/focus/live-region behavior, and current test data.
+- Verified `npm run build`, sequential `npm run lint`, desktop/LAN page and API HTTP 200 checks on port 3000, and Browser QA for desktop, 390px, 360px, and 768px viewports with no horizontal overflow.
+
 ## 2026-06-13
 
 - Fixed a React hydration text mismatch on `codex/fix-hydration-mismatch` without changing visible behavior: trip settings cache is now read after client mount instead of during the initial client render.
