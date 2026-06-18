@@ -2,6 +2,8 @@
 
 ## Project Status
 
+- Long-term product direction is now documented in `PRODUCT_VISION.md`: Italy Trip 2026 is the first reference workspace/prototype for a mobile-first, ready-to-use, per-trip paid Group Trip Command Center.
+- First target customer is the Singapore/Malaysia outbound small-group trip planner organizing 2-8 person, 5-14 day Europe/Japan/Korea trips; travelers use the shared link, but the planner is the buyer.
 - The project is a private, mobile-first Italy trip dashboard for 4 travellers in October 2026.
 - `codex/public-vercel-deploy` has a zero-cost production deployment path on Vercel Hobby + Aiven Free MySQL; the live URL is `https://italy-trip-2026-cyan.vercel.app`.
 - The user will gradually provide real trip information to replace placeholder data.
@@ -29,6 +31,8 @@
 
 ## Highest Priority Task
 
+- Review `PRODUCT_VISION.md`; if approved, build the first access-control slice before entering real private trip details.
+- The agreed first access model is private unguessable trip link, viewer mode by default, edit passcode for editor mode, and one-time owner recovery link/token; viewer mode can only make low-risk status updates after selecting a traveler identity. Do not build full login or traveler accounts yet.
 - The live site is stable for now; the user and travel group will enter safe real trip data through the UI.
 - Keep `Italy Trip 2026 Quick User Guide.docx` as the traveler quick-start guide.
 - Keep memory files focused on current active work; branch-specific review, commit, and merge tasks should only be reintroduced when the user explicitly resumes that branch.
@@ -47,6 +51,10 @@
 
 ## Important Architecture Note
 
+- Product direction is one paid workspace per trip, but the first implementation should not jump to a full multi-trip SaaS dashboard. When adding or substantially changing business data structures, avoid deepening the single active-trip assumption and prefer workspace_id/trip_id-compatible design.
+- The private trip link is a convenience boundary, not high-security storage. Treat the workspace as lightweight coordination, not a secure vault, and keep sensitive personal documents, passport scans, payment details, private passcodes, and confidential identity information out of the product.
+- First-version workspace generation should be guided setup plus rule-based templates for Europe general, Japan, Korea, and Generic international trip fallback. Do not add AI dependency or paid API dependency for workspace generation.
+- Pilot commercial model is SGD 4.90 early access per trip workspace through Free Demo / Manual Pilot first; do not build payment, checkout, billing, or subscription infrastructure yet.
 - API routes should not return raw infrastructure errors to the UI. Database/DNS/connection failures should be logged server-side and returned as generic user-facing API errors.
 - Deployment prep now supports hosted MySQL configuration with `MYSQL_SSL=true` and can skip runtime schema creation/seed on managed databases with `MYSQL_MANAGED_SCHEMA=true`; local development still defaults to automatic local schema setup.
 - Vercel serverless functions require `mysql2/promise` to be statically imported so the dependency is bundled; avoid dynamic `eval("require")` for this runtime dependency.

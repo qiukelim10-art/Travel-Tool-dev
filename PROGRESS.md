@@ -2,6 +2,9 @@
 
 ## 2026-06-18
 
+- Created `PRODUCT_VISION.md` to align future development around a mobile-first, ready-to-use, per-trip paid Group Trip Command Center product direction.
+- Locked first-version product boundaries: Singapore/Malaysia outbound small-group planner ICP, guided setup plus rule-based templates, Europe/Japan/Korea/Generic destination templates, private link plus edit passcode access model, SGD 4.90 early access pilot pricing, trip end plus 60-day lifecycle, metadata-only Documents safety, no AI dependency, no payment integration, and no full login/multi-trip SaaS dashboard yet.
+- Added the Security Expectation boundary: the private trip link is for convenience rather than high-security storage, viewer mode can only make low-risk status updates after selecting a traveler identity, and core trip data changes require editor mode.
 - Diagnosed and recovered the production shared-data outage: Aiven MySQL free-tier service `mysql-15be2720` had automatically powered off, causing DNS lookup failures and Vercel API 500/503 responses.
 - Powered the Aiven MySQL service back on from Chrome; the service moved through `Rebuilding` to `Running`, DNS resolution recovered, and the live site APIs returned HTTP 200 again without changing Vercel environment variables.
 - Verified the live site after recovery: `/`, `/bookings`, `/itinerary`, `/budget`, `/api/health`, `/api/bookings`, `/api/itinerary`, `/api/expenses`, and `/api/reminders` all returned HTTP 200.

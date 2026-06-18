@@ -22,3 +22,13 @@
 - For public preview deployment, prioritize zero-cost services only: Vercel Hobby for hosting and Aiven for MySQL free tier for shared editable data. Do not create PlanetScale resources unless the user later accepts paid database costs.
 - Keep the Vercel deployment URL-accessible without whole-site password protection for now; only existing Documents external links keep per-link passcode protection. Revisit access control before entering sensitive real trip data.
 - Use a static `mysql2/promise` import in server data access code because Vercel/Next serverless bundling cannot reliably trace the previous dynamic `eval("require")` loader.
+
+## 2026-06-18
+
+- Treat Italy Trip 2026 as the first reference workspace/prototype for a mobile-first, ready-to-use, per-trip paid Group Trip Command Center, not only as a one-off private trip page.
+- First ICP: Singapore/Malaysia outbound small-group trip planners organizing 2-8 person, 5-14 day Europe/Japan/Korea trips; the planner is the buyer and travelers are link users.
+- First product version should use guided setup plus rule-based templates, not AI generation or manual custom service.
+- First access model should be private unguessable trip link, viewer mode by default, edit passcode for editor mode, and a one-time owner recovery link/token; no full login or traveler accounts yet. Viewer mode can only make low-risk status updates after selecting a traveler identity.
+- Pilot commercial model should be SGD 4.90 early access per trip workspace, handled through Free Demo / Manual Pilot first; do not build payment or checkout yet.
+- Workspace lifecycle should be active until trip end date plus 60 days, then archived/read-only; do not promise permanent storage.
+- The private trip link is for convenience, not high-security storage. Documents and sensitive fields must stay metadata/checklist only with contextual safety hints; do not upload or store passport scans, passport numbers, payment card details, insurance certificates, full confirmation PDFs, private passcodes, or confidential identity information.

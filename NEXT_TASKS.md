@@ -2,6 +2,8 @@
 
 ## Current Priority
 
+- Review `PRODUCT_VISION.md` before starting the next development slice.
+- If the product vision is approved, prioritize simple access control first: private unguessable trip link, viewer mode, edit passcode editor mode, and owner recovery link/token.
 - The website is stable for now; the user plans to enter safe real trip data directly through the live UI.
 - The user has shared the live site link with the 4 travelers for collaborative editing.
 - Keep `Italy Trip 2026 Quick User Guide.docx` available as the short traveler quick-start guide.
@@ -20,13 +22,15 @@
 
 ## Data Safety
 
+- Treat the private trip link as a convenience boundary, not high-security storage.
 - Follow `REAL_DATA_ENTRY_GUIDE.md` before entering real itinerary, booking, budget, packing, document, or emergency data.
 - Do not store real passport numbers, identity documents, payment card details, insurance certificates, or booking confirmation files in the repo.
 - Use safe summaries, placeholders, or non-sensitive references for private booking details unless the user explicitly asks for a different handling approach.
 
 ## Suggested Next Feature
 
-- Add simple shared-password protection before using shared CRUD pages for real private trip details, if the user approves.
+- Add the product-approved first access boundary before using shared CRUD pages for real private trip details: private unguessable trip link, viewer mode by default, edit passcode for editor mode, and owner recovery link/token.
+- After access control, add a lightweight pilot offer page and then a guided setup plus rule-based template generation path.
 - Continue traveler source cleanup only as a focused task that preserves the stable `person_a` to `person_d` IDs and existing business table behavior.
 - Decide whether to replace placeholder city dates, hotels, and restaurant shortlists with safe real summaries.
 - Consider improving packing status controls after real phone review if the four traveler selectors feel heavy on small screens.
