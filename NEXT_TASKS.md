@@ -7,7 +7,7 @@
 - Keep `Italy Trip 2026 Quick User Guide.docx` available as the short traveler quick-start guide.
 - The zero-cost production deployment is live at `https://italy-trip-2026-cyan.vercel.app` using Vercel Hobby + Aiven Free MySQL; keep using free-tier resources only.
 - Stop immediately if Vercel or Aiven asks for a paid plan or payment method.
-- Restore the production Aiven MySQL connection: the current deployed `MYSQL_HOST` no longer resolves, so Vercel Production database environment variables must be updated from the active Aiven service before shared data can load again.
+- If the live site shows database unavailable again, first check whether the Aiven free-tier MySQL service has automatically powered off and start it again from the Aiven console; update Vercel env vars only if the active Service URI changed.
 - Confirm the active branch and current user request before resuming any old branch-specific work.
 - Commit the approved Booking-to-Budget auto-sync change on `codex/compact-itinerary-cards`, then deploy it when the user asks to proceed.
 - Decide whether to add simple shared-password protection before entering real private trip details.

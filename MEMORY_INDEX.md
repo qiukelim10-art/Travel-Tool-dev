@@ -38,7 +38,7 @@
 
 ## Key Known Issue
 
-- Production shared-data APIs are currently failing because the deployed Aiven MySQL hostname no longer resolves. Update Vercel Production `MYSQL_HOST` and related MySQL environment variables from the active Aiven service to restore shared editing.
+- Aiven Free MySQL can automatically power off after inactivity. If production shared-data APIs return database unavailable or DNS lookup errors again, start the Aiven service first; Vercel environment variables only need changing if the Aiven Service URI changes.
 - Real traveller and booking information has not been fully entered yet.
 - Some trip content still uses placeholder data only.
 - Shared reminders/bookings are verified locally, but there is still no password protection. Revisit security before storing real private trip details.

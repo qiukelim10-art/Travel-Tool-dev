@@ -1,5 +1,11 @@
 # Progress
 
+## 2026-06-18
+
+- Diagnosed and recovered the production shared-data outage: Aiven MySQL free-tier service `mysql-15be2720` had automatically powered off, causing DNS lookup failures and Vercel API 500/503 responses.
+- Powered the Aiven MySQL service back on from Chrome; the service moved through `Rebuilding` to `Running`, DNS resolution recovered, and the live site APIs returned HTTP 200 again without changing Vercel environment variables.
+- Verified the live site after recovery: `/`, `/bookings`, `/itinerary`, `/budget`, `/api/health`, `/api/bookings`, `/api/itinerary`, `/api/expenses`, and `/api/reminders` all returned HTTP 200.
+
 ## 2026-06-14
 
 - Diagnosed a production database outage: the deployed Aiven MySQL hostname no longer resolves, causing Dashboard, Bookings, Itinerary, Budget, and reminders API calls to fail with database connection errors.
