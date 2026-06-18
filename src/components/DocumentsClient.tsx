@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import type { Traveler } from "@/data/tripData";
+import { useTripAccess } from "@/lib/access";
 import { useLanguage } from "@/lib/i18n";
 import { translateOption } from "@/lib/localize";
 import {
@@ -82,6 +83,8 @@ function emptyForm(travelers: Traveler[]): DocumentInput {
 
 export function DocumentsClient({ travelers: initialTravelers }: DocumentsClientProps) {
   const { t } = useLanguage();
+  const { mode, selectedTravelerId } = useTripAccess();
+  const canEdit = mode === "editor";
   const [travelers, setTravelers] = useState<Traveler[]>(initialTravelers);
   const [documents, setDocuments] = useState<SharedDocumentItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -100,6 +103,7 @@ export function DocumentsClient({ travelers: initialTravelers }: DocumentsClient
   const [passcodeInputs, setPasscodeInputs] = useState<Record<string, string>>({});
   const [unlockedUrls, setUnlockedUrls] = useState<Record<string, string>>({});
   const [unlockingId, setUnlockingId] = useState<string | null>(null);
+  const [statusUpdatingId, setStatusUpdatingId] = useState<string | null>(null);
 
   const orderedTravelers = useMemo(() => orderTravelers(travelers), [travelers]);
   const activeTravelers = useMemo(
@@ -161,6 +165,11 @@ export function DocumentsClient({ travelers: initialTravelers }: DocumentsClient
   }
 
   function openAddForm() {
+    if (!canEdit) {
+      setError("Editor mode is required to add documents.");
+      return;
+    }
+
     setEditingId(null);
     setForm(emptyForm(travelers));
     setFormOpen(true);
@@ -169,6 +178,11 @@ export function DocumentsClient({ travelers: initialTravelers }: DocumentsClient
   }
 
   function startEditing(document: SharedDocumentItem) {
+    if (!canEdit) {
+      setError("Editor mode is required to edit documents.");
+      return;
+    }
+
     setEditingId(document.id);
     setForm({
       title: document.title,
@@ -210,6 +224,11 @@ export function DocumentsClient({ travelers: initialTravelers }: DocumentsClient
 
   async function submitDocument(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+
+    if (!canEdit) {
+      setError("Editor mode is required to save documents.");
+      return;
+    }
 
     if (!form.title.trim()) {
       setError(t("documents.validationTitle"));
@@ -274,6 +293,11 @@ export function DocumentsClient({ travelers: initialTravelers }: DocumentsClient
   }
 
   async function removeDocument(document: SharedDocumentItem) {
+    if (!canEdit) {
+      setError("Editor mode is required to delete documents.");
+      return;
+    }
+
     if (!window.confirm(t("documents.confirmDelete"))) {
       return;
     }
@@ -340,6 +364,39 @@ export function DocumentsClient({ travelers: initialTravelers }: DocumentsClient
     }
   }
 
+  async function updateOwnStatus(document: SharedDocumentItem, status: DocumentTravelerStatus) {
+    if (!selectedTravelerId) {
+      setError("Select a traveler identity before updating document status.");
+      return;
+    }
+
+    setStatusUpdatingId(document.id);
+    setError(null);
+    setNotice(null);
+
+    try {
+      const response = await fetch(`/api/documents/${document.id}/status`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status })
+      });
+      const data = (await response.json()) as DocumentsApiResponse;
+
+      if (!response.ok) {
+        throw new Error(data.error ?? t("documents.errorUpdate"));
+      }
+
+      const validated = validateDocumentsResponse(data, t("documents.errorUpdate"));
+      setDocuments(validated.documents);
+      setTravelers(validated.travelers);
+      setNotice(t("documents.noticeUpdated"));
+    } catch (statusError) {
+      setError(statusError instanceof Error ? statusError.message : t("documents.errorUpdate"));
+    } finally {
+      setStatusUpdatingId(null);
+    }
+  }
+
   return (
     <div className="w-full max-w-full min-w-0 overflow-x-hidden space-y-5">
       <section className="checklist-band p-4 shadow-soft">
@@ -366,7 +423,7 @@ export function DocumentsClient({ travelers: initialTravelers }: DocumentsClient
         <button
           type="button"
           onClick={formOpen ? () => resetForm() : openAddForm}
-          disabled={loading}
+          disabled={loading || !canEdit}
           className="w-full max-w-full rounded-md bg-moss px-3 py-2 text-base font-semibold text-white disabled:opacity-60 sm:w-auto sm:text-sm"
         >
           {formOpen ? t("documents.closeForm") : t("documents.addItem")}
@@ -451,6 +508,9 @@ export function DocumentsClient({ travelers: initialTravelers }: DocumentsClient
             document={document}
             deletingId={deletingId}
             unlockingId={unlockingId}
+            statusUpdatingId={statusUpdatingId}
+            canEdit={canEdit}
+            selectedTravelerId={selectedTravelerId}
             passcodeValue={passcodeInputs[document.id] ?? ""}
             unlockedUrl={unlockedUrls[document.id]}
             travelerNameById={travelerNameById}
@@ -460,6 +520,7 @@ export function DocumentsClient({ travelers: initialTravelers }: DocumentsClient
             onUnlock={unlockDocument}
             onEdit={startEditing}
             onDelete={removeDocument}
+            onStatusChange={updateOwnStatus}
           />
         ))}
       </section>
@@ -747,17 +808,24 @@ function DocumentCard({
   document,
   deletingId,
   unlockingId,
+  statusUpdatingId,
+  canEdit,
+  selectedTravelerId,
   passcodeValue,
   unlockedUrl,
   travelerNameById,
   onPasscodeChange,
   onUnlock,
   onEdit,
-  onDelete
+  onDelete,
+  onStatusChange
 }: {
   document: SharedDocumentItem;
   deletingId: string | null;
   unlockingId: string | null;
+  statusUpdatingId: string | null;
+  canEdit: boolean;
+  selectedTravelerId: string;
   passcodeValue: string;
   unlockedUrl?: string;
   travelerNameById: Map<string, string>;
@@ -765,6 +833,7 @@ function DocumentCard({
   onUnlock: (document: SharedDocumentItem) => Promise<void>;
   onEdit: (document: SharedDocumentItem) => void;
   onDelete: (document: SharedDocumentItem) => Promise<void>;
+  onStatusChange: (document: SharedDocumentItem, status: DocumentTravelerStatus) => Promise<void>;
 }) {
   const { language, t } = useLanguage();
   const folderUrl = document.externalUrl ?? unlockedUrl ?? null;
@@ -789,6 +858,7 @@ function DocumentCard({
           <h3 className="mt-1.5 break-words text-base font-semibold text-ink sm:text-lg">{document.title}</h3>
           <p className="mt-1 text-sm text-zinc-500">{translateOption(language, document.category)}</p>
         </div>
+        {canEdit ? (
         <div className="flex shrink-0 gap-1.5 sm:gap-2">
           <button
             type="button"
@@ -806,6 +876,7 @@ function DocumentCard({
             {deletingId === document.id ? t("common.deleting") : t("common.delete")}
           </button>
         </div>
+        ) : null}
       </div>
 
       {document.notes ? <p className="mt-2 break-words text-sm leading-5 text-zinc-600">{document.notes}</p> : null}
@@ -822,6 +893,29 @@ function DocumentCard({
             </span>
           </span>
         ))}
+      </div>
+
+      <div className="mt-3 rounded-md border border-zinc-200 bg-white/75 p-2">
+        {selectedTravelerId ? (
+          <SelectField
+            name={`document-${document.id}-own-status`}
+            label={`${travelerNameById.get(selectedTravelerId) ?? selectedTravelerId} status`}
+            value={
+              document.statuses.find((status) => status.travelerId === selectedTravelerId)?.status ??
+              "required"
+            }
+            options={documentTravelerStatuses}
+            formatOption={(option) => translateOption(language, option)}
+            onChange={(value) => void onStatusChange(document, value as DocumentTravelerStatus)}
+          />
+        ) : (
+          <p className="text-sm text-zinc-600">
+            Select a traveler identity above to update your own document status.
+          </p>
+        )}
+        {statusUpdatingId === document.id ? (
+          <p className="mt-2 text-xs font-semibold text-zinc-500">{t("common.saving")}</p>
+        ) : null}
       </div>
 
       <div className="mt-3 border-t border-route/10 pt-2">

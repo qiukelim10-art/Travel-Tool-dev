@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { accessErrorResponse, requireTripViewer } from "@/lib/server/accessControl";
 import { apiErrorResponse } from "@/lib/server/apiErrorResponse";
 import { unlockDocumentItem } from "@/lib/server/sharedDataStore";
 
@@ -8,6 +9,7 @@ type RouteContext = {
 
 export async function POST(request: Request, context: RouteContext) {
   try {
+    await requireTripViewer(request);
     const { id } = await context.params;
     const body = (await request.json()) as { passcode?: unknown };
     const externalUrl = await unlockDocumentItem(id, String(body.passcode ?? ""));
@@ -18,6 +20,6 @@ export async function POST(request: Request, context: RouteContext) {
 
     return NextResponse.json({ externalUrl });
   } catch (error) {
-    return apiErrorResponse(error, "Unable to unlock document link.", 400);
+    return accessErrorResponse(error) ?? apiErrorResponse(error, "Unable to unlock document link.", 400);
   }
 }

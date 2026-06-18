@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
+import { TripAccessToolbar } from "@/lib/access";
 import { useLanguage, type TranslationKey } from "@/lib/i18n";
 import { useTripSettingsView } from "@/lib/useTripSettings";
 
@@ -130,6 +131,7 @@ export function Layout({ children }: { children: ReactNode }) {
         Skip to main content
       </a>
       <Navigation />
+      <TripAccessToolbar />
       <main
         id="main-content"
         className="mobile-main-shell mx-auto max-w-6xl px-4 pt-6 sm:px-6 md:pb-12 md:pt-8"

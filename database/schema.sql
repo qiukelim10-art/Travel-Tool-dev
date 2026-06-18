@@ -52,6 +52,27 @@ CREATE TABLE IF NOT EXISTS `trip_route_stops` (
     ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS `trip_access_controls` (
+  `trip_id` varchar(36) NOT NULL,
+  `share_token_salt` varchar(64) NOT NULL,
+  `share_token_hash` varchar(128) NOT NULL,
+  `edit_passcode_salt` varchar(64) NOT NULL,
+  `edit_passcode_hash` varchar(128) NOT NULL,
+  `owner_recovery_token_salt` varchar(64) NOT NULL,
+  `owner_recovery_token_hash` varchar(128) NOT NULL,
+  `owner_recovery_token_used_at` timestamp NULL DEFAULT NULL,
+  `editor_session_salt` varchar(64) DEFAULT NULL,
+  `editor_session_hash` varchar(128) DEFAULT NULL,
+  `editor_session_expires_at` timestamp NULL DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`trip_id`),
+  KEY `idx_trip_access_editor_session` (`editor_session_expires_at`),
+  CONSTRAINT `fk_trip_access_trip`
+    FOREIGN KEY (`trip_id`) REFERENCES `trips` (`id`)
+    ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS `reminders` (
   `id` varchar(36) NOT NULL,
   `text` varchar(500) NOT NULL,
