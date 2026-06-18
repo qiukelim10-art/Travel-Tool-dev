@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { apiErrorResponse } from "@/lib/server/apiErrorResponse";
 import { unlockDocumentItem } from "@/lib/server/sharedDataStore";
 
 type RouteContext = {
@@ -17,9 +18,6 @@ export async function POST(request: Request, context: RouteContext) {
 
     return NextResponse.json({ externalUrl });
   } catch (error) {
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Unable to unlock document link." },
-      { status: 400 }
-    );
+    return apiErrorResponse(error, "Unable to unlock document link.", 400);
   }
 }

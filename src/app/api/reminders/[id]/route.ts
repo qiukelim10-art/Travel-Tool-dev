@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { apiErrorResponse } from "@/lib/server/apiErrorResponse";
 import {
   deleteReminder,
   listReminders,
@@ -18,10 +19,7 @@ export async function PATCH(request: Request, context: RouteContext) {
     const reminders = await listReminders();
     return NextResponse.json({ reminders });
   } catch (error) {
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Unable to update reminder." },
-      { status: 400 }
-    );
+    return apiErrorResponse(error, "Unable to update reminder.", 400);
   }
 }
 
@@ -32,9 +30,6 @@ export async function DELETE(_request: Request, context: RouteContext) {
     const reminders = await listReminders();
     return NextResponse.json({ reminders });
   } catch (error) {
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Unable to delete reminder." },
-      { status: 500 }
-    );
+    return apiErrorResponse(error, "Unable to delete reminder.", 500);
   }
 }

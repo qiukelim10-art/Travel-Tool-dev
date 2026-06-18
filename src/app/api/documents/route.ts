@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { apiErrorResponse } from "@/lib/server/apiErrorResponse";
 import {
   createDocumentItem,
   listDocumentItems,
@@ -12,10 +13,7 @@ export async function GET() {
     const travelers = await listTripTravelersForBusinessData();
     return NextResponse.json({ documents, travelers });
   } catch (error) {
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Unable to load documents." },
-      { status: 500 }
-    );
+    return apiErrorResponse(error, "Unable to load documents.", 500);
   }
 }
 
@@ -27,9 +25,6 @@ export async function POST(request: Request) {
     const travelers = await listTripTravelersForBusinessData();
     return NextResponse.json({ documents, travelers }, { status: 201 });
   } catch (error) {
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Unable to create document." },
-      { status: 400 }
-    );
+    return apiErrorResponse(error, "Unable to create document.", 400);
   }
 }

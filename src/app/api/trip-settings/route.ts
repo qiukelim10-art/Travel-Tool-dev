@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { apiErrorResponse } from "@/lib/server/apiErrorResponse";
 import { getActiveTripSettings, updateActiveTripSettings } from "@/lib/server/sharedDataStore";
 
 export async function GET() {
@@ -6,10 +7,7 @@ export async function GET() {
     const settings = await getActiveTripSettings();
     return NextResponse.json(settings);
   } catch (error) {
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Unable to load trip settings." },
-      { status: 500 }
-    );
+    return apiErrorResponse(error, "Unable to load trip settings.", 500);
   }
 }
 
@@ -18,9 +16,6 @@ export async function PUT(request: Request) {
     const settings = await updateActiveTripSettings(await request.json());
     return NextResponse.json(settings);
   } catch (error) {
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Unable to save trip settings." },
-      { status: 400 }
-    );
+    return apiErrorResponse(error, "Unable to save trip settings.", 400);
   }
 }

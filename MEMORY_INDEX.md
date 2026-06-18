@@ -38,6 +38,7 @@
 
 ## Key Known Issue
 
+- Production shared-data APIs are currently failing because the deployed Aiven MySQL hostname no longer resolves. Update Vercel Production `MYSQL_HOST` and related MySQL environment variables from the active Aiven service to restore shared editing.
 - Real traveller and booking information has not been fully entered yet.
 - Some trip content still uses placeholder data only.
 - Shared reminders/bookings are verified locally, but there is still no password protection. Revisit security before storing real private trip details.
@@ -46,6 +47,7 @@
 
 ## Important Architecture Note
 
+- API routes should not return raw infrastructure errors to the UI. Database/DNS/connection failures should be logged server-side and returned as generic user-facing API errors.
 - Deployment prep now supports hosted MySQL configuration with `MYSQL_SSL=true` and can skip runtime schema creation/seed on managed databases with `MYSQL_MANAGED_SCHEMA=true`; local development still defaults to automatic local schema setup.
 - Vercel serverless functions require `mysql2/promise` to be statically imported so the dependency is bundled; avoid dynamic `eval("require")` for this runtime dependency.
 - Zero-cost Vercel/Aiven preparation files now include `DEPLOYMENT_PREVIEW_GUIDE.md`, `database/managed-schema.sql`, `database/preview-seed.sql`, and `/api/health` for deployment smoke checks.

@@ -2,6 +2,8 @@
 
 ## 2026-06-14
 
+- Diagnosed a production database outage: the deployed Aiven MySQL hostname no longer resolves, causing Dashboard, Bookings, Itinerary, Budget, and reminders API calls to fail with database connection errors.
+- Added shared API error sanitization so database/DNS/internal connection errors are logged server-side but no longer returned verbatim to the UI.
 - User reviewed the Booking-to-Budget auto-sync change on desktop and phone and confirmed the feature is satisfactory.
 - Re-ran final verification for the approved change: `npm run lint`, `npm run build`, desktop/LAN page and API HTTP 200 checks, and concurrent read checks all passed.
 - Prepared a temporary handoff document for the next session and a suggested commit message; no commit has been made yet.

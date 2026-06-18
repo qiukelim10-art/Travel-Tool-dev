@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { apiErrorResponse } from "@/lib/server/apiErrorResponse";
 import {
   createBooking,
   listBookings,
@@ -10,10 +11,7 @@ export async function GET() {
     const bookings = await listBookings();
     return NextResponse.json({ bookings });
   } catch (error) {
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Unable to load bookings." },
-      { status: 500 }
-    );
+    return apiErrorResponse(error, "Unable to load bookings.", 500);
   }
 }
 
@@ -24,9 +22,6 @@ export async function POST(request: Request) {
     const bookings = await listBookings();
     return NextResponse.json({ bookings }, { status: 201 });
   } catch (error) {
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Unable to create booking." },
-      { status: 400 }
-    );
+    return apiErrorResponse(error, "Unable to create booking.", 400);
   }
 }

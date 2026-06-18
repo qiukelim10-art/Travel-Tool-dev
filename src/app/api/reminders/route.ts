@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { apiErrorResponse } from "@/lib/server/apiErrorResponse";
 import {
   createReminder,
   listReminders,
@@ -10,10 +11,7 @@ export async function GET() {
     const reminders = await listReminders();
     return NextResponse.json({ reminders });
   } catch (error) {
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Unable to load reminders." },
-      { status: 500 }
-    );
+    return apiErrorResponse(error, "Unable to load reminders.", 500);
   }
 }
 
@@ -24,9 +22,6 @@ export async function POST(request: Request) {
     const reminders = await listReminders();
     return NextResponse.json({ reminders }, { status: 201 });
   } catch (error) {
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Unable to create reminder." },
-      { status: 400 }
-    );
+    return apiErrorResponse(error, "Unable to create reminder.", 400);
   }
 }

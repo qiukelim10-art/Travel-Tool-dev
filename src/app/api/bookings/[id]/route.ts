@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { apiErrorResponse } from "@/lib/server/apiErrorResponse";
 import {
   deleteBooking,
   listBookings,
@@ -18,10 +19,7 @@ export async function PATCH(request: Request, context: RouteContext) {
     const bookings = await listBookings();
     return NextResponse.json({ bookings });
   } catch (error) {
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Unable to update booking." },
-      { status: 400 }
-    );
+    return apiErrorResponse(error, "Unable to update booking.", 400);
   }
 }
 
@@ -32,9 +30,6 @@ export async function DELETE(_request: Request, context: RouteContext) {
     const bookings = await listBookings();
     return NextResponse.json({ bookings });
   } catch (error) {
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Unable to delete booking." },
-      { status: 500 }
-    );
+    return apiErrorResponse(error, "Unable to delete booking.", 500);
   }
 }

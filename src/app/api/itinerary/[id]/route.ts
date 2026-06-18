@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { apiErrorResponse } from "@/lib/server/apiErrorResponse";
 import {
   deleteItineraryItem,
   listItineraryItems,
@@ -18,10 +19,7 @@ export async function PATCH(request: Request, context: RouteContext) {
     const itineraryItems = await listItineraryItems();
     return NextResponse.json({ itineraryItems });
   } catch (error) {
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Unable to update itinerary item." },
-      { status: 400 }
-    );
+    return apiErrorResponse(error, "Unable to update itinerary item.", 400);
   }
 }
 
@@ -36,9 +34,6 @@ export async function DELETE(_request: Request, context: RouteContext) {
     const itineraryItems = await listItineraryItems();
     return NextResponse.json({ itineraryItems });
   } catch (error) {
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Unable to delete itinerary item." },
-      { status: 500 }
-    );
+    return apiErrorResponse(error, "Unable to delete itinerary item.", 500);
   }
 }

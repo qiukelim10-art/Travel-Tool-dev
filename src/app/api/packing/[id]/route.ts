@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { apiErrorResponse } from "@/lib/server/apiErrorResponse";
 import {
   deletePackingItem,
   listPackingItems,
@@ -20,10 +21,7 @@ export async function PATCH(request: Request, context: RouteContext) {
     const travelers = await listTripTravelersForBusinessData();
     return NextResponse.json({ items, travelers });
   } catch (error) {
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Unable to update packing item." },
-      { status: 400 }
-    );
+    return apiErrorResponse(error, "Unable to update packing item.", 400);
   }
 }
 
@@ -35,9 +33,6 @@ export async function DELETE(_request: Request, context: RouteContext) {
     const travelers = await listTripTravelersForBusinessData();
     return NextResponse.json({ items, travelers });
   } catch (error) {
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Unable to delete packing item." },
-      { status: 500 }
-    );
+    return apiErrorResponse(error, "Unable to delete packing item.", 500);
   }
 }
