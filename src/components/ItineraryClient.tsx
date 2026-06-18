@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
+import { useTripAccess } from "@/lib/access";
 import { formatMoney } from "@/lib/budget";
 import { useLanguage } from "@/lib/i18n";
 import { translateOption } from "@/lib/localize";
@@ -78,6 +79,8 @@ function emptyExpenseForm(item: SharedItineraryItem, travelers: Traveler[]): Exp
 
 export function ItineraryClient() {
   const { language, t } = useLanguage();
+  const { mode } = useTripAccess();
+  const canEdit = mode === "editor";
   const [items, setItems] = useState<SharedItineraryItem[]>([]);
   const [expenses, setExpenses] = useState<SharedExpense[]>([]);
   const [travelers, setTravelers] = useState<Traveler[]>([]);
@@ -189,6 +192,11 @@ export function ItineraryClient() {
   }
 
   function openAddForm() {
+    if (!canEdit) {
+      setError("Editor mode is required to add itinerary items.");
+      return;
+    }
+
     setEditingId(null);
     setForm(emptyForm());
     setFormOpen(true);
@@ -196,6 +204,11 @@ export function ItineraryClient() {
   }
 
   function startEditing(item: SharedItineraryItem) {
+    if (!canEdit) {
+      setError("Editor mode is required to edit itinerary items.");
+      return;
+    }
+
     setEditingId(item.id);
     setForm({
       travelDate: item.travelDate,
@@ -218,6 +231,11 @@ export function ItineraryClient() {
   }
 
   function openExpenseForm(item: SharedItineraryItem) {
+    if (!canEdit) {
+      setError("Editor mode is required to add linked expenses.");
+      return;
+    }
+
     setExpenseFormItemId(item.id);
     setEditingExpenseId(null);
     setExpenseForm(emptyExpenseForm(item, activeTravelers));
@@ -226,6 +244,11 @@ export function ItineraryClient() {
   }
 
   function startExpenseEditing(expense: SharedExpense) {
+    if (!canEdit) {
+      setError("Editor mode is required to edit linked expenses.");
+      return;
+    }
+
     if (expense.sourceType !== "itinerary" || !expense.sourceId) {
       return;
     }
@@ -249,6 +272,11 @@ export function ItineraryClient() {
 
   async function submitItem(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+
+    if (!canEdit) {
+      setError("Editor mode is required to save itinerary items.");
+      return;
+    }
 
     if (!form.travelDate) {
       setError(t("itinerary.validationDate"));
@@ -295,6 +323,11 @@ export function ItineraryClient() {
   }
 
   async function removeItem(item: SharedItineraryItem) {
+    if (!canEdit) {
+      setError("Editor mode is required to delete itinerary items.");
+      return;
+    }
+
     if (!window.confirm(t("itinerary.confirmDelete"))) {
       return;
     }
@@ -322,6 +355,11 @@ export function ItineraryClient() {
 
   async function submitExpense(item: SharedItineraryItem, event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+
+    if (!canEdit) {
+      setError("Editor mode is required to save linked expenses.");
+      return;
+    }
 
     if (!expenseForm) {
       return;
@@ -374,6 +412,11 @@ export function ItineraryClient() {
   }
 
   async function removeExpense(expense: SharedExpense) {
+    if (!canEdit) {
+      setError("Editor mode is required to delete linked expenses.");
+      return;
+    }
+
     if (expense.sourceType !== "itinerary") {
       return;
     }
@@ -427,6 +470,7 @@ export function ItineraryClient() {
         <button
           type="button"
           onClick={formOpen ? resetForm : openAddForm}
+          disabled={!canEdit}
           className="w-full max-w-full rounded-md bg-moss px-3 py-2 text-sm font-semibold text-white sm:w-auto"
         >
           {formOpen ? t("itinerary.closeForm") : t("itinerary.addItem")}
@@ -659,6 +703,7 @@ export function ItineraryClient() {
                   expenseSubmitting={expenseSubmitting}
                   deletingId={deletingId}
                   deletingExpenseId={deletingExpenseId}
+                  canEdit={canEdit}
                   onEdit={startEditing}
                   onDelete={removeItem}
                   onAddExpense={openExpenseForm}
@@ -813,6 +858,7 @@ function ItineraryCard({
   expenseSubmitting,
   deletingId,
   deletingExpenseId,
+  canEdit,
   onEdit,
   onDelete,
   onAddExpense,
@@ -831,6 +877,7 @@ function ItineraryCard({
   expenseSubmitting: boolean;
   deletingId: string | null;
   deletingExpenseId: string | null;
+  canEdit: boolean;
   onEdit: (item: SharedItineraryItem) => void;
   onDelete: (item: SharedItineraryItem) => Promise<void>;
   onAddExpense: (item: SharedItineraryItem) => void;
@@ -847,6 +894,10 @@ function ItineraryCard({
   const outstandingSummary = formatOutstandingSummary(expenses, t("linkedExpenses.none"));
 
   function handleAddExpense() {
+    if (!canEdit) {
+      return;
+    }
+
     setExpenseDetailsOpen(true);
     onAddExpense(item);
   }
@@ -876,21 +927,25 @@ function ItineraryCard({
               <span className="hidden sm:inline">{t("itinerary.openMaps")}</span>
             </a>
           ) : null}
-          <button
-            type="button"
-            onClick={() => onEdit(item)}
-            className="rounded-md border border-zinc-200 bg-white px-2 py-1.5 text-xs font-semibold text-ink sm:px-3 sm:py-2 sm:text-sm"
-          >
-            {t("common.edit")}
-          </button>
-          <button
-            type="button"
-            onClick={() => void onDelete(item)}
-            disabled={deletingId === item.id}
-            className="rounded-md border border-red-200 bg-white px-2 py-1.5 text-xs font-semibold text-red-700 disabled:opacity-60 sm:px-3 sm:py-2 sm:text-sm"
-          >
-            {deletingId === item.id ? t("common.deleting") : t("common.delete")}
-          </button>
+          {canEdit ? (
+            <>
+              <button
+                type="button"
+                onClick={() => onEdit(item)}
+                className="rounded-md border border-zinc-200 bg-white px-2 py-1.5 text-xs font-semibold text-ink sm:px-3 sm:py-2 sm:text-sm"
+              >
+                {t("common.edit")}
+              </button>
+              <button
+                type="button"
+                onClick={() => void onDelete(item)}
+                disabled={deletingId === item.id}
+                className="rounded-md border border-red-200 bg-white px-2 py-1.5 text-xs font-semibold text-red-700 disabled:opacity-60 sm:px-3 sm:py-2 sm:text-sm"
+              >
+                {deletingId === item.id ? t("common.deleting") : t("common.delete")}
+              </button>
+            </>
+          ) : null}
         </div>
       </div>
 
@@ -927,14 +982,16 @@ function ItineraryCard({
                 {expenseDetailsVisible ? t("linkedExpenses.hideDetails") : t("linkedExpenses.showDetails")}
               </span>
             </button>
-            <button
-              type="button"
-              onClick={handleAddExpense}
-              className="rounded-md bg-moss px-2 py-1.5 text-xs font-semibold text-white sm:px-3 sm:py-2 sm:text-sm"
-            >
-              <span className="sm:hidden">{t("linkedExpenses.addShort")}</span>
-              <span className="hidden sm:inline">{t("linkedExpenses.add")}</span>
-            </button>
+            {canEdit ? (
+              <button
+                type="button"
+                onClick={handleAddExpense}
+                className="rounded-md bg-moss px-2 py-1.5 text-xs font-semibold text-white sm:px-3 sm:py-2 sm:text-sm"
+              >
+                <span className="sm:hidden">{t("linkedExpenses.addShort")}</span>
+                <span className="hidden sm:inline">{t("linkedExpenses.add")}</span>
+              </button>
+            ) : null}
           </div>
         </div>
 
@@ -965,6 +1022,7 @@ function ItineraryCard({
                   expense={expense}
                   travelerNameById={travelerNameById}
                   deletingExpenseId={deletingExpenseId}
+                  canEdit={canEdit}
                   onEdit={onEditExpense}
                   onDelete={onDeleteExpense}
                 />
@@ -1156,12 +1214,14 @@ function ItineraryExpenseCard({
   expense,
   travelerNameById,
   deletingExpenseId,
+  canEdit,
   onEdit,
   onDelete
 }: {
   expense: SharedExpense;
   travelerNameById: Map<string, string>;
   deletingExpenseId: string | null;
+  canEdit: boolean;
   onEdit: (expense: SharedExpense) => void;
   onDelete: (expense: SharedExpense) => Promise<void>;
 }) {
@@ -1196,23 +1256,25 @@ function ItineraryExpenseCard({
         />
       </dl>
       {expense.notes ? <p className="mt-2 break-words text-sm leading-6 text-zinc-600">{expense.notes}</p> : null}
-      <div className="mt-3 flex flex-wrap gap-2">
-        <button
-          type="button"
-          onClick={() => onEdit(expense)}
-          className="rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold text-ink"
-        >
-          {t("common.edit")}
-        </button>
-        <button
-          type="button"
-          onClick={() => void onDelete(expense)}
-          disabled={deletingExpenseId === expense.id}
-          className="rounded-md border border-red-200 bg-white px-3 py-2 text-sm font-semibold text-red-700 disabled:opacity-60"
-        >
-          {deletingExpenseId === expense.id ? t("common.deleting") : t("common.delete")}
-        </button>
-      </div>
+      {canEdit ? (
+        <div className="mt-3 flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => onEdit(expense)}
+            className="rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold text-ink"
+          >
+            {t("common.edit")}
+          </button>
+          <button
+            type="button"
+            onClick={() => void onDelete(expense)}
+            disabled={deletingExpenseId === expense.id}
+            className="rounded-md border border-red-200 bg-white px-3 py-2 text-sm font-semibold text-red-700 disabled:opacity-60"
+          >
+            {deletingExpenseId === expense.id ? t("common.deleting") : t("common.delete")}
+          </button>
+        </div>
+      ) : null}
     </article>
   );
 }

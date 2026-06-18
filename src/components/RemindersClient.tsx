@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useTripAccess } from "@/lib/access";
 import {
   reminderPriorities,
   type ReminderInput,
@@ -30,6 +31,8 @@ const priorityClass: Record<ReminderPriority, string> = {
 
 export function RemindersClient({ participants }: RemindersClientProps) {
   const { language, t } = useLanguage();
+  const { mode } = useTripAccess();
+  const canEdit = mode === "editor";
   const [reminders, setReminders] = useState<SharedReminder[]>([]);
   const [priorityFilter, setPriorityFilter] = useState<"All" | ReminderPriority>("All");
   const [form, setForm] = useState<FormState>(() => emptyForm(participants[0] ?? "Person A"));
@@ -83,11 +86,21 @@ export function RemindersClient({ participants }: RemindersClientProps) {
   }
 
   function startAdding() {
+    if (!canEdit) {
+      setError("Editor mode is required to add reminders.");
+      return;
+    }
+
     resetForm();
     setExpanded(true);
   }
 
   function startEditing(reminder: SharedReminder) {
+    if (!canEdit) {
+      setError("Editor mode is required to edit reminders.");
+      return;
+    }
+
     setExpanded(true);
     setEditingId(reminder.id);
     setForm({
@@ -99,6 +112,11 @@ export function RemindersClient({ participants }: RemindersClientProps) {
 
   async function submitReminder(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+
+    if (!canEdit) {
+      setError("Editor mode is required to save reminders.");
+      return;
+    }
 
     if (!form.text.trim()) {
       setError(t("reminders.required"));
@@ -130,6 +148,11 @@ export function RemindersClient({ participants }: RemindersClientProps) {
   }
 
   async function removeReminder(reminder: SharedReminder) {
+    if (!canEdit) {
+      setError("Editor mode is required to delete reminders.");
+      return;
+    }
+
     if (!window.confirm(t("reminders.confirmDelete"))) {
       return;
     }
@@ -172,6 +195,7 @@ export function RemindersClient({ participants }: RemindersClientProps) {
           <button
             type="button"
             onClick={startAdding}
+            disabled={!canEdit}
             className="rounded-md bg-moss px-3 py-2 text-sm font-semibold text-white"
           >
             {t("reminders.add")}
@@ -181,7 +205,7 @@ export function RemindersClient({ participants }: RemindersClientProps) {
             onClick={() => setExpanded((current) => !current)}
             className="rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold text-ink"
           >
-            {expanded ? t("reminders.showLess") : t("reminders.manage")}
+            {expanded ? t("reminders.showLess") : canEdit ? t("reminders.manage") : t("common.view")}
           </button>
         </div>
       </div>
@@ -206,6 +230,7 @@ export function RemindersClient({ participants }: RemindersClientProps) {
             </label>
           </div>
 
+          {canEdit ? (
           <form onSubmit={submitReminder} className="mt-3 grid gap-3 rounded-lg bg-zinc-50 p-3">
             <label className="text-sm font-semibold text-ink">
               {t("reminders.label")}
@@ -271,6 +296,11 @@ export function RemindersClient({ participants }: RemindersClientProps) {
               </div>
             </div>
           </form>
+          ) : (
+            <p className="mt-3 rounded-lg bg-zinc-50 px-3 py-4 text-sm text-zinc-600">
+              Editor mode is required to add, edit, or delete reminders.
+            </p>
+          )}
         </>
       ) : null}
 
@@ -310,6 +340,7 @@ export function RemindersClient({ participants }: RemindersClientProps) {
                 </div>
                 <p className="mt-2 break-words leading-5 text-ink">{reminder.text}</p>
               </div>
+              {canEdit ? (
               <div className="flex shrink-0 gap-1.5">
                 <button
                   type="button"
@@ -327,6 +358,7 @@ export function RemindersClient({ participants }: RemindersClientProps) {
                   {deletingId === reminder.id ? t("reminders.deleting") : t("common.delete")}
                 </button>
               </div>
+              ) : null}
             </div>
           </li>
         ))}

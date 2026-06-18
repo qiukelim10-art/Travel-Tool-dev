@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useTripAccess } from "@/lib/access";
 import { formatMoney, summarizeExpenseLedger } from "@/lib/budget";
 import { useLanguage } from "@/lib/i18n";
 import { translateOption } from "@/lib/localize";
@@ -68,6 +69,8 @@ function emptyForm(travelers: Traveler[]): ExpenseFormState {
 
 export function BudgetClient() {
   const { language, t } = useLanguage();
+  const { mode } = useTripAccess();
+  const canEdit = mode === "editor";
   const [expenses, setExpenses] = useState<SharedExpense[]>([]);
   const [travelers, setTravelers] = useState<Traveler[]>([]);
   const [loading, setLoading] = useState(true);
@@ -153,6 +156,11 @@ export function BudgetClient() {
   }
 
   function openAddForm() {
+    if (!canEdit) {
+      setError("Editor mode is required to add expenses.");
+      return;
+    }
+
     setEditingId(null);
     setForm(emptyForm(travelers));
     setFormOpen(true);
@@ -161,6 +169,11 @@ export function BudgetClient() {
   }
 
   function startEditing(expense: SharedExpense) {
+    if (!canEdit) {
+      setError("Editor mode is required to edit expenses.");
+      return;
+    }
+
     if (expense.sourceType !== "misc") {
       setNotice(t("budget.noticeLinkedEdit"));
       return;
@@ -185,6 +198,11 @@ export function BudgetClient() {
 
   async function submitExpense(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+
+    if (!canEdit) {
+      setError("Editor mode is required to save expenses.");
+      return;
+    }
 
     const input = buildExpenseInput(form);
     if (!input.title) {
@@ -239,6 +257,11 @@ export function BudgetClient() {
   }
 
   async function removeExpense(expense: SharedExpense) {
+    if (!canEdit) {
+      setError("Editor mode is required to delete expenses.");
+      return;
+    }
+
     if (expense.sourceType !== "misc") {
       setNotice(t("budget.noticeLinkedDelete"));
       return;
@@ -285,7 +308,7 @@ export function BudgetClient() {
           type="button"
           onClick={formOpen ? () => resetForm() : openAddForm}
           className="w-full max-w-full rounded-md bg-moss px-3 py-2 text-sm font-semibold text-white disabled:opacity-60 sm:w-auto"
-          disabled={loading}
+          disabled={loading || !canEdit}
         >
           {formOpen ? t("budget.closeForm") : t("budget.addMiscExpense")}
         </button>
@@ -372,6 +395,7 @@ export function BudgetClient() {
         expenses={filteredExpenses}
         travelerNameById={travelerNameById}
         deletingId={deletingId}
+        canEdit={canEdit}
         language={language}
         t={t}
         onEdit={startEditing}
@@ -745,6 +769,7 @@ function ExpenseList({
   expenses,
   travelerNameById,
   deletingId,
+  canEdit,
   language,
   t,
   onEdit,
@@ -753,6 +778,7 @@ function ExpenseList({
   expenses: SharedExpense[];
   travelerNameById: Map<string, string>;
   deletingId: string | null;
+  canEdit: boolean;
   language: ReturnType<typeof useLanguage>["language"];
   t: TFunction;
   onEdit: (expense: SharedExpense) => void;
@@ -776,6 +802,7 @@ function ExpenseList({
             expense={expense}
             travelerNameById={travelerNameById}
             deletingId={deletingId}
+            canEdit={canEdit}
             language={language}
             t={t}
             onEdit={onEdit}
@@ -791,6 +818,7 @@ function ExpenseCard({
   expense,
   travelerNameById,
   deletingId,
+  canEdit,
   language,
   t,
   onEdit,
@@ -799,6 +827,7 @@ function ExpenseCard({
   expense: SharedExpense;
   travelerNameById: Map<string, string>;
   deletingId: string | null;
+  canEdit: boolean;
   language: ReturnType<typeof useLanguage>["language"];
   t: TFunction;
   onEdit: (expense: SharedExpense) => void;
@@ -837,7 +866,7 @@ function ExpenseCard({
             >
               {detailsOpen ? t("budget.expenses.hideDetails") : t("budget.expenses.details")}
             </button>
-            {isMisc ? (
+            {isMisc && canEdit ? (
               <>
                 <button
                   type="button"

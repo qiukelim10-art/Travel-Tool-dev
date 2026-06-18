@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { accessErrorResponse, requireTripEditor } from "@/lib/server/accessControl";
 import { apiErrorResponse } from "@/lib/server/apiErrorResponse";
 import {
   deleteDocumentItem,
@@ -14,6 +15,7 @@ type RouteContext = {
 
 export async function PATCH(request: Request, context: RouteContext) {
   try {
+    await requireTripEditor(request);
     const { id } = await context.params;
     const input = await validateDocumentInput(await request.json());
     await updateDocumentItem(id, input);
@@ -21,18 +23,19 @@ export async function PATCH(request: Request, context: RouteContext) {
     const travelers = await listTripTravelersForBusinessData();
     return NextResponse.json({ documents, travelers });
   } catch (error) {
-    return apiErrorResponse(error, "Unable to update document.", 400);
+    return accessErrorResponse(error) ?? apiErrorResponse(error, "Unable to update document.", 400);
   }
 }
 
-export async function DELETE(_request: Request, context: RouteContext) {
+export async function DELETE(request: Request, context: RouteContext) {
   try {
+    await requireTripEditor(request);
     const { id } = await context.params;
     await deleteDocumentItem(id);
     const documents = await listDocumentItems();
     const travelers = await listTripTravelersForBusinessData();
     return NextResponse.json({ documents, travelers });
   } catch (error) {
-    return apiErrorResponse(error, "Unable to delete document.", 500);
+    return accessErrorResponse(error) ?? apiErrorResponse(error, "Unable to delete document.", 500);
   }
 }

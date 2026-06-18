@@ -84,6 +84,31 @@ const priorityRank: Record<string, number> = {
 const activeTripId = "active-trip";
 const defaultTripCurrencies = ["EUR", "SGD", "MYR"] as const satisfies readonly SharedCurrency[];
 const defaultTripRouteStops = ["Rome", "Florence", "Venice", "Milan"] as const;
+const editorSessionDurationMs = 12 * 60 * 60 * 1000;
+
+export type TripAccessMode = "viewer" | "editor";
+
+export type TripAccessStatus = {
+  configured: boolean;
+  authorized: boolean;
+  mode: TripAccessMode | null;
+  editorExpiresAt: string | null;
+  recoveryTokenAvailable: boolean;
+  travelers: TripTraveler[];
+};
+
+export type TripAccessSetupResult = {
+  shareToken: string;
+  ownerRecoveryToken: string;
+  editorToken: string;
+  editorExpiresAt: string;
+  travelers: TripTraveler[];
+};
+
+export type TripEditorSessionResult = {
+  editorToken: string;
+  editorExpiresAt: string;
+};
 
 function getDbName() {
   return process.env.MYSQL_DATABASE || "italy_trip_2026";
@@ -590,6 +615,29 @@ async function createTables() {
       PRIMARY KEY (id),
       KEY idx_trip_route_stops_order (trip_id, sort_order, city),
       CONSTRAINT fk_trip_route_stops_trip
+        FOREIGN KEY (trip_id) REFERENCES trips (id)
+        ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `);
+
+  await pool.execute(`
+    CREATE TABLE IF NOT EXISTS trip_access_controls (
+      trip_id varchar(36) NOT NULL,
+      share_token_salt varchar(64) NOT NULL,
+      share_token_hash varchar(128) NOT NULL,
+      edit_passcode_salt varchar(64) NOT NULL,
+      edit_passcode_hash varchar(128) NOT NULL,
+      owner_recovery_token_salt varchar(64) NOT NULL,
+      owner_recovery_token_hash varchar(128) NOT NULL,
+      owner_recovery_token_used_at timestamp NULL DEFAULT NULL,
+      editor_session_salt varchar(64) DEFAULT NULL,
+      editor_session_hash varchar(128) DEFAULT NULL,
+      editor_session_expires_at timestamp NULL DEFAULT NULL,
+      created_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      PRIMARY KEY (trip_id),
+      KEY idx_trip_access_editor_session (editor_session_expires_at),
+      CONSTRAINT fk_trip_access_trip
         FOREIGN KEY (trip_id) REFERENCES trips (id)
         ON DELETE CASCADE
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
@@ -1687,6 +1735,282 @@ function verifyPasscode(passcode: string, salt: string, hash: string) {
   return expected.length === attempted.length && timingSafeEqual(expected, attempted);
 }
 
+function generateAccessToken() {
+  return randomBytes(32).toString("base64url");
+}
+
+function normalizeSecret(value: unknown, label: string, minimumLength = 1) {
+  const secret = String(value ?? "").trim();
+
+  if (secret.length < minimumLength) {
+    throw new Error(`${label} must be at least ${minimumLength} characters.`);
+  }
+
+  if (secret.length > 256) {
+    throw new Error(`${label} is too long.`);
+  }
+
+  return secret;
+}
+
+function toMysqlDateTime(value: Date) {
+  return value.toISOString().slice(0, 19).replace("T", " ");
+}
+
+function isFutureDate(value: unknown) {
+  if (!value) {
+    return false;
+  }
+
+  const date = value instanceof Date ? value : new Date(String(value));
+  return Number.isFinite(date.getTime()) && date.getTime() > Date.now();
+}
+
+function mapEditorExpiresAt(value: unknown) {
+  return value === null || value === undefined ? null : asString(value);
+}
+
+async function getActiveTripAccessRow(executor: MysqlPool | MysqlConnection = getAppPool()) {
+  const [rows] = await executor.execute<DbRow[]>(
+    "SELECT * FROM trip_access_controls WHERE trip_id = ? LIMIT 1",
+    [activeTripId]
+  );
+  return rows[0] ?? null;
+}
+
+function rowHasValidShareToken(row: DbRow, shareToken: string) {
+  const salt = nullableString(row.share_token_salt);
+  const hash = nullableString(row.share_token_hash);
+  return Boolean(shareToken && salt && hash && verifyPasscode(shareToken, salt, hash));
+}
+
+function rowHasValidEditorSession(row: DbRow, editorToken: string) {
+  const salt = nullableString(row.editor_session_salt);
+  const hash = nullableString(row.editor_session_hash);
+
+  return Boolean(
+    editorToken &&
+      salt &&
+      hash &&
+      isFutureDate(row.editor_session_expires_at) &&
+      verifyPasscode(editorToken, salt, hash)
+  );
+}
+
+async function storeEditorSession(
+  executor: MysqlPool | MysqlConnection,
+  tripId: string,
+  editorToken: string,
+  editorExpiresAt: Date
+) {
+  const editorParts = hashPasscode(editorToken);
+
+  await executor.execute(
+    `UPDATE trip_access_controls
+     SET editor_session_salt = ?, editor_session_hash = ?, editor_session_expires_at = ?
+     WHERE trip_id = ?`,
+    [editorParts.salt, editorParts.hash, toMysqlDateTime(editorExpiresAt), tripId]
+  );
+}
+
+async function createEditorSessionForActiveTrip(
+  executor: MysqlPool | MysqlConnection = getAppPool()
+): Promise<TripEditorSessionResult> {
+  const editorToken = generateAccessToken();
+  const editorExpiresAt = new Date(Date.now() + editorSessionDurationMs);
+  await storeEditorSession(executor, activeTripId, editorToken, editorExpiresAt);
+
+  return {
+    editorToken,
+    editorExpiresAt: editorExpiresAt.toISOString()
+  };
+}
+
+export async function getActiveTripAccessStatus(
+  shareToken = "",
+  editorToken = ""
+): Promise<TripAccessStatus> {
+  await ensureSharedDataStore();
+
+  const [row, travelers] = await Promise.all([
+    getActiveTripAccessRow(),
+    listTripTravelersForBusinessData()
+  ]);
+
+  if (!row) {
+    return {
+      configured: false,
+      authorized: false,
+      mode: null,
+      editorExpiresAt: null,
+      recoveryTokenAvailable: false,
+      travelers
+    };
+  }
+
+  const authorized = rowHasValidShareToken(row, shareToken);
+  const editorAuthorized = authorized && rowHasValidEditorSession(row, editorToken);
+
+  return {
+    configured: true,
+    authorized,
+    mode: authorized ? (editorAuthorized ? "editor" : "viewer") : null,
+    editorExpiresAt: editorAuthorized ? mapEditorExpiresAt(row.editor_session_expires_at) : null,
+    recoveryTokenAvailable: !row.owner_recovery_token_used_at,
+    travelers
+  };
+}
+
+export async function setupActiveTripAccess(rawEditPasscode: unknown): Promise<TripAccessSetupResult> {
+  await ensureSharedDataStore();
+  const editPasscode = normalizeSecret(rawEditPasscode, "Edit passcode", 6);
+  const shareToken = generateAccessToken();
+  const ownerRecoveryToken = generateAccessToken();
+  const shareParts = hashPasscode(shareToken);
+  const editParts = hashPasscode(editPasscode);
+  const recoveryParts = hashPasscode(ownerRecoveryToken);
+  const connection = await getAppPool().getConnection();
+
+  try {
+    await connection.beginTransaction();
+    const existing = await getActiveTripAccessRow(connection);
+
+    if (existing) {
+      throw new Error("Trip access has already been configured.");
+    }
+
+    await connection.execute(
+      `INSERT INTO trip_access_controls
+        (trip_id, share_token_salt, share_token_hash, edit_passcode_salt, edit_passcode_hash,
+         owner_recovery_token_salt, owner_recovery_token_hash)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [
+        activeTripId,
+        shareParts.salt,
+        shareParts.hash,
+        editParts.salt,
+        editParts.hash,
+        recoveryParts.salt,
+        recoveryParts.hash
+      ]
+    );
+    const editorSession = await createEditorSessionForActiveTrip(connection);
+    await connection.commit();
+
+    return {
+      shareToken,
+      ownerRecoveryToken,
+      ...editorSession,
+      travelers: await listTripTravelersForBusinessData()
+    };
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
+  }
+}
+
+export async function verifyActiveTripShareToken(shareToken: string) {
+  await ensureSharedDataStore();
+  const row = await getActiveTripAccessRow();
+  return Boolean(row && rowHasValidShareToken(row, shareToken));
+}
+
+export async function verifyActiveTripEditorToken(shareToken: string, editorToken: string) {
+  await ensureSharedDataStore();
+  const row = await getActiveTripAccessRow();
+  return Boolean(row && rowHasValidShareToken(row, shareToken) && rowHasValidEditorSession(row, editorToken));
+}
+
+export async function createActiveTripEditorSession(
+  shareToken: string,
+  rawEditPasscode: unknown
+): Promise<TripEditorSessionResult> {
+  await ensureSharedDataStore();
+  const editPasscode = normalizeSecret(rawEditPasscode, "Edit passcode", 1);
+  const row = await getActiveTripAccessRow();
+
+  if (!row || !rowHasValidShareToken(row, shareToken)) {
+    throw new Error("Private trip link is invalid.");
+  }
+
+  const passcodeSalt = nullableString(row.edit_passcode_salt);
+  const passcodeHash = nullableString(row.edit_passcode_hash);
+
+  if (!passcodeSalt || !passcodeHash || !verifyPasscode(editPasscode, passcodeSalt, passcodeHash)) {
+    throw new Error("Edit passcode is invalid.");
+  }
+
+  return createEditorSessionForActiveTrip();
+}
+
+export async function recoverActiveTripEditorAccess(
+  shareToken: string,
+  rawOwnerRecoveryToken: unknown,
+  rawEditPasscode: unknown
+): Promise<TripEditorSessionResult> {
+  await ensureSharedDataStore();
+  const ownerRecoveryToken = normalizeSecret(rawOwnerRecoveryToken, "Owner recovery token", 1);
+  const editPasscode = normalizeSecret(rawEditPasscode, "New edit passcode", 6);
+  const editParts = hashPasscode(editPasscode);
+  const connection = await getAppPool().getConnection();
+
+  try {
+    await connection.beginTransaction();
+    const row = await getActiveTripAccessRow(connection);
+
+    if (!row || !rowHasValidShareToken(row, shareToken)) {
+      throw new Error("Private trip link is invalid.");
+    }
+
+    if (row.owner_recovery_token_used_at) {
+      throw new Error("Owner recovery token has already been used.");
+    }
+
+    const recoverySalt = nullableString(row.owner_recovery_token_salt);
+    const recoveryHash = nullableString(row.owner_recovery_token_hash);
+
+    if (
+      !recoverySalt ||
+      !recoveryHash ||
+      !verifyPasscode(ownerRecoveryToken, recoverySalt, recoveryHash)
+    ) {
+      throw new Error("Owner recovery token is invalid.");
+    }
+
+    await connection.execute(
+      `UPDATE trip_access_controls
+       SET edit_passcode_salt = ?, edit_passcode_hash = ?, owner_recovery_token_used_at = CURRENT_TIMESTAMP
+       WHERE trip_id = ?`,
+      [editParts.salt, editParts.hash, activeTripId]
+    );
+    const editorSession = await createEditorSessionForActiveTrip(connection);
+    await connection.commit();
+    return editorSession;
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
+  }
+}
+
+export async function rotateActiveTripOwnerRecoveryToken() {
+  await ensureSharedDataStore();
+  const ownerRecoveryToken = generateAccessToken();
+  const recoveryParts = hashPasscode(ownerRecoveryToken);
+
+  await getAppPool().execute(
+    `UPDATE trip_access_controls
+     SET owner_recovery_token_salt = ?, owner_recovery_token_hash = ?, owner_recovery_token_used_at = NULL
+     WHERE trip_id = ?`,
+    [recoveryParts.salt, recoveryParts.hash, activeTripId]
+  );
+
+  return ownerRecoveryToken;
+}
+
 export async function validateDocumentInput(input: Partial<DocumentInput>) {
   const tripTravelers = await listTripTravelersForBusinessData();
   const title = String(input.title ?? "").trim();
@@ -2319,6 +2643,39 @@ export async function deletePackingItem(id: string) {
   await getAppPool().execute("DELETE FROM packing_items WHERE id = ?", [id]);
 }
 
+export async function updatePackingTravelerStatus(
+  itemId: string,
+  travelerId: string,
+  status: PackingTravelerStatus
+) {
+  await ensureSharedDataStore();
+
+  if (!(packingTravelerStatuses as readonly string[]).includes(status)) {
+    throw new Error("Packing traveler status is invalid.");
+  }
+
+  const travelers = await listTripTravelersForBusinessData();
+  const traveler = travelers.find((currentTraveler) => currentTraveler.id === travelerId);
+
+  if (!traveler || !traveler.isActive) {
+    throw new Error("Traveler identity is invalid.");
+  }
+
+  const [itemRows] = await getAppPool().execute<DbRow[]>("SELECT id FROM packing_items WHERE id = ?", [itemId]);
+
+  if (!itemRows[0]) {
+    throw new Error("Packing item was not found.");
+  }
+
+  await getAppPool().execute(
+    `INSERT INTO packing_item_traveler_statuses
+      (id, item_id, traveler_id, status)
+     VALUES (?, ?, ?, ?)
+     ON DUPLICATE KEY UPDATE status = VALUES(status), updated_at = CURRENT_TIMESTAMP`,
+    [randomUUID(), itemId, travelerId, status]
+  );
+}
+
 export async function listDocumentItems() {
   await ensureSharedDataStore();
   const tripTravelers = await listTripTravelersForBusinessData();
@@ -2486,6 +2843,39 @@ export async function updateDocumentItem(id: string, input: DocumentInput) {
 export async function deleteDocumentItem(id: string) {
   await ensureSharedDataStore();
   await getAppPool().execute("DELETE FROM document_items WHERE id = ?", [id]);
+}
+
+export async function updateDocumentTravelerStatus(
+  itemId: string,
+  travelerId: string,
+  status: DocumentTravelerStatus
+) {
+  await ensureSharedDataStore();
+
+  if (!(documentTravelerStatuses as readonly string[]).includes(status)) {
+    throw new Error("Document traveler status is invalid.");
+  }
+
+  const travelers = await listTripTravelersForBusinessData();
+  const traveler = travelers.find((currentTraveler) => currentTraveler.id === travelerId);
+
+  if (!traveler || !traveler.isActive) {
+    throw new Error("Traveler identity is invalid.");
+  }
+
+  const [itemRows] = await getAppPool().execute<DbRow[]>("SELECT id FROM document_items WHERE id = ?", [itemId]);
+
+  if (!itemRows[0]) {
+    throw new Error("Document item was not found.");
+  }
+
+  await getAppPool().execute(
+    `INSERT INTO document_item_traveler_statuses
+      (id, item_id, traveler_id, status)
+     VALUES (?, ?, ?, ?)
+     ON DUPLICATE KEY UPDATE status = VALUES(status), updated_at = CURRENT_TIMESTAMP`,
+    [randomUUID(), itemId, travelerId, status]
+  );
 }
 
 export async function unlockDocumentItem(id: string, passcode: string) {

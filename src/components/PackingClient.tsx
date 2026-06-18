@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import type { Traveler } from "@/data/tripData";
+import { useTripAccess } from "@/lib/access";
 import { useLanguage } from "@/lib/i18n";
 import { translateOption } from "@/lib/localize";
 import {
@@ -107,6 +108,8 @@ function isPackingResponse(data: unknown): data is { items: SharedPackingItem[] 
 
 export function PackingClient({ travelers }: PackingClientProps) {
   const { language, t } = useLanguage();
+  const { mode, selectedTravelerId } = useTripAccess();
+  const canEdit = mode === "editor";
   const sortedTravelers = useMemo(
     () => travelers.slice().sort((a, b) => a.displayOrder - b.displayOrder),
     [travelers]
@@ -131,6 +134,7 @@ export function PackingClient({ travelers }: PackingClientProps) {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [statusUpdatingId, setStatusUpdatingId] = useState<string | null>(null);
 
   const requiredPeopleItems = items.reduce(
     (count, item) =>
@@ -214,12 +218,22 @@ export function PackingClient({ travelers }: PackingClientProps) {
   }
 
   function openNewForm() {
+    if (!canEdit) {
+      setError("Editor mode is required to add packing items.");
+      return;
+    }
+
     setEditingId(null);
     setForm(emptyForm(activeTravelers));
     setFormOpen(true);
   }
 
   function startEditing(item: SharedPackingItem) {
+    if (!canEdit) {
+      setError("Editor mode is required to edit packing items.");
+      return;
+    }
+
     setEditingId(item.id);
     setForm({
       name: item.name,
@@ -272,6 +286,11 @@ export function PackingClient({ travelers }: PackingClientProps) {
   async function submitPackingItem(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
+    if (!canEdit) {
+      setError("Editor mode is required to save packing items.");
+      return;
+    }
+
     if (!form.name.trim()) {
       setError(t("packing.validationName"));
       return;
@@ -302,6 +321,11 @@ export function PackingClient({ travelers }: PackingClientProps) {
   }
 
   async function removeItem(item: SharedPackingItem) {
+    if (!canEdit) {
+      setError("Editor mode is required to delete packing items.");
+      return;
+    }
+
     if (!window.confirm(t("packing.confirmDelete"))) {
       return;
     }
@@ -325,6 +349,35 @@ export function PackingClient({ travelers }: PackingClientProps) {
       setError(deleteError instanceof Error ? deleteError.message : t("packing.errorDelete"));
     } finally {
       setDeletingId(null);
+    }
+  }
+
+  async function updateOwnStatus(item: SharedPackingItem, status: PackingTravelerStatus) {
+    if (!selectedTravelerId) {
+      setError("Select a traveler identity before updating packing status.");
+      return;
+    }
+
+    setStatusUpdatingId(item.id);
+    setError(null);
+
+    try {
+      const response = await fetch(`/api/packing/${item.id}/status`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status })
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error ?? t("packing.errorSave"));
+      }
+
+      setItems(data.items ?? []);
+    } catch (statusError) {
+      setError(statusError instanceof Error ? statusError.message : t("packing.errorSave"));
+    } finally {
+      setStatusUpdatingId(null);
     }
   }
 
@@ -367,7 +420,8 @@ export function PackingClient({ travelers }: PackingClientProps) {
         <button
           type="button"
           onClick={openNewForm}
-          className="rounded-md bg-moss px-4 py-2 text-sm font-semibold text-white"
+          disabled={!canEdit}
+          className="rounded-md bg-moss px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
         >
           {t("packing.addItem")}
         </button>
@@ -534,9 +588,13 @@ export function PackingClient({ travelers }: PackingClientProps) {
                   key={item.id}
                   item={item}
                   deletingId={deletingId}
+                  statusUpdatingId={statusUpdatingId}
+                  canEdit={canEdit}
+                  selectedTravelerId={selectedTravelerId}
                   travelerNameById={travelerNameById}
                   onEdit={startEditing}
                   onDelete={removeItem}
+                  onStatusChange={updateOwnStatus}
                 />
               ))}
             </div>
@@ -550,15 +608,23 @@ export function PackingClient({ travelers }: PackingClientProps) {
 function PackingItemCard({
   item,
   deletingId,
+  statusUpdatingId,
+  canEdit,
+  selectedTravelerId,
   travelerNameById,
   onEdit,
-  onDelete
+  onDelete,
+  onStatusChange
 }: {
   item: SharedPackingItem;
   deletingId: string | null;
+  statusUpdatingId: string | null;
+  canEdit: boolean;
+  selectedTravelerId: string;
   travelerNameById: Map<string, string>;
   onEdit: (item: SharedPackingItem) => void;
   onDelete: (item: SharedPackingItem) => Promise<void>;
+  onStatusChange: (item: SharedPackingItem, status: PackingTravelerStatus) => Promise<void>;
 }) {
   const { language, t } = useLanguage();
   const overallStatus = getOverallStatus(item);
@@ -585,6 +651,7 @@ function PackingItemCard({
             </p>
           ) : null}
         </div>
+        {canEdit ? (
         <div className="flex shrink-0 gap-1.5">
           <button
             type="button"
@@ -602,6 +669,7 @@ function PackingItemCard({
             {deletingId === item.id ? t("common.deleting") : t("common.delete")}
           </button>
         </div>
+        ) : null}
       </div>
 
       {item.notes ? <p className="mt-1.5 line-clamp-1 text-sm leading-5 text-zinc-600">{item.notes}</p> : null}
@@ -627,6 +695,29 @@ function PackingItemCard({
           </div>
           );
         })}
+      </div>
+
+      <div className="mt-3 rounded-md border border-zinc-200 bg-white/75 p-2">
+        {selectedTravelerId ? (
+          <SelectField
+            name={`packing-${item.id}-own-status`}
+            label={`${travelerNameById.get(selectedTravelerId) ?? selectedTravelerId} status`}
+            value={
+              item.statuses.find((status) => status.travelerId === selectedTravelerId)?.status ??
+              "required"
+            }
+            options={packingTravelerStatuses}
+            onChange={(value) => void onStatusChange(item, value as PackingTravelerStatus)}
+            getOptionLabel={(value) => translateOption(language, value)}
+          />
+        ) : (
+          <p className="text-sm text-zinc-600">
+            Select a traveler identity above to update your own packing status.
+          </p>
+        )}
+        {statusUpdatingId === item.id ? (
+          <p className="mt-2 text-xs font-semibold text-zinc-500">{t("common.saving")}</p>
+        ) : null}
       </div>
     </article>
   );

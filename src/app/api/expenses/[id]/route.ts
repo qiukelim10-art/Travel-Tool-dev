@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { accessErrorResponse, requireTripEditor } from "@/lib/server/accessControl";
 import { apiErrorResponse } from "@/lib/server/apiErrorResponse";
 import {
   deleteExpense,
@@ -14,6 +15,7 @@ type RouteContext = {
 
 export async function PATCH(request: Request, context: RouteContext) {
   try {
+    await requireTripEditor(request);
     const { id } = await context.params;
     const input = await validateExpenseInput(await request.json());
     await updateExpense(id, input);
@@ -21,18 +23,19 @@ export async function PATCH(request: Request, context: RouteContext) {
     const travelers = await listTripTravelersForBusinessData();
     return NextResponse.json({ expenses, travelers });
   } catch (error) {
-    return apiErrorResponse(error, "Unable to update expense.", 400);
+    return accessErrorResponse(error) ?? apiErrorResponse(error, "Unable to update expense.", 400);
   }
 }
 
-export async function DELETE(_request: Request, context: RouteContext) {
+export async function DELETE(request: Request, context: RouteContext) {
   try {
+    await requireTripEditor(request);
     const { id } = await context.params;
     await deleteExpense(id);
     const expenses = await listExpenses();
     const travelers = await listTripTravelersForBusinessData();
     return NextResponse.json({ expenses, travelers });
   } catch (error) {
-    return apiErrorResponse(error, "Unable to delete expense.", 500);
+    return accessErrorResponse(error) ?? apiErrorResponse(error, "Unable to delete expense.", 500);
   }
 }

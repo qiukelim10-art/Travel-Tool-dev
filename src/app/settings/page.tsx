@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { SectionHeader } from "@/components/SectionHeader";
+import { useTripAccess } from "@/lib/access";
 import { useLanguage } from "@/lib/i18n";
 import { bookingCurrencies, type TripSettingsInput, type TripSettingsResponse } from "@/lib/sharedDataTypes";
 import { publishTripSettings } from "@/lib/useTripSettings";
@@ -99,6 +100,8 @@ type SettingsLabels = (typeof copy)[keyof typeof copy];
 
 export default function SettingsPage() {
   const { language } = useLanguage();
+  const { mode } = useTripAccess();
+  const canEdit = mode === "editor";
   const labels = copy[language];
   const [form, setForm] = useState<SettingsForm | null>(null);
   const [savedSnapshot, setSavedSnapshot] = useState("");
@@ -167,6 +170,11 @@ export default function SettingsPage() {
   async function submitSettings(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
+    if (!canEdit) {
+      setError("Editor mode is required to save trip settings.");
+      return;
+    }
+
     if (!form) {
       return;
     }
@@ -231,6 +239,11 @@ export default function SettingsPage() {
 
       {form ? (
         <form onSubmit={submitSettings} className="mobile-safe-form space-y-4 pb-20 md:pb-0">
+          {!canEdit ? (
+            <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+              Editor mode is required to modify trip settings.
+            </p>
+          ) : null}
           <section className="rounded-lg border border-zinc-200 bg-white p-4 shadow-soft">
             <h2 className="text-lg font-semibold text-ink">{labels.basics}</h2>
             <div className="mt-4 grid gap-3 md:grid-cols-2">
@@ -355,9 +368,9 @@ export default function SettingsPage() {
                 : ""
             }`}
           >
-            <button
-              type="submit"
-              disabled={saving || !dirty}
+              <button
+                type="submit"
+              disabled={saving || !dirty || !canEdit}
               className={`w-full rounded-md px-3 py-2 text-base font-semibold sm:w-auto sm:text-sm ${
                 dirty ? "bg-moss text-white disabled:opacity-60" : "border border-zinc-200 bg-zinc-50 text-zinc-500"
               }`}

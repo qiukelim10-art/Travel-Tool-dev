@@ -27,12 +27,13 @@
 - Real-data preparation docs now exist: `REAL_DATA_ENTRY_GUIDE.md` and `REAL_DATA_CHECKLIST.md`.
 - A concise bilingual traveler-facing quick-start guide now exists at `USER_GUIDE.md` and `Italy Trip 2026 Quick User Guide.docx`.
 - Phase 1 reusable trip dashboard foundation now exists on `codex/trip-settings-foundation`: active trip settings use `trips`, `trip_travelers`, and `trip_route_stops`; `/api/trip-settings` supports read/write for the single active trip, and `/settings` edits trip basics, currencies, timezone, notes, travelers, and route stops.
+- Access-control foundation now exists on `codex/access-control-foundation` and has been locally approved: first-time private link setup, viewer/editor mode, planner edit passcode, one-time owner recovery token, server-side API guards, and viewer-safe Packing/Documents traveler status updates.
 - The second-round Universal Travel Cockpit UI polish was committed on `codex/ui-skill-research` and merged into `master`; final build/lint, desktop/LAN page/API checks, and mobile no-horizontal-overflow QA passed before merge.
 
 ## Highest Priority Task
 
-- Review `PRODUCT_VISION.md`; if approved, build the first access-control slice before entering real private trip details.
-- The agreed first access model is private unguessable trip link, viewer mode by default, edit passcode for editor mode, and one-time owner recovery link/token; viewer mode can only make low-risk status updates after selecting a traveler identity. Do not build full login or traveler accounts yet.
+- Keep the approved access-control foundation on `master` after merge, but do not deploy production until the user asks for the final batch deployment.
+- Before the future production deployment, apply the updated managed schema so `trip_access_controls` exists; after deploy, run first-time access setup, save the private link and one-time owner recovery token outside the app, and share the private link with travelers.
 - The live site is stable for now; the user and travel group will enter safe real trip data through the UI.
 - Keep `Italy Trip 2026 Quick User Guide.docx` as the traveler quick-start guide.
 - Keep memory files focused on current active work; branch-specific review, commit, and merge tasks should only be reintroduced when the user explicitly resumes that branch.
@@ -47,6 +48,7 @@
 - Some trip content still uses placeholder data only.
 - Shared reminders/bookings are verified locally, but there is still no password protection. Revisit security before storing real private trip details.
 - The public Vercel deployment is intentionally URL-accessible: anyone with the live link can view and edit shared trip data. Do not enter sensitive real trip details before approving an access-control approach.
+- Production access control is not active until the access-control branch is deployed and the planner completes first-time access setup.
 - Real passport numbers, payment card details, full confirmations, private document files, and personal contact details should still not be entered. Documents can store folder links, but real files must stay in permission-controlled cloud storage and passcodes must not be written in notes.
 
 ## Important Architecture Note
@@ -61,6 +63,8 @@
 - Zero-cost Vercel/Aiven preparation files now include `DEPLOYMENT_PREVIEW_GUIDE.md`, `database/managed-schema.sql`, `database/preview-seed.sql`, and `/api/health` for deployment smoke checks.
 - Most trip pages still use static data, but reminders, bookings, itinerary, and packing now use local Next API + MySQL prototype paths.
 - Active trip settings are now separate from business data: `trips`, `trip_travelers`, and `trip_route_stops` seed `active-trip` only when `trips` is empty. Existing reminders, bookings, itinerary, expenses, packing, and documents tables do not have `trip_id` yet.
+- Access control uses `trip_access_controls` keyed by `trip_id` for the current `active-trip`; no database-wide business-table `trip_id` migration has been done.
+- With `MYSQL_MANAGED_SCHEMA=true`, production must apply the updated `database/managed-schema.sql` before access-control APIs can run.
 - `/api/trip-settings` returns and updates the active trip, travelers, and route stops. Dashboard and Layout consume it for trip name, date range, destination/route, traveler count, and brand display; trip name, destination, city names, traveler display names, and notes remain untranslated user/data content.
 - Expenses, packing, and documents APIs now return active trip travelers with compatible `name/displayOrder` fields. New business forms use active travelers, while existing inactive traveler references remain visible for history.
 - Documents uses `document_items` and `document_item_traveler_statuses` through local Next API + MySQL prototype paths; protected list responses intentionally hide `externalUrl`, passcode hash, and salt until `/api/documents/[id]/unlock` succeeds.

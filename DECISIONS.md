@@ -32,3 +32,11 @@
 - Pilot commercial model should be SGD 4.90 early access per trip workspace, handled through Free Demo / Manual Pilot first; do not build payment or checkout yet.
 - Workspace lifecycle should be active until trip end date plus 60 days, then archived/read-only; do not promise permanent storage.
 - The private trip link is for convenience, not high-security storage. Documents and sensitive fields must stay metadata/checklist only with contextual safety hints; do not upload or store passport scans, passport numbers, payment card details, insurance certificates, full confirmation PDFs, private passcodes, or confidential identity information.
+
+## 2026-06-19
+
+- Implement access control as an app-level private link boundary plus server-side API guards, not full login or traveler accounts.
+- Store private link tokens, edit passcodes, owner recovery tokens, and editor session tokens only as salted hashes in `trip_access_controls`.
+- Keep the current single active trip behavior, but key access-control data by `trip_id` so it does not deepen the single-trip assumption.
+- Viewer mode can update only the selected traveler's Packing/Documents status through dedicated status endpoints; core trip data changes still require editor mode.
+- Do not add setup wizard, template generation, payment, checkout, multi-trip SaaS dashboard, AI, or database-wide business table migrations in this slice.

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { StatusBadge } from "@/components/StatusBadge";
+import { useTripAccess } from "@/lib/access";
 import { formatMoney } from "@/lib/budget";
 import { useLanguage } from "@/lib/i18n";
 import { translateOption } from "@/lib/localize";
@@ -49,6 +50,8 @@ function emptyForm(bookedBy: string, travelers: Traveler[] = []): BookingInput {
 
 export function BookingsClient({ participants }: BookingsClientProps) {
   const { language, t } = useLanguage();
+  const { mode } = useTripAccess();
+  const canEdit = mode === "editor";
   const [bookings, setBookings] = useState<SharedBooking[]>([]);
   const [expenses, setExpenses] = useState<SharedExpense[]>([]);
   const [travelers, setTravelers] = useState<Traveler[]>([]);
@@ -142,6 +145,11 @@ export function BookingsClient({ participants }: BookingsClientProps) {
   }
 
   function startEditing(booking: SharedBooking) {
+    if (!canEdit) {
+      setError("Editor mode is required to edit bookings.");
+      return;
+    }
+
     const budgetExpense = budgetExpenseByBooking.get(booking.id);
     setEditingId(booking.id);
     setForm(bookingToForm(booking, budgetExpense, activeTravelers));
@@ -153,6 +161,11 @@ export function BookingsClient({ participants }: BookingsClientProps) {
   }
 
   function openAddForm() {
+    if (!canEdit) {
+      setError("Editor mode is required to add bookings.");
+      return;
+    }
+
     setEditingId(null);
     setForm(emptyForm(participants[0] ?? "Person A", activeTravelers));
     setFormOpen(true);
@@ -162,6 +175,11 @@ export function BookingsClient({ participants }: BookingsClientProps) {
 
   async function submitBooking(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+
+    if (!canEdit) {
+      setError("Editor mode is required to save bookings.");
+      return;
+    }
 
     if (!form.description.trim()) {
       setError(t("bookings.validationDescription"));
@@ -212,6 +230,11 @@ export function BookingsClient({ participants }: BookingsClientProps) {
   }
 
   async function removeBooking(booking: SharedBooking) {
+    if (!canEdit) {
+      setError("Editor mode is required to delete bookings.");
+      return;
+    }
+
     if (!window.confirm(t("bookings.confirmDelete"))) {
       return;
     }
@@ -264,6 +287,7 @@ export function BookingsClient({ participants }: BookingsClientProps) {
             <button
               type="button"
               onClick={openAddForm}
+              disabled={!canEdit}
               className="w-full max-w-full rounded-md bg-moss px-3 py-2 text-sm font-semibold text-white sm:w-auto"
             >
               {t("bookings.addItem")}
@@ -510,6 +534,7 @@ export function BookingsClient({ participants }: BookingsClientProps) {
                     <ActionButtons
                       booking={booking}
                       deletingId={deletingId}
+                      canEdit={canEdit}
                       onEdit={startEditing}
                       onDelete={removeBooking}
                     />
@@ -528,6 +553,7 @@ export function BookingsClient({ participants }: BookingsClientProps) {
             booking={booking}
             budgetExpense={budgetExpenseByBooking.get(booking.id)}
             deletingId={deletingId}
+            canEdit={canEdit}
             onEdit={startEditing}
             onDelete={removeBooking}
           />
@@ -541,12 +567,14 @@ function BookingCard({
   booking,
   budgetExpense,
   deletingId,
+  canEdit,
   onEdit,
   onDelete
 }: {
   booking: SharedBooking;
   budgetExpense?: SharedExpense;
   deletingId: string | null;
+  canEdit: boolean;
   onEdit: (booking: SharedBooking) => void;
   onDelete: (booking: SharedBooking) => Promise<void>;
 }) {
@@ -566,6 +594,7 @@ function BookingCard({
           <ActionButtons
             booking={booking}
             deletingId={deletingId}
+            canEdit={canEdit}
             onEdit={onEdit}
             onDelete={onDelete}
           />
@@ -781,15 +810,21 @@ function Field({ label, value }: { label: string; value: string }) {
 function ActionButtons({
   booking,
   deletingId,
+  canEdit,
   onEdit,
   onDelete
 }: {
   booking: SharedBooking;
   deletingId: string | null;
+  canEdit: boolean;
   onEdit: (booking: SharedBooking) => void;
   onDelete: (booking: SharedBooking) => Promise<void>;
 }) {
   const { t } = useLanguage();
+
+  if (!canEdit) {
+    return null;
+  }
 
   return (
     <div className="flex flex-wrap justify-end gap-1.5">

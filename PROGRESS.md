@@ -1,5 +1,20 @@
 # Progress
 
+## 2026-06-19
+
+- Implemented the PRODUCT_VISION access-control phase 1 slice on `codex/access-control-foundation`: private unguessable trip link setup, viewer mode by default, planner edit passcode editor mode, and one-time owner recovery token generation/recovery.
+- Added `trip_access_controls` with `trip_id` compatibility for the current `active-trip`; share token, edit passcode, owner recovery token, and editor session token are stored only as salted hashes.
+- Added access APIs under `/api/access/*`, server-side viewer/editor/traveler identity guards, and protected existing shared data APIs so reads require the private link and core data writes require editor mode.
+- Added viewer-safe traveler status updates for Packing and Documents via `/api/packing/[id]/status` and `/api/documents/[id]/status`; viewer mode must select a traveler identity before changing only that traveler's low-risk status.
+- Updated the client shell with an access gate and toolbar for private token setup, traveler identity selection, editor passcode entry, recovery-token reset, and recovery-token rotation.
+- Fixed the private-link copy button fallback: constrained browser shells now get a textarea copy fallback, and if clipboard copy is unavailable the toolbar shows the private link for manual selection.
+- Kept setup wizard, template generation, payment/checkout, multi-trip SaaS dashboard, AI, and business-table `trip_id` migration out of scope.
+- Verified `npm run lint`, `npm run build`, local access smoke checks, desktop/LAN page checks, health/access API checks, unauthenticated core API 401, viewer write 403, viewer status update 200, and editor temporary booking create/delete cleanup.
+- User approved the access-control foundation after in-app browser review.
+- Re-ran final verification after approval: `npm run lint`, `npm run build`, desktop `/` and `/settings` HTTP 200, LAN `/` and `/settings` HTTP 200, health API HTTP 200, unauthenticated access/core API HTTP 401 as expected, and in-app browser access toolbar/settings UI present.
+- Prepared a temporary handoff document at `C:\Users\qiuke\AppData\Local\Temp\italy-trip-2026-access-control-handoff-2026-06-19.md` and generated the suggested commit message during review.
+- User requested local commit and merge to `master`, while explicitly deferring production deployment until a later final batch deployment.
+
 ## 2026-06-18
 
 - Created `PRODUCT_VISION.md` to align future development around a mobile-first, ready-to-use, per-trip paid Group Trip Command Center product direction.

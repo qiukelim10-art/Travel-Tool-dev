@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { accessErrorResponse, requireTripEditor } from "@/lib/server/accessControl";
 import { apiErrorResponse } from "@/lib/server/apiErrorResponse";
 import {
   deleteReminder,
@@ -13,23 +14,25 @@ type RouteContext = {
 
 export async function PATCH(request: Request, context: RouteContext) {
   try {
+    await requireTripEditor(request);
     const { id } = await context.params;
     const input = validateReminderInput(await request.json());
     await updateReminder(id, input);
     const reminders = await listReminders();
     return NextResponse.json({ reminders });
   } catch (error) {
-    return apiErrorResponse(error, "Unable to update reminder.", 400);
+    return accessErrorResponse(error) ?? apiErrorResponse(error, "Unable to update reminder.", 400);
   }
 }
 
-export async function DELETE(_request: Request, context: RouteContext) {
+export async function DELETE(request: Request, context: RouteContext) {
   try {
+    await requireTripEditor(request);
     const { id } = await context.params;
     await deleteReminder(id);
     const reminders = await listReminders();
     return NextResponse.json({ reminders });
   } catch (error) {
-    return apiErrorResponse(error, "Unable to delete reminder.", 500);
+    return accessErrorResponse(error) ?? apiErrorResponse(error, "Unable to delete reminder.", 500);
   }
 }
