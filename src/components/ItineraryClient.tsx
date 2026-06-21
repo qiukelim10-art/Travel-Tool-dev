@@ -3,10 +3,10 @@
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
 import { useTripAccess } from "@/lib/access";
 import { formatMoney } from "@/lib/budget";
+import { activeTripCurrencies, fallbackCurrency } from "@/lib/currencyPreferences";
 import { useLanguage } from "@/lib/i18n";
 import { translateOption } from "@/lib/localize";
 import {
-  bookingCurrencies,
   expenseCategories,
   type ExpenseCategory,
   type ExpenseInput,
@@ -18,7 +18,6 @@ import {
 import type { Traveler } from "@/data/tripData";
 
 const requestTimeoutMs = 10000;
-const monthLabels = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 type CityFilter = "All" | string;
 type DateFilter = "All";
@@ -30,6 +29,9 @@ type ExpensesApiResponse = {
   expenses?: SharedExpense[];
   travelers?: Traveler[];
   error?: string;
+};
+type ItineraryClientProps = {
+  defaultCurrencies: SharedCurrency[];
 };
 
 type ExpenseFormState = {
@@ -44,7 +46,7 @@ type ExpenseFormState = {
   notes: string;
 };
 
-const emptyForm = (): ItineraryInput => ({
+const emptyForm = (currency: SharedCurrency = fallbackCurrency): ItineraryInput => ({
   travelDate: "",
   city: "Rome",
   startTime: "",
@@ -55,19 +57,23 @@ const emptyForm = (): ItineraryInput => ({
   transport: "",
   meal: "",
   costAmount: null,
-  currency: "EUR",
+  currency,
   notes: "",
   mapQuery: "",
   sortOrder: 0
 });
 
-function emptyExpenseForm(item: SharedItineraryItem, travelers: Traveler[]): ExpenseFormState {
+function emptyExpenseForm(
+  item: SharedItineraryItem,
+  travelers: Traveler[],
+  currency: SharedCurrency = fallbackCurrency
+): ExpenseFormState {
   const orderedTravelers = orderTravelers(travelers);
 
   return {
     title: item.title,
     amount: "",
-    currency: "EUR",
+    currency,
     category: "Other",
     expenseDate: item.travelDate,
     paidByTravelerId: orderedTravelers[0]?.id ?? "person_a",
@@ -77,16 +83,19 @@ function emptyExpenseForm(item: SharedItineraryItem, travelers: Traveler[]): Exp
   };
 }
 
-export function ItineraryClient() {
+export function ItineraryClient({ defaultCurrencies }: ItineraryClientProps) {
   const { language, t } = useLanguage();
   const { mode } = useTripAccess();
   const canEdit = mode === "editor";
+  const currencyOptions = useMemo(() => activeTripCurrencies(defaultCurrencies), [defaultCurrencies]);
+  const allowedCurrencySet = useMemo(() => new Set(currencyOptions), [currencyOptions]);
+  const primaryCurrency = currencyOptions[0];
   const [items, setItems] = useState<SharedItineraryItem[]>([]);
   const [expenses, setExpenses] = useState<SharedExpense[]>([]);
   const [travelers, setTravelers] = useState<Traveler[]>([]);
   const [selectedCity, setSelectedCity] = useState<CityFilter>("All");
   const [selectedDate, setSelectedDate] = useState<DateFilter | string>("All");
-  const [form, setForm] = useState<ItineraryInput>(() => emptyForm());
+  const [form, setForm] = useState<ItineraryInput>(() => emptyForm(primaryCurrency));
   const [formOpen, setFormOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [expenseFormItemId, setExpenseFormItemId] = useState<string | null>(null);
@@ -140,6 +149,9 @@ export function ItineraryClient() {
       if (expense.sourceType !== "itinerary" || !expense.sourceId) {
         continue;
       }
+      if (!allowedCurrencySet.has(expense.currency)) {
+        continue;
+      }
 
       const current = groups.get(expense.sourceId) ?? [];
       current.push(expense);
@@ -147,7 +159,7 @@ export function ItineraryClient() {
     }
 
     return groups;
-  }, [expenses]);
+  }, [allowedCurrencySet, expenses]);
 
   async function loadItems() {
     setLoading(true);
@@ -174,6 +186,11 @@ export function ItineraryClient() {
   }, []);
 
   useEffect(() => {
+    setForm((current) => withAllowedItineraryCurrency(current, currencyOptions));
+    setExpenseForm((current) => (current ? withAllowedExpenseCurrency(current, currencyOptions) : current));
+  }, [currencyOptions]);
+
+  useEffect(() => {
     if (selectedCity !== "All" && !cityFilters.includes(selectedCity)) {
       setSelectedCity("All");
     }
@@ -181,7 +198,7 @@ export function ItineraryClient() {
 
   function resetForm() {
     setEditingId(null);
-    setForm(emptyForm());
+    setForm(emptyForm(primaryCurrency));
     setFormOpen(false);
   }
 
@@ -198,7 +215,7 @@ export function ItineraryClient() {
     }
 
     setEditingId(null);
-    setForm(emptyForm());
+    setForm(emptyForm(primaryCurrency));
     setFormOpen(true);
     setNotice(null);
   }
@@ -221,7 +238,7 @@ export function ItineraryClient() {
       transport: item.transport ?? "",
       meal: item.meal ?? "",
       costAmount: null,
-      currency: "EUR",
+      currency: primaryCurrency,
       notes: item.notes ?? "",
       mapQuery: item.mapQuery ?? "",
       sortOrder: item.sortOrder
@@ -238,7 +255,7 @@ export function ItineraryClient() {
 
     setExpenseFormItemId(item.id);
     setEditingExpenseId(null);
-    setExpenseForm(emptyExpenseForm(item, activeTravelers));
+    setExpenseForm(emptyExpenseForm(item, activeTravelers, primaryCurrency));
     setNotice(null);
     setError(null);
   }
@@ -258,7 +275,7 @@ export function ItineraryClient() {
     setExpenseForm({
       title: expense.title,
       amount: String(expense.amount),
-      currency: expense.currency,
+      currency: allowedCurrencySet.has(expense.currency) ? expense.currency : primaryCurrency,
       category: expense.category,
       expenseDate: expense.expenseDate,
       paidByTravelerId: expense.paidByTravelerId,
@@ -699,6 +716,7 @@ export function ItineraryClient() {
                   travelers={expenseFormTravelers}
                   travelerNameById={travelerNameById}
                   expenseForm={expenseFormItemId === item.id ? expenseForm : null}
+                  currencyOptions={currencyOptions}
                   editingExpenseId={expenseFormItemId === item.id ? editingExpenseId : null}
                   expenseSubmitting={expenseSubmitting}
                   deletingId={deletingId}
@@ -842,10 +860,7 @@ function groupByDate(items: SharedItineraryItem[]) {
 }
 
 function formatDateLabel(date: string) {
-  const [, month, day] = date.split("-");
-  const monthIndex = Number(month) - 1;
-  const monthLabel = monthLabels[monthIndex] ?? month;
-  return `${monthLabel} ${day}`;
+  return date;
 }
 
 function ItineraryCard({
@@ -854,6 +869,7 @@ function ItineraryCard({
   travelers,
   travelerNameById,
   expenseForm,
+  currencyOptions,
   editingExpenseId,
   expenseSubmitting,
   deletingId,
@@ -873,6 +889,7 @@ function ItineraryCard({
   travelers: Traveler[];
   travelerNameById: Map<string, string>;
   expenseForm: ExpenseFormState | null;
+  currencyOptions: readonly SharedCurrency[];
   editingExpenseId: string | null;
   expenseSubmitting: boolean;
   deletingId: string | null;
@@ -1002,6 +1019,7 @@ function ItineraryCard({
                 item={item}
                 form={expenseForm}
                 travelers={travelers}
+                currencies={currencyOptions}
                 editingExpenseId={editingExpenseId}
                 submitting={expenseSubmitting}
                 onSubmit={onSubmitExpense}
@@ -1060,6 +1078,7 @@ function ItineraryExpenseForm({
   item,
   form,
   travelers,
+  currencies,
   editingExpenseId,
   submitting,
   onSubmit,
@@ -1069,6 +1088,7 @@ function ItineraryExpenseForm({
   item: SharedItineraryItem;
   form: ExpenseFormState;
   travelers: Traveler[];
+  currencies: readonly SharedCurrency[];
   editingExpenseId: string | null;
   submitting: boolean;
   onSubmit: (item: SharedItineraryItem, event: FormEvent<HTMLFormElement>) => Promise<void>;
@@ -1113,7 +1133,7 @@ function ItineraryExpenseForm({
           name={`itinerary-${item.id}-expense-currency`}
           label={t("common.currency")}
           value={form.currency}
-          options={bookingCurrencies}
+          options={currencies}
           onChange={(value) => onChange((current) => ({ ...current, currency: value as SharedCurrency }))}
         />
         <SelectField
@@ -1416,6 +1436,22 @@ function buildExpenseInput(item: SharedItineraryItem, form: ExpenseFormState): E
     expenseDate: form.expenseDate,
     notes: form.notes.trim() || null
   };
+}
+
+function withAllowedItineraryCurrency(form: ItineraryInput, currencies: readonly SharedCurrency[]) {
+  if (form.currency && currencies.includes(form.currency)) {
+    return form;
+  }
+
+  return { ...form, currency: currencies[0] };
+}
+
+function withAllowedExpenseCurrency(form: ExpenseFormState, currencies: readonly SharedCurrency[]) {
+  if (currencies.includes(form.currency)) {
+    return form;
+  }
+
+  return { ...form, currency: currencies[0] };
 }
 
 function orderTravelers(travelers: Traveler[]) {

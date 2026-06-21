@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { SectionHeader } from "@/components/SectionHeader";
+import { SetupGenerationPanel } from "@/components/SetupGenerationPanel";
 import { useTripAccess } from "@/lib/access";
 import { useLanguage } from "@/lib/i18n";
 import { bookingCurrencies, type TripSettingsInput, type TripSettingsResponse } from "@/lib/sharedDataTypes";
@@ -51,7 +52,8 @@ const copy = {
     validationDestination: "Destination is required.",
     validationCurrency: "Select at least one currency.",
     validationTraveler: "At least one active traveler is required.",
-    validationRoute: "Route stop city is required."
+    validationRoute: "Route stop city is required.",
+    settingsGenerated: "Starter workspace generated."
   },
   zh: {
     eyebrow: "行程设置",
@@ -92,7 +94,8 @@ const copy = {
     validationDestination: "请填写目的地。",
     validationCurrency: "请至少选择一个币种。",
     validationTraveler: "至少需要一个启用成员。",
-    validationRoute: "请填写路线城市。"
+    validationRoute: "请填写路线城市。",
+    settingsGenerated: "Starter workspace 已生成。"
   }
 } as const;
 
@@ -361,6 +364,17 @@ export default function SettingsPage() {
             </div>
           </section>
 
+          <SetupGenerationPanel
+            surface="settings"
+            base={formToSetupGenerationBase(form)}
+            onGenerated={(settings) => {
+              const nextForm = responseToForm(settings);
+              setForm(nextForm);
+              setSavedSnapshot(JSON.stringify(normalizeForSave(nextForm)));
+              setNotice(labels.settingsGenerated);
+            }}
+          />
+
           <div
             className={`rounded-lg border border-zinc-200 bg-white/95 p-3 shadow-soft backdrop-blur ${
               dirty || saving
@@ -464,6 +478,19 @@ function validateForm(form: SettingsForm, labels: SettingsLabels) {
     return labels.validationRoute;
   }
   return null;
+}
+
+function formToSetupGenerationBase(form: SettingsForm) {
+  return {
+    tripName: form.trip.name,
+    destination: form.trip.destination,
+    startDate: form.trip.startDate ?? null,
+    endDate: form.trip.endDate ?? null,
+    timezone: form.trip.timezone,
+    defaultCurrencies: form.trip.defaultCurrencies,
+    travelerNames: form.travelers.filter((traveler) => traveler.isActive).map((traveler) => traveler.displayName),
+    routeCities: form.routeStops.map((stop) => stop.city)
+  };
 }
 
 function updateTrip(

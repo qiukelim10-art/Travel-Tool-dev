@@ -3,8 +3,9 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { formatMoney, summarizeExpenseLedger } from "@/lib/budget";
+import { activeTripCurrencies } from "@/lib/currencyPreferences";
 import { useLanguage } from "@/lib/i18n";
-import type { SharedExpense } from "@/lib/sharedDataTypes";
+import type { SharedCurrency, SharedExpense } from "@/lib/sharedDataTypes";
 import type { Traveler } from "@/data/tripData";
 
 type ExpensesApiResponse = {
@@ -13,10 +14,16 @@ type ExpensesApiResponse = {
   error?: string;
 };
 
+type DashboardBudgetWidgetProps = {
+  defaultCurrencies: SharedCurrency[];
+};
+
 const requestTimeoutMs = 10000;
 
-export function DashboardBudgetWidget() {
+export function DashboardBudgetWidget({ defaultCurrencies }: DashboardBudgetWidgetProps) {
   const { t } = useLanguage();
+  const currencyOptions = useMemo(() => activeTripCurrencies(defaultCurrencies), [defaultCurrencies]);
+  const allowedCurrencySet = useMemo(() => new Set(currencyOptions), [currencyOptions]);
   const [expenses, setExpenses] = useState<SharedExpense[]>([]);
   const [travelers, setTravelers] = useState<Traveler[]>([]);
   const [loading, setLoading] = useState(true);
@@ -28,7 +35,11 @@ export function DashboardBudgetWidget() {
     () => new Map(orderedTravelers.map((traveler) => [traveler.id, traveler.name])),
     [orderedTravelers]
   );
-  const summaries = useMemo(() => summarizeExpenseLedger(expenses, travelerIds), [expenses, travelerIds]);
+  const displayExpenses = useMemo(
+    () => expenses.filter((expense) => allowedCurrencySet.has(expense.currency)),
+    [allowedCurrencySet, expenses]
+  );
+  const summaries = useMemo(() => summarizeExpenseLedger(displayExpenses, travelerIds), [displayExpenses, travelerIds]);
   const settlementSuggestions = useMemo(
     () =>
       summaries
@@ -39,7 +50,7 @@ export function DashboardBudgetWidget() {
   );
   const recentExpenses = useMemo(
     () =>
-      expenses
+      displayExpenses
         .slice()
         .sort((a, b) => {
           const dateCompare = b.expenseDate.localeCompare(a.expenseDate);
@@ -50,7 +61,7 @@ export function DashboardBudgetWidget() {
           return b.createdAt.localeCompare(a.createdAt);
         })
         .slice(0, 2),
-    [expenses]
+    [displayExpenses]
   );
 
   async function loadExpenses() {
@@ -108,7 +119,7 @@ export function DashboardBudgetWidget() {
         </div>
       ) : null}
 
-      {!loading && !error && expenses.length === 0 ? (
+      {!loading && !error && displayExpenses.length === 0 ? (
         <div className="mt-4 rounded-lg bg-zinc-50 p-4">
           <p className="text-sm font-semibold text-ink">{t("budgetWidget.emptyTitle")}</p>
           <p className="mt-1 text-sm leading-6 text-zinc-600">
@@ -117,7 +128,7 @@ export function DashboardBudgetWidget() {
         </div>
       ) : null}
 
-      {!loading && !error && expenses.length > 0 ? (
+      {!loading && !error && displayExpenses.length > 0 ? (
         <div className="mt-4 space-y-4">
           <div className="grid gap-2 sm:grid-cols-2">
             {summaries.map((summary) => (

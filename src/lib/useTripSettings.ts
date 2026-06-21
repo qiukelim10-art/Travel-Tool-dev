@@ -2,11 +2,14 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { travelers as fallbackTravelers, tripInfo, type Traveler } from "@/data/tripData";
-import type { TripSettingsResponse } from "@/lib/sharedDataTypes";
+import type { SharedCurrency, TripSettingsResponse } from "@/lib/sharedDataTypes";
 
 const requestTimeoutMs = 10000;
 const tripSettingsCacheKey = "trip-dashboard-active-settings";
 const tripSettingsUpdatedEvent = "trip-settings-updated";
+const shareTokenStorageKey = "trip-dashboard-share-token";
+const tripQueryParam = "trip";
+const tripShareTokenHeader = "x-trip-share-token";
 
 export type TripSettingsView = {
   name: string;
@@ -20,6 +23,9 @@ export type TripSettingsView = {
   travelerDisplayNames: string[];
   travelers: Traveler[];
   activeTravelers: Traveler[];
+  defaultCurrencies: SharedCurrency[];
+  timezone: string;
+  setupCompletedAt: string | null;
 };
 
 const fallbackTripSettingsView: TripSettingsView = {
@@ -33,7 +39,10 @@ const fallbackTripSettingsView: TripSettingsView = {
   travelerCount: tripInfo.participants.length,
   travelerDisplayNames: tripInfo.participants,
   travelers: fallbackTravelers,
-  activeTravelers: fallbackTravelers
+  activeTravelers: fallbackTravelers,
+  defaultCurrencies: ["EUR", "SGD", "MYR"],
+  timezone: "Europe/Rome",
+  setupCompletedAt: null
 };
 
 const genericTripSettingsView: TripSettingsView = {
@@ -47,6 +56,7 @@ type TripSettingsViewOptions = {
 
 export function useTripSettingsView(options: TripSettingsViewOptions = {}) {
   const [settings, setSettings] = useState<TripSettingsResponse | null>(null);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -56,9 +66,11 @@ export function useTripSettingsView(options: TripSettingsViewOptions = {}) {
     const timeoutId = window.setTimeout(() => controller.abort(), requestTimeoutMs);
 
     async function loadSettings() {
+      setLoading(true);
       try {
         const response = await fetch("/api/trip-settings", {
           cache: "no-store",
+          headers: tripSettingsAccessHeaders(readTripShareTokenForRequest()),
           signal: controller.signal
         });
         const data = (await response.json()) as Partial<TripSettingsResponse> & { error?: string };
@@ -79,6 +91,7 @@ export function useTripSettingsView(options: TripSettingsViewOptions = {}) {
         setError(loadError instanceof Error ? loadError.message : "Unable to load trip settings.");
       } finally {
         window.clearTimeout(timeoutId);
+        setLoading(false);
       }
     }
 
@@ -120,6 +133,8 @@ export function useTripSettingsView(options: TripSettingsViewOptions = {}) {
 
   return {
     trip,
+    settings,
+    loading,
     error
   };
 }
@@ -156,7 +171,10 @@ function buildTripSettingsView(settings: TripSettingsResponse): TripSettingsView
     travelerCount: activeTravelers.length,
     travelerDisplayNames,
     travelers: mappedTravelers,
-    activeTravelers: mappedTravelers.filter((traveler) => traveler.isActive)
+    activeTravelers: mappedTravelers.filter((traveler) => traveler.isActive),
+    defaultCurrencies: settings.trip.defaultCurrencies,
+    timezone: settings.trip.timezone,
+    setupCompletedAt: settings.trip.setupCompletedAt ?? null
   };
 }
 
@@ -169,13 +187,24 @@ function formatDateRange(startDate: string | null, endDate: string | null) {
 }
 
 function formatShortDate(value: string) {
-  const [, month, day] = value.split("-");
+  return value;
+}
 
-  if (!month || !day) {
-    return value;
+function readTripShareTokenForRequest() {
+  if (typeof window === "undefined") {
+    return "";
   }
 
-  return `${month}/${day}`;
+  try {
+    const url = new URL(window.location.href);
+    return url.searchParams.get(tripQueryParam)?.trim() || window.localStorage.getItem(shareTokenStorageKey) || "";
+  } catch {
+    return window.localStorage.getItem(shareTokenStorageKey) || "";
+  }
+}
+
+function tripSettingsAccessHeaders(shareToken: string): HeadersInit | undefined {
+  return shareToken ? { [tripShareTokenHeader]: shareToken } : undefined;
 }
 
 function isTripSettingsResponse(value: unknown): value is TripSettingsResponse {

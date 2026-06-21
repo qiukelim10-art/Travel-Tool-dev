@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useTripAccess } from "@/lib/access";
 import { formatMoney, summarizeExpenseLedger } from "@/lib/budget";
+import { activeTripCurrencies, fallbackCurrency } from "@/lib/currencyPreferences";
 import { useLanguage } from "@/lib/i18n";
 import { translateOption } from "@/lib/localize";
 import {
@@ -29,6 +30,10 @@ type SourceFilter = "All" | ExpenseSourceType;
 type StatusFilter = "All" | "Outstanding" | "Settled";
 type TFunction = ReturnType<typeof useLanguage>["t"];
 
+type BudgetClientProps = {
+  defaultCurrencies: SharedCurrency[];
+};
+
 type ExpenseFormState = {
   title: string;
   amount: string;
@@ -51,13 +56,13 @@ function todayLocalDate() {
   return `${year}-${month}-${day}`;
 }
 
-function emptyForm(travelers: Traveler[]): ExpenseFormState {
+function emptyForm(travelers: Traveler[], currency: SharedCurrency = fallbackCurrency): ExpenseFormState {
   const orderedTravelers = orderTravelers(travelers);
 
   return {
     title: "",
     amount: "",
-    currency: "EUR",
+    currency,
     category: "Food",
     expenseDate: todayLocalDate(),
     paidByTravelerId: orderedTravelers[0]?.id ?? "person_a",
@@ -67,10 +72,13 @@ function emptyForm(travelers: Traveler[]): ExpenseFormState {
   };
 }
 
-export function BudgetClient() {
+export function BudgetClient({ defaultCurrencies }: BudgetClientProps) {
   const { language, t } = useLanguage();
   const { mode } = useTripAccess();
   const canEdit = mode === "editor";
+  const currencyOptions = useMemo(() => activeTripCurrencies(defaultCurrencies), [defaultCurrencies]);
+  const allowedCurrencySet = useMemo(() => new Set(currencyOptions), [currencyOptions]);
+  const primaryCurrency = currencyOptions[0];
   const [expenses, setExpenses] = useState<SharedExpense[]>([]);
   const [travelers, setTravelers] = useState<Traveler[]>([]);
   const [loading, setLoading] = useState(true);
@@ -78,7 +86,7 @@ export function BudgetClient() {
   const [notice, setNotice] = useState<string | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [form, setForm] = useState<ExpenseFormState>(() => emptyForm([]));
+  const [form, setForm] = useState<ExpenseFormState>(() => emptyForm([], primaryCurrency));
   const [submitting, setSubmitting] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -101,21 +109,25 @@ export function BudgetClient() {
     () => new Map(orderedTravelers.map((traveler) => [traveler.id, traveler.name])),
     [orderedTravelers]
   );
+  const displayExpenses = useMemo(
+    () => expenses.filter((expense) => allowedCurrencySet.has(expense.currency)),
+    [allowedCurrencySet, expenses]
+  );
   const summaries = useMemo(
-    () => summarizeExpenseLedger(expenses, travelerIds),
-    [expenses, travelerIds]
+    () => summarizeExpenseLedger(displayExpenses, travelerIds),
+    [displayExpenses, travelerIds]
   );
   const visibleCurrencies = useMemo(
-    () => Array.from(new Set(expenses.map((expense) => expense.currency))).sort(),
-    [expenses]
+    () => Array.from(new Set(displayExpenses.map((expense) => expense.currency))).sort(),
+    [displayExpenses]
   );
   const visibleCategories = useMemo(
-    () => Array.from(new Set(expenses.map((expense) => expense.category))).sort(),
-    [expenses]
+    () => Array.from(new Set(displayExpenses.map((expense) => expense.category))).sort(),
+    [displayExpenses]
   );
   const filteredExpenses = useMemo(
     () =>
-      expenses.filter((expense) => {
+      displayExpenses.filter((expense) => {
         const currencyMatches = currencyFilter === "All" || expense.currency === currencyFilter;
         const categoryMatches = categoryFilter === "All" || expense.category === categoryFilter;
         const sourceMatches = sourceFilter === "All" || expense.sourceType === sourceFilter;
@@ -125,7 +137,7 @@ export function BudgetClient() {
           (statusFilter === "Outstanding" && !expense.settled);
         return currencyMatches && categoryMatches && sourceMatches && statusMatches;
       }),
-    [categoryFilter, currencyFilter, expenses, sourceFilter, statusFilter]
+    [categoryFilter, currencyFilter, displayExpenses, sourceFilter, statusFilter]
   );
 
   async function loadExpenses() {
@@ -137,7 +149,7 @@ export function BudgetClient() {
       const data = await fetchExpensesJson("/api/expenses", undefined, t("budget.errorLoad"), t("budget.errorTimeout"));
       setExpenses(data.expenses);
       setTravelers(data.travelers);
-      setForm((current) => ensureFormTravelers(current, data.travelers));
+      setForm((current) => ensureFormTravelers(withAllowedCurrency(current, currencyOptions), data.travelers));
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : t("budget.errorLoad"));
     } finally {
@@ -149,9 +161,16 @@ export function BudgetClient() {
     void loadExpenses();
   }, []);
 
+  useEffect(() => {
+    setForm((current) => withAllowedCurrency(current, currencyOptions));
+    if (currencyFilter !== "All" && !allowedCurrencySet.has(currencyFilter)) {
+      setCurrencyFilter("All");
+    }
+  }, [allowedCurrencySet, currencyFilter, currencyOptions]);
+
   function resetForm(nextTravelers = travelers) {
     setEditingId(null);
-    setForm(emptyForm(nextTravelers));
+    setForm(emptyForm(nextTravelers, primaryCurrency));
     setFormOpen(false);
   }
 
@@ -162,7 +181,7 @@ export function BudgetClient() {
     }
 
     setEditingId(null);
-    setForm(emptyForm(travelers));
+    setForm(emptyForm(travelers, primaryCurrency));
     setFormOpen(true);
     setNotice(null);
     setError(null);
@@ -183,7 +202,7 @@ export function BudgetClient() {
     setForm({
       title: expense.title,
       amount: String(expense.amount),
-      currency: expense.currency,
+      currency: allowedCurrencySet.has(expense.currency) ? expense.currency : primaryCurrency,
       category: expense.category,
       expenseDate: expense.expenseDate,
       paidByTravelerId: expense.paidByTravelerId,
@@ -353,6 +372,7 @@ export function BudgetClient() {
           travelers={formTravelers}
           editingId={editingId}
           submitting={submitting}
+          currencies={currencyOptions}
           onSubmit={submitExpense}
           onCancel={() => resetForm()}
           onChange={setForm}
@@ -361,13 +381,13 @@ export function BudgetClient() {
         />
       ) : null}
 
-      {!loading && expenses.length === 0 ? (
+      {!loading && displayExpenses.length === 0 ? (
         <p className="rounded-lg border border-zinc-200 bg-white px-4 py-8 text-sm text-zinc-600 shadow-soft">
           {t("budget.emptyLedger")}
         </p>
       ) : null}
 
-      {!loading && expenses.length > 0 ? (
+      {!loading && displayExpenses.length > 0 ? (
         <>
           <SummarySection summaries={summaries} travelers={orderedTravelers} t={t} />
           <SettlementSection summaries={summaries} travelerNameById={travelerNameById} t={t} />
@@ -511,6 +531,7 @@ function ExpenseForm({
   travelers,
   editingId,
   submitting,
+  currencies,
   onSubmit,
   onCancel,
   onChange,
@@ -521,6 +542,7 @@ function ExpenseForm({
   travelers: Traveler[];
   editingId: string | null;
   submitting: boolean;
+  currencies: readonly SharedCurrency[];
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
   onCancel: () => void;
   onChange: (updater: (current: ExpenseFormState) => ExpenseFormState) => void;
@@ -572,7 +594,7 @@ function ExpenseForm({
           name="expense-currency"
           label={t("budget.form.currency")}
           value={form.currency}
-          options={bookingCurrencies}
+          options={currencies}
           onChange={(value) => onChange((current) => ({ ...current, currency: value as SharedCurrency }))}
         />
         <SelectField
@@ -1165,6 +1187,14 @@ function buildExpenseInput(form: ExpenseFormState): ExpenseInput {
   };
 }
 
+function withAllowedCurrency(form: ExpenseFormState, currencies: readonly SharedCurrency[]) {
+  if (currencies.includes(form.currency)) {
+    return form;
+  }
+
+  return { ...form, currency: currencies[0] };
+}
+
 function ensureFormTravelers(form: ExpenseFormState, travelers: Traveler[]) {
   const activeTravelers = travelers.filter((traveler) => traveler.isActive !== false);
   const activeTravelerIds = new Set(activeTravelers.map((traveler) => traveler.id));
@@ -1178,7 +1208,7 @@ function ensureFormTravelers(form: ExpenseFormState, travelers: Traveler[]) {
     };
   }
 
-  return emptyForm(activeTravelers);
+  return emptyForm(activeTravelers, form.currency);
 }
 
 function orderTravelers(travelers: Traveler[]) {

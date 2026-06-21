@@ -5,6 +5,7 @@ import Link from "next/link";
 import { DashboardBudgetWidget } from "@/components/DashboardBudgetWidget";
 import { EmergencyQuickAccess } from "@/components/EmergencyQuickAccess";
 import { RemindersClient } from "@/components/RemindersClient";
+import { SetupGenerationPanel } from "@/components/SetupGenerationPanel";
 import { StatusBadge } from "@/components/StatusBadge";
 import { useLanguage } from "@/lib/i18n";
 import { translateText } from "@/lib/localize";
@@ -16,14 +17,16 @@ const requestTimeoutMs = 10000;
 
 export default function DashboardPage() {
   const { t } = useLanguage();
-  const { trip } = useTripSettingsView();
+  const { trip, loading: tripSettingsLoading } = useTripSettingsView();
   const [bookings, setBookings] = useState<SharedBooking[]>([]);
   const [bookingsLoading, setBookingsLoading] = useState(true);
   const [bookingsError, setBookingsError] = useState<string | null>(null);
   const [itineraryItems, setItineraryItems] = useState<SharedItineraryItem[]>([]);
   const [itineraryLoading, setItineraryLoading] = useState(true);
   const [itineraryError, setItineraryError] = useState<string | null>(null);
+  const [setupRefreshKey, setSetupRefreshKey] = useState(0);
   const nextItineraryItem = itineraryItems[0] ?? null;
+  const setupRequired = !trip.setupCompletedAt;
   const pendingBookings = useMemo(
     () =>
       bookings.filter((booking) =>
@@ -48,6 +51,13 @@ export default function DashboardPage() {
     : trip.routeLabel;
 
   useEffect(() => {
+    if (tripSettingsLoading || setupRequired) {
+      setBookings([]);
+      setBookingsLoading(false);
+      setBookingsError(null);
+      return;
+    }
+
     const controller = new AbortController();
     const timeoutId = window.setTimeout(() => controller.abort(), requestTimeoutMs);
     let isActive = true;
@@ -101,9 +111,16 @@ export default function DashboardPage() {
       controller.abort();
       window.clearTimeout(timeoutId);
     };
-  }, [t]);
+  }, [setupRefreshKey, setupRequired, t, tripSettingsLoading]);
 
   useEffect(() => {
+    if (tripSettingsLoading || setupRequired) {
+      setItineraryItems([]);
+      setItineraryLoading(false);
+      setItineraryError(null);
+      return;
+    }
+
     const controller = new AbortController();
     const timeoutId = window.setTimeout(() => controller.abort(), requestTimeoutMs);
     let isActive = true;
@@ -157,7 +174,29 @@ export default function DashboardPage() {
       controller.abort();
       window.clearTimeout(timeoutId);
     };
-  }, [t]);
+  }, [setupRefreshKey, setupRequired, t, tripSettingsLoading]);
+
+  if (setupRequired) {
+    return (
+      <div className="mx-auto grid min-h-[70vh] max-w-4xl content-center py-6">
+        <SetupGenerationPanel
+          surface="gate"
+          loadingBase={tripSettingsLoading}
+          base={{
+            tripName: trip.name,
+            destination: trip.destination,
+            startDate: trip.startDate,
+            endDate: trip.endDate,
+            timezone: trip.timezone,
+            defaultCurrencies: trip.defaultCurrencies,
+            travelerNames: trip.activeTravelers.map((traveler) => traveler.displayName ?? traveler.name),
+            routeCities: trip.routeCities
+          }}
+          onGenerated={() => setSetupRefreshKey((current) => current + 1)}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-5">
@@ -229,7 +268,7 @@ export default function DashboardPage() {
       </section>
 
       <section className="grid gap-5 lg:grid-cols-[1fr_0.95fr]">
-        <DashboardBudgetWidget />
+        <DashboardBudgetWidget defaultCurrencies={trip.defaultCurrencies} />
         <RemindersClient participants={trip.travelerDisplayNames} />
       </section>
     </div>
@@ -495,6 +534,5 @@ function isSharedItineraryItem(value: unknown): value is SharedItineraryItem {
 }
 
 function formatDate(value: string) {
-  const [, month, day] = value.split("-");
-  return `${month}/${day}`;
+  return value;
 }

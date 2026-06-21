@@ -2,6 +2,12 @@ import { createHash, randomBytes, randomUUID, timingSafeEqual } from "crypto";
 import mysql from "mysql2/promise";
 import { bookings, documentLinks, expenses, itinerary, packingItems, travelers, tripInfo } from "@/data/tripData";
 import {
+  buildStarterWorkspace,
+  type GeneratedWorkspace,
+  type SetupGenerationInput,
+  type SetupGenerationResponse
+} from "@/lib/setupTemplates";
+import {
   bookingCategories,
   bookingCurrencies,
   bookingStatuses,
@@ -85,6 +91,7 @@ const activeTripId = "active-trip";
 const defaultTripCurrencies = ["EUR", "SGD", "MYR"] as const satisfies readonly SharedCurrency[];
 const defaultTripRouteStops = ["Rome", "Florence", "Venice", "Milan"] as const;
 const editorSessionDurationMs = 12 * 60 * 60 * 1000;
+const currencyEnumValues = bookingCurrencies.map((currency) => `'${currency}'`).join(", ");
 
 export type TripAccessMode = "viewer" | "editor";
 
@@ -237,6 +244,8 @@ function mapTripSettings(row: DbRow): TripSettings {
     defaultCurrencies: asDefaultCurrencies(row.default_currencies),
     timezone: asString(row.timezone),
     notes: nullableString(row.notes),
+    setupCompletedAt:
+      row.setup_completed_at === null || row.setup_completed_at === undefined ? null : asString(row.setup_completed_at),
     isActive: asBoolean(row.is_active),
     createdAt: asString(row.created_at),
     updatedAt: asString(row.updated_at)
@@ -576,6 +585,7 @@ async function createTables() {
       default_currencies json NOT NULL,
       timezone varchar(80) NOT NULL DEFAULT 'UTC',
       notes text,
+      setup_completed_at timestamp NULL DEFAULT NULL,
       is_active tinyint(1) NOT NULL DEFAULT 1,
       created_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
       updated_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -665,7 +675,7 @@ async function createTables() {
       location varchar(255) DEFAULT NULL,
       booked_by varchar(80) NOT NULL,
       amount decimal(10,2) DEFAULT NULL,
-      currency enum('EUR', 'SGD', 'MYR') DEFAULT NULL,
+      currency enum(${currencyEnumValues}) DEFAULT NULL,
       notes text,
       status enum('Not Booked', 'Pending', 'Booked', 'Paid', 'Cancelled', 'Need Confirmation') NOT NULL DEFAULT 'Pending',
       created_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -688,7 +698,7 @@ async function createTables() {
       transport text,
       meal text,
       cost_amount decimal(10,2) DEFAULT NULL,
-      currency enum('EUR', 'SGD', 'MYR') NOT NULL DEFAULT 'EUR',
+      currency enum(${currencyEnumValues}) NOT NULL DEFAULT 'EUR',
       notes text,
       map_query varchar(255) DEFAULT NULL,
       sort_order int NOT NULL DEFAULT 0,
@@ -708,7 +718,7 @@ async function createTables() {
       title varchar(255) NOT NULL,
       category enum('Flight', 'Accommodation', 'Transport', 'Food', 'Attraction', 'Insurance', 'Shopping', 'Other') NOT NULL,
       amount decimal(10,2) NOT NULL,
-      currency enum('EUR', 'SGD', 'MYR') NOT NULL,
+      currency enum(${currencyEnumValues}) NOT NULL,
       paid_by_traveler_id varchar(80) NOT NULL,
       settled tinyint(1) NOT NULL DEFAULT 0,
       expense_date date NOT NULL,
@@ -810,9 +820,19 @@ async function createTables() {
 async function updateCurrencyEnums() {
   const pool = getAppPool();
 
-  await pool.execute("ALTER TABLE booking_items MODIFY currency enum('EUR', 'SGD', 'MYR') DEFAULT NULL");
-  await pool.execute("ALTER TABLE itinerary_items MODIFY currency enum('EUR', 'SGD', 'MYR') NOT NULL DEFAULT 'EUR'");
-  await pool.execute("ALTER TABLE expenses MODIFY currency enum('EUR', 'SGD', 'MYR') NOT NULL");
+  await pool.execute(`ALTER TABLE booking_items MODIFY currency enum(${currencyEnumValues}) DEFAULT NULL`);
+  await pool.execute(`ALTER TABLE itinerary_items MODIFY currency enum(${currencyEnumValues}) NOT NULL DEFAULT 'EUR'`);
+  await pool.execute(`ALTER TABLE expenses MODIFY currency enum(${currencyEnumValues}) NOT NULL`);
+}
+
+async function ensureTripSetupCompletedColumn() {
+  try {
+    await getAppPool().execute("ALTER TABLE trips ADD COLUMN setup_completed_at timestamp NULL DEFAULT NULL AFTER notes");
+  } catch (error) {
+    if ((error as { code?: string }).code !== "ER_DUP_FIELDNAME") {
+      throw error;
+    }
+  }
 }
 
 function listText(label: string, items: string[]) {
@@ -1137,6 +1157,7 @@ export async function ensureSharedDataStore() {
     if (!usesManagedSchema()) {
       await ensureDatabase();
       await createTables();
+      await ensureTripSetupCompletedColumn();
       await updateCurrencyEnums();
       await seedTables();
     }
@@ -1348,6 +1369,221 @@ export async function updateActiveTripSettings(rawInput: Partial<TripSettingsInp
   }
 
   return getActiveTripSettings();
+}
+
+export async function generateStarterWorkspace(
+  rawInput: Partial<SetupGenerationInput>
+): Promise<SetupGenerationResponse> {
+  await ensureSharedDataStore();
+  if (!usesManagedSchema()) {
+    await ensureTripSetupCompletedColumn();
+  }
+  const generated = buildStarterWorkspace(rawInput);
+  const connection = await getAppPool().getConnection();
+
+  try {
+    await connection.beginTransaction();
+    await resetStarterWorkspaceTables(connection);
+    await insertGeneratedTripSettings(connection, generated);
+    await insertGeneratedReminders(connection, generated);
+    await insertGeneratedBookings(connection, generated);
+    await insertGeneratedItinerary(connection, generated);
+    await insertGeneratedPacking(connection, generated);
+    await insertGeneratedDocuments(connection, generated);
+    await connection.commit();
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
+  }
+
+  return {
+    settings: await getActiveTripSettings(),
+    summary: generated.summary
+  };
+}
+
+async function resetStarterWorkspaceTables(connection: MysqlConnection) {
+  await connection.execute("DELETE FROM expense_splits");
+  await connection.execute("DELETE FROM expenses");
+  await connection.execute("DELETE FROM reminders");
+  await connection.execute("DELETE FROM booking_items");
+  await connection.execute("DELETE FROM itinerary_items");
+  await connection.execute("DELETE FROM packing_item_traveler_statuses");
+  await connection.execute("DELETE FROM packing_items");
+  await connection.execute("DELETE FROM document_item_traveler_statuses");
+  await connection.execute("DELETE FROM document_items");
+  await connection.execute("DELETE FROM trip_route_stops WHERE trip_id = ?", [activeTripId]);
+  await connection.execute("DELETE FROM trip_travelers WHERE trip_id = ?", [activeTripId]);
+}
+
+async function insertGeneratedTripSettings(connection: MysqlConnection, generated: GeneratedWorkspace) {
+  const { trip, travelers, routeStops } = generated.settings;
+
+  await connection.execute(
+    `INSERT INTO trips
+      (id, name, destination, start_date, end_date, default_currencies, timezone, notes, setup_completed_at, is_active)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, 1)
+     ON DUPLICATE KEY UPDATE
+      name = VALUES(name),
+      destination = VALUES(destination),
+      start_date = VALUES(start_date),
+      end_date = VALUES(end_date),
+      default_currencies = VALUES(default_currencies),
+      timezone = VALUES(timezone),
+      notes = VALUES(notes),
+      setup_completed_at = CURRENT_TIMESTAMP,
+      is_active = 1`,
+    [
+      activeTripId,
+      trip.name,
+      trip.destination,
+      trip.startDate ?? null,
+      trip.endDate ?? null,
+      JSON.stringify(trip.defaultCurrencies),
+      trip.timezone,
+      trip.notes ?? null
+    ]
+  );
+
+  const travelerIds = new Set<string>();
+  for (const traveler of travelers) {
+    const travelerId = traveler.id || generateTravelerId(travelerIds);
+    travelerIds.add(travelerId);
+    await connection.execute(
+      `INSERT INTO trip_travelers
+        (id, trip_id, display_name, display_order, is_active)
+       VALUES (?, ?, ?, ?, ?)`,
+      [
+        travelerId,
+        activeTripId,
+        traveler.displayName,
+        traveler.displayOrder,
+        traveler.isActive ? 1 : 0
+      ]
+    );
+  }
+
+  for (const stop of routeStops) {
+    await connection.execute(
+      `INSERT INTO trip_route_stops
+        (id, trip_id, city, country, start_date, end_date, sort_order)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [
+        stop.id ?? randomUUID(),
+        activeTripId,
+        stop.city,
+        stop.country ?? null,
+        stop.startDate ?? null,
+        stop.endDate ?? null,
+        stop.sortOrder
+      ]
+    );
+  }
+}
+
+async function insertGeneratedReminders(connection: MysqlConnection, generated: GeneratedWorkspace) {
+  for (const [index, reminder] of generated.reminders.entries()) {
+    await connection.execute(
+      "INSERT INTO reminders (id, text, priority, created_by) VALUES (?, ?, ?, ?)",
+      [`setup-reminder-${index + 1}`, reminder.text, reminder.priority, reminder.createdBy]
+    );
+  }
+}
+
+async function insertGeneratedBookings(connection: MysqlConnection, generated: GeneratedWorkspace) {
+  for (const [index, booking] of generated.bookings.entries()) {
+    await connection.execute(
+      `INSERT INTO booking_items
+        (id, category, description, booking_date, location, booked_by, amount, currency, notes, status)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        `setup-booking-${index + 1}`,
+        booking.category,
+        booking.description,
+        booking.date,
+        booking.location || null,
+        booking.bookedBy,
+        null,
+        null,
+        booking.notes || null,
+        booking.status
+      ]
+    );
+  }
+}
+
+async function insertGeneratedItinerary(connection: MysqlConnection, generated: GeneratedWorkspace) {
+  for (const [index, item] of generated.itineraryItems.entries()) {
+    await connection.execute(
+      `INSERT INTO itinerary_items
+        (id, travel_date, city, start_time, end_time, title, location, details,
+         transport, meal, cost_amount, currency, notes, map_query, sort_order)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        `setup-itinerary-${index + 1}`,
+        item.travelDate,
+        item.city,
+        item.startTime || null,
+        item.endTime || null,
+        item.title,
+        item.location || null,
+        item.details || null,
+        item.transport || null,
+        item.meal || null,
+        null,
+        item.currency ?? generated.settings.trip.defaultCurrencies[0],
+        item.notes || null,
+        item.mapQuery || null,
+        item.sortOrder ?? index + 1
+      ]
+    );
+  }
+}
+
+async function insertGeneratedPacking(connection: MysqlConnection, generated: GeneratedWorkspace) {
+  for (const [index, item] of generated.packingItems.entries()) {
+    const itemId = `setup-packing-${index + 1}`;
+    await connection.execute(
+      `INSERT INTO packing_items
+        (id, name, category, priority, notes, quantity, sort_order)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [
+        itemId,
+        item.name,
+        item.category,
+        item.priority,
+        item.notes || null,
+        item.quantity ?? null,
+        item.sortOrder ?? index + 1
+      ]
+    );
+    await insertPackingStatuses(connection, itemId, item.statuses);
+  }
+}
+
+async function insertGeneratedDocuments(connection: MysqlConnection, generated: GeneratedWorkspace) {
+  for (const [index, document] of generated.documents.entries()) {
+    const documentId = `setup-document-${index + 1}`;
+    await connection.execute(
+      `INSERT INTO document_items
+        (id, title, category, priority, status, external_url, requires_passcode,
+         passcode_salt, passcode_hash, notes, sort_order)
+       VALUES (?, ?, ?, ?, ?, ?, 0, NULL, NULL, ?, ?)`,
+      [
+        documentId,
+        document.title,
+        document.category,
+        document.priority,
+        document.status,
+        document.externalUrl || null,
+        document.notes || null,
+        document.sortOrder ?? index + 1
+      ]
+    );
+    await insertDocumentStatuses(connection, documentId, document.statuses);
+  }
 }
 
 export function validateReminderInput(input: Partial<ReminderInput>) {

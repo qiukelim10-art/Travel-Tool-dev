@@ -40,3 +40,16 @@
 - Keep the current single active trip behavior, but key access-control data by `trip_id` so it does not deepen the single-trip assumption.
 - Viewer mode can update only the selected traveler's Packing/Documents status through dedicated status endpoints; core trip data changes still require editor mode.
 - Do not add setup wizard, template generation, payment, checkout, multi-trip SaaS dashboard, AI, or database-wide business table migrations in this slice.
+
+## 2026-06-21
+
+- Implement setup generation as rule-based templates only; do not add AI, paid APIs, payment, checkout, full login, or a multi-trip SaaS dashboard in v1.
+- Make `/api/setup-generation` editor-only via `requireTripEditor`; viewer/private-link-only users cannot run generation.
+- Because current business tables are still single-active-trip tables without `trip_id`, setup generation resets the active starter workspace tables in one server transaction instead of adding a partial multi-trip schema.
+- Generated booking checklist items must not include amounts, so Booking-to-Budget auto-sync does not create fake expenses and the shared expense ledger stays empty after generation.
+- Keep currency expansion as a fixed supported-currency list for settings, bookings, budget, and setup generation; do not add exchange-rate conversion or live FX APIs in this slice.
+- Treat active trip `defaultCurrencies` as the visible/input currency scope for the workspace money UI; existing non-default-currency records are not deleted, but they are hidden from Budget/Dashboard money display and no longer offered in new/edit currency dropdowns.
+- Keep the setup generation UI reusable, but treat first workspace entry as a gate instead of a Dashboard section: if active trip `setup_completed_at` is empty, `/` shows only setup questions; successful editor generation stamps `setup_completed_at` and then opens the Dashboard. `/settings` keeps the same generation options for later changes, and the mutation remains editor-only.
+- Guided Setup v1 should collect enough starter information before generation to avoid generic demo data: route/cities, dates, traveler count/names, currencies, expense splitting, style, transport, accommodation, and luggage.
+- Blank traveler names should be filled with neutral `Traveler N` labels, not legacy `Person A/B/C/D` display labels.
+- Destructive setup generation must require both editor mode and an explicit confirmation flag in the API body; disabling the frontend button alone is not enough.

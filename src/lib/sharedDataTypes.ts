@@ -22,7 +22,20 @@ export const bookingStatuses = [
   "Need Confirmation"
 ] as const satisfies readonly BookingStatus[];
 
-export const bookingCurrencies = ["EUR", "SGD", "MYR"] as const;
+export const bookingCurrencies = [
+  "EUR",
+  "SGD",
+  "MYR",
+  "USD",
+  "CNY",
+  "JPY",
+  "KRW",
+  "GBP",
+  "AUD",
+  "HKD",
+  "TWD",
+  "THB"
+] as const;
 export type SharedCurrency = (typeof bookingCurrencies)[number];
 
 export type TripSettings = {
@@ -34,6 +47,7 @@ export type TripSettings = {
   defaultCurrencies: SharedCurrency[];
   timezone: string;
   notes: string | null;
+  setupCompletedAt: string | null;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;

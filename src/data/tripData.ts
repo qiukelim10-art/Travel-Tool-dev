@@ -15,6 +15,20 @@ export type TripStatus = {
   entryRequirement: "Check Before Departure" | "Confirmed";
 };
 
+export type CurrencyCode =
+  | "EUR"
+  | "SGD"
+  | "MYR"
+  | "USD"
+  | "CNY"
+  | "JPY"
+  | "KRW"
+  | "GBP"
+  | "AUD"
+  | "HKD"
+  | "TWD"
+  | "THB";
+
 export type ItineraryDay = {
   day: number;
   date: string;
@@ -29,7 +43,7 @@ export type ItineraryDay = {
   meals: string[];
   tickets: string[];
   estimatedCost: number;
-  currency: "EUR" | "SGD" | "MYR";
+  currency: CurrencyCode;
   notes: string;
   mapLinks: {
     label: string;
@@ -54,7 +68,7 @@ export type Booking = {
   bookedBy: string;
   paidBy?: string;
   amount?: number;
-  currency?: "EUR" | "SGD" | "MYR";
+  currency?: CurrencyCode;
   status: BookingStatus;
   confirmationLink?: string;
   notes?: string;
@@ -73,7 +87,7 @@ export type Expense = {
     | "Insurance"
     | "Other";
   amount: number;
-  currency: "EUR" | "SGD" | "MYR";
+  currency: CurrencyCode;
   paidBy: string;
   splitAmong: string[];
   notes?: string;

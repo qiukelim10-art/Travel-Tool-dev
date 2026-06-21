@@ -16,7 +16,7 @@ export default function BookingsPage() {
         title={t("page.bookings.title")}
         description={t("page.bookings.description")}
       />
-      <BookingsClient participants={trip.travelerDisplayNames} />
+      <BookingsClient participants={trip.travelerDisplayNames} defaultCurrencies={trip.defaultCurrencies} />
     </div>
   );
 }

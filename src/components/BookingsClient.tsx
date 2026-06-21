@@ -4,13 +4,14 @@ import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { StatusBadge } from "@/components/StatusBadge";
 import { useTripAccess } from "@/lib/access";
 import { formatMoney } from "@/lib/budget";
+import { activeTripCurrencies, fallbackCurrency } from "@/lib/currencyPreferences";
 import { useLanguage } from "@/lib/i18n";
 import { translateOption } from "@/lib/localize";
 import {
   bookingCategories,
-  bookingCurrencies,
   bookingStatuses,
   type BookingInput,
+  type SharedCurrency,
   type SharedBooking,
   type SharedExpense
 } from "@/lib/sharedDataTypes";
@@ -18,6 +19,7 @@ import type { Traveler } from "@/data/tripData";
 
 type BookingsClientProps = {
   participants: string[];
+  defaultCurrencies: SharedCurrency[];
 };
 
 type FilterValue = "All";
@@ -30,7 +32,7 @@ type ExpensesApiResponse = {
 
 const requestTimeoutMs = 10000;
 
-function emptyForm(bookedBy: string, travelers: Traveler[] = []): BookingInput {
+function emptyForm(bookedBy: string, travelers: Traveler[] = [], currency: SharedCurrency = fallbackCurrency): BookingInput {
   return ensureBookingBudgetDefaults(
     {
       category: "Hotel",
@@ -39,7 +41,7 @@ function emptyForm(bookedBy: string, travelers: Traveler[] = []): BookingInput {
       location: "",
       bookedBy,
       amount: null,
-      currency: "EUR",
+      currency,
       notes: "",
       status: "Pending",
       budgetSettled: false
@@ -48,17 +50,20 @@ function emptyForm(bookedBy: string, travelers: Traveler[] = []): BookingInput {
   );
 }
 
-export function BookingsClient({ participants }: BookingsClientProps) {
+export function BookingsClient({ participants, defaultCurrencies }: BookingsClientProps) {
   const { language, t } = useLanguage();
   const { mode } = useTripAccess();
   const canEdit = mode === "editor";
+  const currencyOptions = useMemo(() => activeTripCurrencies(defaultCurrencies), [defaultCurrencies]);
+  const allowedCurrencySet = useMemo(() => new Set(currencyOptions), [currencyOptions]);
+  const primaryCurrency = currencyOptions[0];
   const [bookings, setBookings] = useState<SharedBooking[]>([]);
   const [expenses, setExpenses] = useState<SharedExpense[]>([]);
   const [travelers, setTravelers] = useState<Traveler[]>([]);
   const [categoryFilter, setCategoryFilter] = useState<FilterValue | SharedBooking["category"]>("All");
   const [statusFilter, setStatusFilter] = useState<FilterValue | SharedBooking["status"]>("All");
   const [bookedByFilter, setBookedByFilter] = useState<FilterValue | string>("All");
-  const [form, setForm] = useState<BookingInput>(() => emptyForm(participants[0] ?? "Person A"));
+  const [form, setForm] = useState<BookingInput>(() => emptyForm(participants[0] ?? "Person A", [], primaryCurrency));
   const [formOpen, setFormOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -74,9 +79,10 @@ export function BookingsClient({ participants }: BookingsClientProps) {
         const categoryMatches = categoryFilter === "All" || booking.category === categoryFilter;
         const statusMatches = statusFilter === "All" || booking.status === statusFilter;
         const ownerMatches = bookedByFilter === "All" || booking.bookedBy === bookedByFilter;
-        return categoryMatches && statusMatches && ownerMatches;
+        const currencyMatches = !booking.currency || allowedCurrencySet.has(booking.currency);
+        return categoryMatches && statusMatches && ownerMatches && currencyMatches;
       }),
-    [bookedByFilter, bookings, categoryFilter, statusFilter]
+    [allowedCurrencySet, bookedByFilter, bookings, categoryFilter, statusFilter]
   );
 
   const incompleteCount = bookings.filter((booking) =>
@@ -126,7 +132,7 @@ export function BookingsClient({ participants }: BookingsClientProps) {
       setBookings(bookingsData.bookings ?? []);
       setExpenses(expensesData.expenses);
       setTravelers(expensesData.travelers);
-      setForm((current) => ensureBookingBudgetDefaults(current, expensesData.travelers));
+      setForm((current) => ensureBookingBudgetDefaults(withAllowedCurrency(current, currencyOptions), expensesData.travelers));
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : t("bookings.errorLoad"));
     } finally {
@@ -138,9 +144,13 @@ export function BookingsClient({ participants }: BookingsClientProps) {
     void loadBookings();
   }, []);
 
+  useEffect(() => {
+    setForm((current) => withAllowedCurrency(current, currencyOptions));
+  }, [currencyOptions]);
+
   function resetForm() {
     setEditingId(null);
-    setForm(emptyForm(participants[0] ?? "Person A", activeTravelers));
+    setForm(emptyForm(participants[0] ?? "Person A", activeTravelers, primaryCurrency));
     setFormOpen(false);
   }
 
@@ -152,7 +162,7 @@ export function BookingsClient({ participants }: BookingsClientProps) {
 
     const budgetExpense = budgetExpenseByBooking.get(booking.id);
     setEditingId(booking.id);
-    setForm(bookingToForm(booking, budgetExpense, activeTravelers));
+    setForm(bookingToForm(booking, budgetExpense, activeTravelers, currencyOptions));
     setFormOpen(true);
     setNotice(null);
     window.setTimeout(() => {
@@ -167,7 +177,7 @@ export function BookingsClient({ participants }: BookingsClientProps) {
     }
 
     setEditingId(null);
-    setForm(emptyForm(participants[0] ?? "Person A", activeTravelers));
+    setForm(emptyForm(participants[0] ?? "Person A", activeTravelers, primaryCurrency));
     setFormOpen(true);
     setNotice(null);
     setError(null);
@@ -384,8 +394,8 @@ export function BookingsClient({ participants }: BookingsClientProps) {
             <SelectField
               name="booking-currency"
               label={t("common.currency")}
-              value={form.currency ?? "EUR"}
-              options={bookingCurrencies}
+              value={form.currency ?? primaryCurrency}
+              options={currencyOptions}
               onChange={(value) => setForm((current) => ({ ...current, currency: value as BookingInput["currency"] }))}
             />
             <SelectField
@@ -995,7 +1005,14 @@ function ensureBookingBudgetDefaults(form: BookingInput, travelers: Traveler[]) 
   };
 }
 
-function bookingToForm(booking: SharedBooking, budgetExpense: SharedExpense | undefined, travelers: Traveler[]) {
+function bookingToForm(
+  booking: SharedBooking,
+  budgetExpense: SharedExpense | undefined,
+  travelers: Traveler[],
+  currencyOptions: readonly SharedCurrency[]
+) {
+  const currency = booking.currency && currencyOptions.includes(booking.currency) ? booking.currency : currencyOptions[0];
+
   return ensureBookingBudgetDefaults(
     {
       category: booking.category,
@@ -1004,7 +1021,7 @@ function bookingToForm(booking: SharedBooking, budgetExpense: SharedExpense | un
       location: booking.location ?? "",
       bookedBy: booking.bookedBy,
       amount: booking.amount,
-      currency: booking.currency ?? "EUR",
+      currency,
       notes: booking.notes ?? "",
       status: booking.status,
       budgetPaidByTravelerId: budgetExpense?.paidByTravelerId,
@@ -1013,4 +1030,12 @@ function bookingToForm(booking: SharedBooking, budgetExpense: SharedExpense | un
     },
     travelers
   );
+}
+
+function withAllowedCurrency(form: BookingInput, currencyOptions: readonly SharedCurrency[]) {
+  if (form.currency && currencyOptions.includes(form.currency)) {
+    return form;
+  }
+
+  return { ...form, currency: currencyOptions[0] };
 }

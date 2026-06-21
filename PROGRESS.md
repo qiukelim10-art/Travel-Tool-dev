@@ -2,6 +2,27 @@
 
 ## 2026-06-21
 
+- Implemented Guided Setup + Rule-Based Template Generation v1 on `codex/setup-template-generation`.
+- Added an editor-only setup generation panel in `/settings` that uses the current trip basics, active travelers, route stops, currencies, and selected workspace options as input.
+- Added rule-based starter templates for China city general, China multi-city, Japan general, Korea general, and Generic international.
+- Added `/api/setup-generation` with `requireTripEditor`; viewer/private-link-only requests return 403 and editor requests generate the starter workspace.
+- Generation writes safe starter content for active trip settings, route stops, travelers, reminders, booking checklist, itinerary shell, packing, and documents; booking checklist items do not generate amounts, and the shared expense ledger is reset empty.
+- Kept `/pilot` public through the existing `AppShell` public route bypass and kept private workspace routes access-gated.
+- Kept payment, checkout, AI, full login, multi-trip SaaS, push, and deployment out of scope.
+- Verified `codegraph status .`, CodeGraph setup generation references, `npm run lint`, `npm run build`, desktop/LAN `/pilot` HTTP 200, desktop/LAN unauthenticated `/api/trip-settings` HTTP 401, viewer `/api/setup-generation` HTTP 403, editor `/api/setup-generation` HTTP 200, and desktop/LAN `/settings` plus `/api/trip-settings` HTTP 200 using a temporary local private link.
+- Expanded shared currency support from EUR/SGD/MYR to EUR, SGD, MYR, USD, CNY, JPY, KRW, GBP, AUD, HKD, TWD, and THB across settings/forms, API validation, MySQL enums, setup generation, and schema files; still no exchange-rate conversion.
+- Verified the expanded currency path with `npm run lint`, `npm run build`, `/settings` HTTP 200, `/api/trip-settings` HTTP 200, and a temporary JPY Booking create/delete through the editor session.
+- Moved guided setup generation into a reusable panel used by a first-entry workspace gate and by `/settings`; when active trip `setup_completed_at` is empty, `/` shows only setup questions and hides Dashboard content until editor generation succeeds.
+- Made active trip default currencies control the visible money workspace: Budget summaries/list/filter, Dashboard money snapshot, Booking currency dropdown, Budget add-expense dropdown, and Itinerary linked-expense dropdown now use only the selected default currencies.
+- Verified the setup gate in the in-app browser: before generation, `/` shows only the template/style/transport/accommodation/luggage questions and no Dashboard cover; after editor generation, it switches to the Dashboard. The local review database was reset to `setup_completed_at = NULL` afterward so the gate remains visible for review.
+- Expanded Guided Setup v1 from basic template choices to full starter intake: route/cities text, start/end dates with duration, traveler count and names, main currency, additional currencies, and expense-splitting preference.
+- Added a generation preview summary before the destructive confirmation, covering settings, travelers, route stops, itinerary days, bookings, reminders, packing, documents, empty ledger, and split mode.
+- Expanded setup options for trip style, transport, accommodation, and luggage while keeping generation rule-based and safe. Blank traveler names now become `Traveler 1`, `Traveler 2`, etc.; the generator no longer creates `Person A/B/C/D` display names.
+- Verified the expanded Guided Setup v1 flow with `npm run lint`, `npm run build`, editor generation API 200, viewer generation API 403, unauthenticated `/api/trip-settings` 401, desktop and LAN page/API status checks, Chinese/English UI smoke checks, and 390px mobile no-horizontal-overflow QA.
+- Polished Guided Setup v1 before the mobile bug batch: setup dates now show ISO `YYYY-MM-DD` summaries, duration shows days/nights, invalid date ranges show explicit validation, Destination is labeled as destination country/region, the generate button stays disabled until confirmation plus valid setup, and `/api/setup-generation` requires `confirmReplaceStarterContent`.
+- Replaced the engineering-style `empty money ledger` copy with user-facing starter workspace replacement wording while keeping Chinese/English local copy in `SetupGenerationPanel`.
+- Fixed first-load trip settings fetch for private-link users by letting `useTripSettingsView` send the share token header from the URL/localStorage, so the first-entry setup gate can initialize from current trip settings instead of fallback seed dates.
+- Verified the polish with `npm run lint`, `npm run build`, API checks for missing confirmation 400, invalid date range 400, confirmed editor generation 200, viewer generation 403, same-day itinerary count 1, traveler fallback `Traveler 2`, desktop/LAN page checks, Chinese/English UI smoke, Japan/China/Korea currency defaults, and 390px no-horizontal-overflow smoke.
 - Implemented the lightweight public `/pilot` manual pilot offer page on `codex/pilot-offer-page` with Chinese-first bilingual copy for the Group Trip Command Center early pilot.
 - Refined `/pilot` into a prospect-facing bilingual sales/pilot page: Chinese and English render as separate modes, first visit defaults to Chinese, copy stays page-local, and the page uses a sanitized bitmap hero visual at `public/pilot/command-center-preview.png`.
 - Adjusted `/pilot` sales copy away from a planner-only framing: the page now emphasizes that every trip participant can open the same link, see the latest trip version, and use the workspace on mobile.

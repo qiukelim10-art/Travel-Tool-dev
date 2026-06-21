@@ -24,16 +24,21 @@
 - i18n foundation now uses global language state with `trip-dashboard-language`, default English, EN/Chinese toggle in Layout, and a UI-only dictionary; user-entered trip content should remain untranslated.
 - Budget page system UI is now connected to the UI-only i18n foundation while keeping expense titles, notes, traveler names, currencies, and amounts untranslated.
 - Bookings, Itinerary, Packing, and Documents system UI are now connected to the UI-only i18n foundation while keeping user-entered trip content untranslated.
-- The shared expense ledger now supports EUR, SGD, and MYR.
+- The shared expense ledger and trip settings currency selector now support EUR, SGD, MYR, USD, CNY, JPY, KRW, GBP, AUD, HKD, TWD, and THB.
 - Real-data preparation docs now exist: `REAL_DATA_ENTRY_GUIDE.md` and `REAL_DATA_CHECKLIST.md`.
 - A concise bilingual traveler-facing quick-start guide now exists at `USER_GUIDE.md` and `Italy Trip 2026 Quick User Guide.docx`.
 - Phase 1 reusable trip dashboard foundation now exists on `codex/trip-settings-foundation`: active trip settings use `trips`, `trip_travelers`, and `trip_route_stops`; `/api/trip-settings` supports read/write for the single active trip, and `/settings` edits trip basics, currencies, timezone, notes, travelers, and route stops.
 - Access-control foundation now exists on `codex/access-control-foundation` and has been locally approved: first-time private link setup, viewer/editor mode, planner edit passcode, one-time owner recovery token, server-side API guards, and viewer-safe Packing/Documents traveler status updates.
+- Guided Setup + Rule-Based Template Generation v1 now exists locally on `codex/setup-template-generation`: `/settings` has an editor-only generation entry, `/api/setup-generation` requires editor mode, and rule templates cover China city general, China multi-city, Japan general, Korea general, and Generic international.
+- Guided setup generation is now the first-entry workspace gate, not a Dashboard section: when `setup_completed_at` is empty, the private workspace shows only template/style/transport/accommodation/luggage questions; after editor generation completes, the user enters the Dashboard. `/settings` keeps the same options for later regeneration.
+- Guided Setup v1 now asks for route/cities, dates, traveler count/names, main/additional currencies, expense splitting, trip style, transport, accommodation, and luggage, then shows a preview summary before the destructive confirmation.
+- Guided Setup v1 polish now uses unambiguous ISO date summaries, days/nights duration, explicit invalid date validation, user-facing replacement warning copy, disabled generate button until confirmation plus valid setup, and a backend `confirmReplaceStarterContent` guard.
 - The second-round Universal Travel Cockpit UI polish was committed on `codex/ui-skill-research` and merged into `master`; final build/lint, desktop/LAN page/API checks, and mobile no-horizontal-overflow QA passed before merge.
 
 ## Highest Priority Task
 
 - Review the polished local `/pilot` bilingual manual pilot sales page; keep the page framed around the whole group's travel experience rather than planner-only pain. Do not deploy or push until the user explicitly asks.
+- Review `codex/setup-template-generation` locally with the first-entry setup gate; do not push or deploy until explicitly requested.
 - Keep the approved access-control foundation on `master` after merge, but do not deploy production until the user asks for the final batch deployment.
 - Before the future production deployment, apply the updated managed schema so `trip_access_controls` exists; after deploy, run first-time access setup, save the private link and one-time owner recovery token outside the app, and share the private link with travelers.
 - The live site is stable for now; the user and travel group will enter safe real trip data through the UI.
@@ -58,7 +63,10 @@
 - `/pilot` is the only current public route bypass in `AppShell`; private workspace pages continue to use `TripAccessProvider`, `TripAccessGate`, and `Layout`. Pilot sales copy stays local to `src/app/pilot/PilotOfferClient.tsx`, not in the private workspace i18n dictionary.
 - Product direction is one paid workspace per trip, but the first implementation should not jump to a full multi-trip SaaS dashboard. When adding or substantially changing business data structures, avoid deepening the single active-trip assumption and prefer workspace_id/trip_id-compatible design.
 - The private trip link is a convenience boundary, not high-security storage. Treat the workspace as lightweight coordination, not a secure vault, and keep sensitive personal documents, passport scans, payment details, private passcodes, and confidential identity information out of the product.
-- First-version workspace generation should be guided setup plus rule-based templates for Europe general, Japan, Korea, and Generic international trip fallback. Do not add AI dependency or paid API dependency for workspace generation.
+- First-version workspace generation should be guided setup plus rule-based templates for China city general, China multi-city, Japan, Korea, and Generic international trip fallback. Do not add AI dependency or paid API dependency for workspace generation.
+- In the current single-active-trip implementation, `/api/setup-generation` resets shared starter workspace tables because reminders, bookings, itinerary, expenses, packing, and documents do not yet have `trip_id`; keep the mutation editor-only and clearly confirmed in `/settings`.
+- Setup generation should never create `Person A/B/C/D` display names for new starter workspaces. User-provided traveler names are kept, and blanks become neutral `Traveler N` labels.
+- `useTripSettingsView` sends the private share token from URL/localStorage on `/api/trip-settings` so first-load private-link pages can initialize from current active trip settings even before the access provider fetch wrapper is ready.
 - Pilot commercial model is SGD 4.90 early access per trip workspace through Free Demo / Manual Pilot first; do not build payment, checkout, billing, or subscription infrastructure yet.
 - API routes should not return raw infrastructure errors to the UI. Database/DNS/connection failures should be logged server-side and returned as generic user-facing API errors.
 - Deployment prep now supports hosted MySQL configuration with `MYSQL_SSL=true` and can skip runtime schema creation/seed on managed databases with `MYSQL_MANAGED_SCHEMA=true`; local development still defaults to automatic local schema setup.
@@ -76,7 +84,8 @@
 - Budget filters are collapsed by default in the mobile polish flow, and individual expense card paid/split/notes details are behind a per-card details toggle.
 - Dashboard budget widgets show full-ledger totals, outstanding/settled amounts, top settlement suggestions, and recent expenses with local loading/error handling.
 - Dashboard money snapshot intentionally stays compact; full expense ledger review and management should remain on `/budget`.
-- Budget and Dashboard summarize EUR, SGD, and MYR separately; the app does not perform exchange-rate conversion.
+- Budget and Dashboard summarize supported currencies separately; the app does not perform exchange-rate conversion or use live FX APIs.
+- Active trip `defaultCurrencies` now control the visible money workspace: Budget and Dashboard filter money display to those currencies, and Booking/Budget/Itinerary expense currency dropdowns only offer those currencies.
 - Itinerary cards can display, add, edit, and delete linked ledger expenses where `sourceType = itinerary` and `sourceId` is the itinerary item id.
 - Booking rows/cards no longer expose separate linked expense controls; a positive Booking `amount/currency` automatically creates or updates one `sourceType = booking` expense with paid-by, split traveler, and settled fields from the Booking form.
 - Booking-to-Budget sync must stay on Booking create/update/delete only; `/api/bookings` and `/api/expenses` GET paths must remain read-only to avoid concurrent `expense_splits` duplicate-key and deadlock errors.
