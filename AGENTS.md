@@ -1,5 +1,17 @@
 # AGENTS.md
 
+## CodeGraph Usage Rule
+
+Before making code changes, Codex must use CodeGraph to understand the related files and references.
+
+For every task:
+1. Identify related files, components, API routes, shared types, and database schema.
+2. Explain why each file is relevant.
+3. List possible affected pages or features.
+4. Propose the minimal edit plan before editing.
+5. After editing, re-check related references to avoid missing linked files.
+6. Do not make broad refactors unless explicitly requested.
+
 ## 1. Project Memory Workflow
 
 ### 1.1 Required Reading
