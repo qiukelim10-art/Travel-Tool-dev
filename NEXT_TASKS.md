@@ -2,6 +2,7 @@
 
 ## Current Priority
 
+- Review the polished local `/pilot` bilingual manual pilot sales page on `codex/pilot-offer-page`; the current copy should be workspace-led, useful to the whole trip group, and avoid first-person service framing. Do not deploy production or push until the user explicitly asks.
 - The access-control foundation has been reviewed and approved locally; keep it on `master` after merge, but do not deploy production until the user asks for the final batch deployment.
 - Before the future production deployment with `MYSQL_MANAGED_SCHEMA=true`, apply the updated managed schema so `trip_access_controls` exists.
 - After deployment, the planner should run first-time access setup, store the private trip link and one-time owner recovery token outside the app, and share only the private trip link with travelers.
@@ -28,8 +29,8 @@
 
 ## Suggested Next Feature
 
-- After deploying access control and completing first-time access setup, add a lightweight pilot offer page before setup/template generation.
-- After the pilot offer page, add guided setup plus rule-based template generation if the user resumes productization work.
+- After local review and approval of the pilot sales page, decide whether to add real manual contact details for prospects or keep it local until the next product slice.
+- After deploying access control and completing first-time access setup, keep `/pilot` as the sanitized public offer page before exposing any real trip workspace.
 - Continue traveler source cleanup only as a focused task that preserves the stable `person_a` to `person_d` IDs and existing business table behavior.
 - Decide whether to replace placeholder city dates, hotels, and restaurant shortlists with safe real summaries.
 - Consider improving packing status controls after real phone review if the four traveler selectors feel heavy on small screens.

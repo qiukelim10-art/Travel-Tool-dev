@@ -1,5 +1,18 @@
 # Progress
 
+## 2026-06-21
+
+- Implemented the lightweight public `/pilot` manual pilot offer page on `codex/pilot-offer-page` with Chinese-first bilingual copy for the Group Trip Command Center early pilot.
+- Refined `/pilot` into a prospect-facing bilingual sales/pilot page: Chinese and English render as separate modes, first visit defaults to Chinese, copy stays page-local, and the page uses a sanitized bitmap hero visual at `public/pilot/command-center-preview.png`.
+- Adjusted `/pilot` sales copy away from a planner-only framing: the page now emphasizes that every trip participant can open the same link, see the latest trip version, and use the workspace on mobile.
+- Revised `/pilot` again from first-person service copy to workspace-led copy: visible Chinese and English text no longer uses "I/me/my/we/our" or "我/我们", and the deliverables section now includes safe product screenshots for the Today and Money/Prep views.
+- Kept CTA behavior manual and static: no form submission, real contact detail, checkout, billing, payment collection, setup wizard, template generation, database write, or AI feature.
+- Kept the page sanitized: no real Italy trip details, traveler private information, private links, passcodes, tokens, payment collection, setup wizard, template generation, database writes, or AI features.
+- Added a minimal `AppShell` public-route bypass for `/pilot` only; existing workspace routes still render through `TripAccessProvider`, `TripAccessGate`, and `Layout`.
+- Updated `next.config.mjs` with the current LAN review IP `192.168.0.7` so phone review can load the local dev server on the same Wi-Fi or hotspot.
+- Verified `codegraph status .`, CodeGraph references for `AppShell`, route layout, `/pilot`, access control, and `/api/trip-settings`, `npm run lint`, `npm run build`, desktop `/pilot` HTTP 200, LAN `/pilot` HTTP 200, unauthenticated `/api/trip-settings` HTTP 401 on desktop and LAN, and private `/` plus `/settings` still showing access-control text without pilot content.
+- Production deployment and push remain intentionally out of scope.
+
 ## 2026-06-19
 
 - Implemented the PRODUCT_VISION access-control phase 1 slice on `codex/access-control-foundation`: private unguessable trip link setup, viewer mode by default, planner edit passcode editor mode, and one-time owner recovery token generation/recovery.

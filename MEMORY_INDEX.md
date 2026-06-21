@@ -3,6 +3,7 @@
 ## Project Status
 
 - Long-term product direction is now documented in `PRODUCT_VISION.md`: Italy Trip 2026 is the first reference workspace/prototype for a mobile-first, ready-to-use, per-trip paid Group Trip Command Center.
+- A polished public `/pilot` bilingual manual pilot sales page now exists locally on `codex/pilot-offer-page`; it is sanitized, Chinese-first on first visit, workspace-led rather than first-person service-led, framed around benefits for the whole trip group, and has not been deployed to production.
 - First target customer is the Singapore/Malaysia outbound small-group trip planner organizing 2-8 person, 5-14 day Europe/Japan/Korea trips; travelers use the shared link, but the planner is the buyer.
 - The project is a private, mobile-first Italy trip dashboard for 4 travellers in October 2026.
 - `codex/public-vercel-deploy` has a zero-cost production deployment path on Vercel Hobby + Aiven Free MySQL; the live URL is `https://italy-trip-2026-cyan.vercel.app`.
@@ -32,6 +33,7 @@
 
 ## Highest Priority Task
 
+- Review the polished local `/pilot` bilingual manual pilot sales page; keep the page framed around the whole group's travel experience rather than planner-only pain. Do not deploy or push until the user explicitly asks.
 - Keep the approved access-control foundation on `master` after merge, but do not deploy production until the user asks for the final batch deployment.
 - Before the future production deployment, apply the updated managed schema so `trip_access_controls` exists; after deploy, run first-time access setup, save the private link and one-time owner recovery token outside the app, and share the private link with travelers.
 - The live site is stable for now; the user and travel group will enter safe real trip data through the UI.
@@ -53,6 +55,7 @@
 
 ## Important Architecture Note
 
+- `/pilot` is the only current public route bypass in `AppShell`; private workspace pages continue to use `TripAccessProvider`, `TripAccessGate`, and `Layout`. Pilot sales copy stays local to `src/app/pilot/PilotOfferClient.tsx`, not in the private workspace i18n dictionary.
 - Product direction is one paid workspace per trip, but the first implementation should not jump to a full multi-trip SaaS dashboard. When adding or substantially changing business data structures, avoid deepening the single active-trip assumption and prefer workspace_id/trip_id-compatible design.
 - The private trip link is a convenience boundary, not high-security storage. Treat the workspace as lightweight coordination, not a secure vault, and keep sensitive personal documents, passport scans, payment details, private passcodes, and confidential identity information out of the product.
 - First-version workspace generation should be guided setup plus rule-based templates for Europe general, Japan, Korea, and Generic international trip fallback. Do not add AI dependency or paid API dependency for workspace generation.
