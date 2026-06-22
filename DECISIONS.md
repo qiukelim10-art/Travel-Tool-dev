@@ -53,3 +53,10 @@
 - Guided Setup v1 should collect enough starter information before generation to avoid generic demo data: route/cities, dates, traveler count/names, currencies, expense splitting, style, transport, accommodation, and luggage.
 - Blank traveler names should be filled with neutral `Traveler N` labels, not legacy `Person A/B/C/D` display labels.
 - Destructive setup generation must require both editor mode and an explicit confirmation flag in the API body; disabling the frontend button alone is not enough.
+
+## 2026-06-22
+
+- Keep All Templates Context-Aware Engine v1 rule-based and local: shared derived context may drive route legs, overnight accommodation, day trip return planning, season labels, and seasonal packing, but it must not call external AI, weather, train, price, visa, or booking APIs.
+- Keep setup generation schema-light for this slice: budget categories stay in setup summary/trip notes, emergency placeholders stay in notes/documents/reminders, booking amounts stay empty, and the `expenses` ledger remains empty after generation.
+- Treat overnight cities and day trip cities as planner-supplied hints. Overnight cities can create accommodation planning; day trip cities should create return-transport planning and must not create accommodation items.
+- First-generation booking checklist owners should default to the workspace generation owner, not a rotated traveler assignment. Users can change individual booking owners later in the Bookings page.

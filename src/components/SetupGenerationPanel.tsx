@@ -49,6 +49,8 @@ type SetupFormState = {
   endDate: string;
   timezone: string;
   routeText: string;
+  overnightText: string;
+  dayTripText: string;
   travelerCount: number;
   travelerNames: string[];
   mainCurrency: SharedCurrency;
@@ -79,7 +81,13 @@ const copy = {
     destination: "Destination country / region",
     route: "Cities / route",
     routePlaceholder: "Shanghai -> Hangzhou -> Suzhou",
-    routeHelp: "Use arrows, commas, semicolons, or line breaks. Examples: Shanghai, Tokyo, Seoul, Osaka -> Kyoto -> Nara.",
+    routeHelp: "Use arrows, commas, slash, semicolons, or line breaks. Examples: Shanghai, Tokyo, Seoul, Osaka -> Kyoto -> Nara.",
+    overnightCities: "Overnight cities",
+    overnightPlaceholder: "Osaka -> Kyoto",
+    overnightHelp: "Leave blank to use route cities as overnight stops, except day trip cities.",
+    dayTripCities: "Day trip cities",
+    dayTripPlaceholder: "Nara / Kamakura",
+    dayTripHelp: "Day trip cities get return transport planning, not accommodation.",
     startDate: "Start date",
     endDate: "End date",
     duration: "Duration",
@@ -109,13 +117,20 @@ const copy = {
     previewReminders: "{count} reminders",
     previewItinerary: "{count} itinerary shell days",
     previewEmergency: "1 emergency card placeholder",
-    previewMoney: "{count} budget categories and starter expense records ready to replace",
+    previewMoney: "{count} budget categories and an empty expense ledger",
     previewDates: "Dates: {start} to {end} ({duration})",
+    previewRouteCities: "detected route cities: {value}",
+    previewRouteLegs: "route legs: {value}",
+    previewOvernights: "{count} overnight accommodation city/cities",
+    previewDayTrips: "{count} day trip planning city/cities",
+    previewSeason: "season profile: {value}; seasonal packing included: {flag}",
+    flagYes: "yes",
+    flagNo: "no",
     previewSplitOn: "shared expense splitting fields enabled",
     previewSplitOff: "light money planning without emphasizing settlements",
     impactTitle: "Confirm generation",
     impact:
-      "This will regenerate the starter workspace based on your setup. Existing starter checklists, booking checklist, packing list, documents checklist, reminders, itinerary shell, budget categories, and starter expense records will be replaced.",
+      "This will regenerate the starter workspace based on your setup. Existing starter checklists, booking checklist, packing list, documents checklist, reminders, itinerary shell, budget category plan, and expense ledger will be replaced.",
     confirm: "I understand this will replace the current active workspace starter content.",
     run: "Generate starter workspace",
     running: "Generating...",
@@ -168,7 +183,13 @@ const copy = {
     destination: "目的地国家 / 地区",
     route: "城市 / 路线",
     routePlaceholder: "上海 -> 杭州 -> 苏州",
-    routeHelp: "支持箭头、逗号、分号或换行。例如：上海、东京、首尔、大阪 -> 京都 -> 奈良。",
+    routeHelp: "支持箭头、逗号、斜杠、分号、顿号或换行。例如：上海、东京、首尔、大阪 -> 京都 -> 奈良。",
+    overnightCities: "过夜城市",
+    overnightPlaceholder: "大阪 -> 京都",
+    overnightHelp: "留空时会按路线城市生成住宿，但会排除当天往返城市。",
+    dayTripCities: "当天往返城市",
+    dayTripPlaceholder: "奈良 / 镰仓",
+    dayTripHelp: "当天往返城市只生成往返交通规划，不生成住宿。",
     startDate: "开始日期",
     endDate: "结束日期",
     duration: "天数",
@@ -198,13 +219,20 @@ const copy = {
     previewReminders: "{count} 个 reminders",
     previewItinerary: "{count} 天 itinerary shell",
     previewEmergency: "1 张 emergency card placeholder",
-    previewMoney: "{count} 个预算分类，并替换 starter expense records",
+    previewMoney: "{count} 个预算分类，并保留空的费用账本",
     previewDates: "日期：{start} 至 {end}（{duration}）",
+    previewRouteCities: "识别到的路线城市：{value}",
+    previewRouteLegs: "路线段：{value}",
+    previewOvernights: "{count} 个过夜住宿城市",
+    previewDayTrips: "{count} 个当天往返规划城市",
+    previewSeason: "季节：{value}；已包含季节 packing：{flag}",
+    flagYes: "是",
+    flagNo: "否",
     previewSplitOn: "启用 paid by / split between 分账字段",
     previewSplitOff: "轻量预算规划，不强调结算建议",
     impactTitle: "确认生成",
     impact:
-      "这会根据你的设置重新生成 starter workspace。现有的 starter checklist、booking checklist、packing list、documents checklist、reminders、itinerary shell、预算分类和 starter expense records 会被替换。",
+      "这会根据你的设置重新生成 starter workspace。现有的 starter checklist、booking checklist、packing list、documents checklist、reminders、itinerary shell、预算分类计划和费用账本会被替换。",
     confirm: "我确认要替换当前 active workspace 的 starter 内容。",
     run: "生成 starter workspace",
     running: "生成中...",
@@ -346,6 +374,8 @@ export function SetupGenerationPanel({
       template: nextTemplate,
       destination: option.defaultDestination,
       routeText: option.defaultCities.join(" -> "),
+      overnightText: "",
+      dayTripText: "",
       timezone: option.defaultTimezone,
       mainCurrency: recommendedCurrenciesForTemplate(nextTemplate)[0],
       additionalCurrencies: recommendedCurrenciesForTemplate(nextTemplate).slice(1)
@@ -435,6 +465,32 @@ export function SetupGenerationPanel({
             />
             <span className="mt-1 block text-xs font-normal leading-5 text-zinc-500">{labels.routeHelp}</span>
           </label>
+          <div className="mt-3 grid gap-3 md:grid-cols-2">
+            <label className="block text-sm font-semibold text-ink">
+              {labels.overnightCities}
+              <textarea
+                name={`${surface}-setup-overnight-cities`}
+                value={form.overnightText}
+                onChange={(event) => setForm((current) => ({ ...current, overnightText: event.target.value }))}
+                placeholder={labels.overnightPlaceholder}
+                rows={2}
+                className="mt-2 block w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-base text-zinc-700 sm:text-sm"
+              />
+              <span className="mt-1 block text-xs font-normal leading-5 text-zinc-500">{labels.overnightHelp}</span>
+            </label>
+            <label className="block text-sm font-semibold text-ink">
+              {labels.dayTripCities}
+              <textarea
+                name={`${surface}-setup-day-trip-cities`}
+                value={form.dayTripText}
+                onChange={(event) => setForm((current) => ({ ...current, dayTripText: event.target.value }))}
+                placeholder={labels.dayTripPlaceholder}
+                rows={2}
+                className="mt-2 block w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-base text-zinc-700 sm:text-sm"
+              />
+              <span className="mt-1 block text-xs font-normal leading-5 text-zinc-500">{labels.dayTripHelp}</span>
+            </label>
+          </div>
         </fieldset>
 
         <fieldset className="rounded-md border border-zinc-200 p-3">
@@ -613,6 +669,8 @@ function buildInitialForm(base: SetupGenerationBase): SetupFormState {
     endDate: base.endDate ?? "",
     timezone: base.timezone || templateOption.defaultTimezone,
     routeText: (base.routeCities.length > 0 ? base.routeCities : templateOption.defaultCities).join(" -> "),
+    overnightText: "",
+    dayTripText: "",
     travelerCount,
     travelerNames: resizeTravelerNames(base.travelerNames, travelerCount),
     mainCurrency: currencies[0] ?? "SGD",
@@ -637,6 +695,8 @@ function buildGenerationInput(form: SetupFormState): SetupGenerationInput {
     travelerCount: form.travelerCount,
     travelerNames: normalizeTravelerNames(form.travelerNames, form.travelerCount),
     routeCities: parseRouteText(form.routeText),
+    overnightCities: parseRouteText(form.overnightText),
+    dayTripCities: parseRouteText(form.dayTripText),
     tripStyle: form.tripStyle,
     transportMode: form.transportMode,
     accommodationMode: form.accommodationMode,
@@ -653,7 +713,7 @@ function parseRouteText(value: string) {
   return Array.from(
     new Set(
       value
-        .split(/\s*(?:->|→|,|，|;|；|\n)\s*/g)
+        .split(/\s*(?:->|→|,|，|\/|、|;|；|\r?\n)\s*/g)
         .map((item) => item.trim())
         .filter(Boolean)
     )
@@ -760,6 +820,13 @@ function PreviewBox({
       .replace("{start}", formatIsoDate(previewStartDate))
       .replace("{end}", formatIsoDate(previewEndDate))
       .replace("{duration}", formatDurationLabel(duration, labels)),
+    labels.previewRouteCities.replace("{value}", summary.routeCities.length > 0 ? summary.routeCities.join(" -> ") : "-"),
+    labels.previewRouteLegs.replace("{value}", summary.routeLegs.length > 0 ? summary.routeLegs.join("; ") : "-"),
+    labels.previewOvernights.replace("{count}", String(summary.overnightCityCount)),
+    labels.previewDayTrips.replace("{count}", String(summary.dayTripCityCount)),
+    labels.previewSeason
+      .replace("{value}", summary.seasonLabel)
+      .replace("{flag}", summary.seasonalPackingIncluded ? labels.flagYes : labels.flagNo),
     labels.previewPacking.replace("{count}", String(summary.packingCount)),
     labels.previewDocuments.replace("{count}", String(summary.documentCount)),
     labels.previewBookings.replace("{count}", String(summary.bookingCount)),

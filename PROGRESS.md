@@ -1,5 +1,24 @@
 # Progress
 
+## 2026-06-22
+
+- User reviewed and accepted All Templates Context-Aware Engine v1 locally; the branch remains uncommitted, unpushed, and undeployed pending an explicit commit/merge request.
+- Final local validation passed for the accepted setup-generation slice: `npm run lint`, `npm run build`, no `test` script present, CodeGraph status, desktop/LAN page checks, and five-template smoke generation against a temporary MySQL database.
+- Final five-template smoke counts: Japan 14 bookings / 7 itinerary / 23 packing / 12 documents / 16 reminders / 12 budget categories; Korea 13 / 7 / 17 / 11 / 12 / 12; China city 11 / 5 / 18 / 11 / 12 / 12; China multi-city 15 / 8 / 18 / 11 / 12 / 12; Generic 12 / 7 / 16 / 11 / 12 / 10. All smoke cases kept `expenses` empty, generated no fake amounts, used no `Person A/B/C/D`, avoided legal visa claims, generated route legs and seasonal packing, and avoided accommodation for day trip cities.
+- Continued on `codex/japan-template-quality-sprint-1` with All Templates Context-Aware Engine v1; no worktree, commit, push, or deploy was performed.
+- Added shared setup-generation derived context for route cities, route legs, overnight cities, day trip cities, duration, travel month/season, accommodation label, luggage/transport inputs, and selected currencies.
+- Extended setup generation input and preview so planners can enter overnight cities and day trip cities separately; day trip cities generate return-transport planning, not accommodation.
+- Expanded China city, China multi-city, Japan general, Korea general, and Generic international templates to use route legs, overnight accommodation cities, day trip planning cities, and seasonal packing while keeping booking amounts and the expense ledger empty.
+- Kept setup generation rule-based and safe: no external API, AI, visa checker, weather lookup, train lookup, DB migration, payment/login/SaaS, or broad UI redesign was added.
+- Updated generated booking checklist ownership so first-generation starter bookings default to the workspace generation owner instead of rotating owners; users can still edit each booking owner later.
+- Implemented Japan general template quality sprint locally on `codex/japan-template-quality-sprint-1`; no commit, push, or deploy was performed.
+- Expanded Japan general starter generation so the smoke workspace creates 23 packing items, 11 document checklist items, 14 booking checklist items, 14 reminders, 7 itinerary shell days for a 2026-10-01 to 2026-10-07 Osaka -> Kyoto -> Nara route, 12 budget category planning labels, and an empty expense ledger.
+- Kept Japan booking amounts and itinerary costs empty, defaulted first-generation booking owners to the workspace generation owner, and avoided `Person A/B/C/D` display names in generated Japan workspace content.
+- Kept visa/entry wording as official-source checks only; no legal visa or entry eligibility claims were generated.
+- Added Japan emergency-card placeholder content through generated trip notes, document checklist, and reminders because the current setup-generation model does not yet persist a separate editable emergency-card table.
+- Updated setup-generation preview wording in English and Chinese so money generation is described as budget categories plus an empty expense ledger, not starter expense records.
+- Verified `codegraph status .`, CodeGraph Japan setup-generation references, `npm run lint`, `npm run build`, API smoke generation against temporary database `italy_trip_2026_japan_smoke`, generated content quality checks, no fake amounts, no `Person A/B/C/D`, no legal visa claims, English/Chinese UI smoke, and 390px mobile no-horizontal-overflow smoke.
+
 ## 2026-06-21
 
 - Implemented Guided Setup + Rule-Based Template Generation v1 on `codex/setup-template-generation`.

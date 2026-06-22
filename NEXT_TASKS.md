@@ -2,6 +2,8 @@
 
 ## Current Priority
 
+- All Templates Context-Aware Engine v1 has been reviewed and accepted locally on `codex/japan-template-quality-sprint-1`; do not commit, push, deploy, or merge until explicitly requested.
+- Japan general template quality sprint is included in the accepted local setup-generation slice on `codex/japan-template-quality-sprint-1`; keep the branch ready for a user-requested commit/merge.
 - Review the local Guided Setup + Rule-Based Template Generation v1 branch `codex/setup-template-generation`; do not push or deploy until explicitly requested.
 - If the generation slice is accepted, decide whether to commit/merge it before expanding templates or changing schema.
 - During local review, confirm whether the first-entry setup gate should remain strictly required until editor generation succeeds, or whether a planner-only "continue without generating" escape hatch is needed later.
@@ -34,6 +36,8 @@
 
 ## Suggested Next Feature
 
+- After the accepted context-aware engine is committed/merged, decide whether v2 should add editable persisted budget categories, an editable emergency-card model, or deeper per-destination content tuning before schema changes.
+- After the accepted Japan general quality sprint is committed/merged, decide whether to add a real persisted budget-category model or editable emergency-card data model later; this sprint kept those as generated notes/counts and did not change schema.
 - After setup generation review, decide whether v2 should add Europe general, budget category scaffolding, or `trip_id`/workspace-compatible business tables before pilot users use generated workspaces.
 - If Guided Setup v1 is accepted, consider adding a non-destructive preview-only mode or setup-history note before adding more templates.
 - Later mobile bug batch can focus on setup form density and native date input ergonomics if real phone review finds them awkward; no major mobile layout refactor was done in this polish task.

@@ -33,10 +33,13 @@
 - Guided setup generation is now the first-entry workspace gate, not a Dashboard section: when `setup_completed_at` is empty, the private workspace shows only template/style/transport/accommodation/luggage questions; after editor generation completes, the user enters the Dashboard. `/settings` keeps the same options for later regeneration.
 - Guided Setup v1 now asks for route/cities, dates, traveler count/names, main/additional currencies, expense splitting, trip style, transport, accommodation, and luggage, then shows a preview summary before the destructive confirmation.
 - Guided Setup v1 polish now uses unambiguous ISO date summaries, days/nights duration, explicit invalid date validation, user-facing replacement warning copy, disabled generate button until confirmation plus valid setup, and a backend `confirmReplaceStarterContent` guard.
+- Japan general template quality sprint now exists locally on `codex/japan-template-quality-sprint-1`: generated Japan starter workspaces are substantially richer across packing, documents, bookings, reminders, itinerary shell, budget-category planning, and emergency placeholders; no commit, push, or deploy has been performed.
+- All Templates Context-Aware Engine v1 now exists locally and has been accepted on `codex/japan-template-quality-sprint-1`: setup generation derives route cities, route legs, overnight cities, day trip cities, duration, season, accommodation, luggage, transport, and currencies, then applies that context across China city, China multi-city, Japan, Korea, and Generic templates. No commit, push, merge, or deploy has been performed.
 - The second-round Universal Travel Cockpit UI polish was committed on `codex/ui-skill-research` and merged into `master`; final build/lint, desktop/LAN page/API checks, and mobile no-horizontal-overflow QA passed before merge.
 
 ## Highest Priority Task
 
+- All Templates Context-Aware Engine v1 and the Japan general quality sprint are accepted locally on `codex/japan-template-quality-sprint-1`; keep the branch ready, but do not commit, push, merge, or deploy until the user explicitly asks.
 - Review the polished local `/pilot` bilingual manual pilot sales page; keep the page framed around the whole group's travel experience rather than planner-only pain. Do not deploy or push until the user explicitly asks.
 - Review `codex/setup-template-generation` locally with the first-entry setup gate; do not push or deploy until explicitly requested.
 - Keep the approved access-control foundation on `master` after merge, but do not deploy production until the user asks for the final batch deployment.
@@ -66,6 +69,10 @@
 - First-version workspace generation should be guided setup plus rule-based templates for China city general, China multi-city, Japan, Korea, and Generic international trip fallback. Do not add AI dependency or paid API dependency for workspace generation.
 - In the current single-active-trip implementation, `/api/setup-generation` resets shared starter workspace tables because reminders, bookings, itinerary, expenses, packing, and documents do not yet have `trip_id`; keep the mutation editor-only and clearly confirmed in `/settings`.
 - Setup generation should never create `Person A/B/C/D` display names for new starter workspaces. User-provided traveler names are kept, and blanks become neutral `Traveler N` labels.
+- Setup generation should default first-generation booking checklist `bookedBy` owners to the workspace generation owner, not rotate the work across travelers; users can change owners later in Bookings.
+- Japan general template quality sprint keeps the expense ledger empty and represents Japan budget-category planning through setup summary/trip notes, because there is still no separate persisted budget-category table.
+- Japan general emergency placeholders currently live in generated trip notes, document checklist, and reminders; there is still no separate editable emergency-card generation table.
+- All Templates Context-Aware Engine v1 keeps setup generation rule-based and schema-light: derived context controls route legs, overnight accommodation, day trip return planning, season labels, and seasonal packing across all templates, while budget categories remain generated notes/summary labels and `expenses` stays empty.
 - `useTripSettingsView` sends the private share token from URL/localStorage on `/api/trip-settings` so first-load private-link pages can initialize from current active trip settings even before the access provider fetch wrapper is ready.
 - Pilot commercial model is SGD 4.90 early access per trip workspace through Free Demo / Manual Pilot first; do not build payment, checkout, billing, or subscription infrastructure yet.
 - API routes should not return raw infrastructure errors to the UI. Database/DNS/connection failures should be logged server-side and returned as generic user-facing API errors.
