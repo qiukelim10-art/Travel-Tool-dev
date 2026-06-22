@@ -2,7 +2,13 @@
 
 ## 2026-06-22
 
-- User reviewed and accepted All Templates Context-Aware Engine v1 locally; the branch remains uncommitted, unpushed, and undeployed pending an explicit commit/merge request.
+- Committed and merged All Templates Context-Aware Engine v1 into `master` as `f9aa6ef`, then added managed-schema production compatibility as `fb3c0b8`.
+- Production readiness audit found Vercel Production env vars are present but sensitive values cannot be pulled locally for direct DB schema inspection; added safe managed-schema compatibility so production can add `trips.setup_completed_at`, create `trip_access_controls`, and expand currency enums without seeding or resetting workspace data.
+- Deployed `master` to Vercel Production. Alias `https://italy-trip-2026-cyan.vercel.app` is live on deployment `dpl_EPWzYqw25cJ3MJya5kHmUuxcTLx8`.
+- Ran first-time production access setup and saved the private trip link, edit passcode, and owner recovery token outside the repo at `C:\Users\qiuke\Documents\Italy Trip 2026 Controlled Pilot Access 2026-06-22.txt`.
+- Verified production access control: `/api/health` returned 200, unauthenticated `/api/bookings` and `/api/trip-settings` returned 401, private-link viewer reads returned 200, viewer booking write returned 403, and editor mode created then deleted a temporary booking with no leftover smoke item.
+- Did not run production setup generation for the controlled pilot because the protected production workspace still has 47 itinerary items and setup generation resets the active single-trip workspace tables while business tables do not yet have `trip_id`.
+- User reviewed and accepted All Templates Context-Aware Engine v1 locally before the commit/merge/deploy sequence.
 - Final local validation passed for the accepted setup-generation slice: `npm run lint`, `npm run build`, no `test` script present, CodeGraph status, desktop/LAN page checks, and five-template smoke generation against a temporary MySQL database.
 - Final five-template smoke counts: Japan 14 bookings / 7 itinerary / 23 packing / 12 documents / 16 reminders / 12 budget categories; Korea 13 / 7 / 17 / 11 / 12 / 12; China city 11 / 5 / 18 / 11 / 12 / 12; China multi-city 15 / 8 / 18 / 11 / 12 / 12; Generic 12 / 7 / 16 / 11 / 12 / 10. All smoke cases kept `expenses` empty, generated no fake amounts, used no `Person A/B/C/D`, avoided legal visa claims, generated route legs and seasonal packing, and avoided accommodation for day trip cities.
 - Continued on `codex/japan-template-quality-sprint-1` with All Templates Context-Aware Engine v1; no worktree, commit, push, or deploy was performed.

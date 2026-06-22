@@ -2,17 +2,15 @@
 
 ## Current Priority
 
-- All Templates Context-Aware Engine v1 has been reviewed and accepted locally on `codex/japan-template-quality-sprint-1`; do not commit, push, deploy, or merge until explicitly requested.
-- Japan general template quality sprint is included in the accepted local setup-generation slice on `codex/japan-template-quality-sprint-1`; keep the branch ready for a user-requested commit/merge.
-- Review the local Guided Setup + Rule-Based Template Generation v1 branch `codex/setup-template-generation`; do not push or deploy until explicitly requested.
-- If the generation slice is accepted, decide whether to commit/merge it before expanding templates or changing schema.
+- Review the production access-controlled workspace using the private link saved outside the repo at `C:\Users\qiuke\Documents\Italy Trip 2026 Controlled Pilot Access 2026-06-22.txt`.
+- Do not run production setup generation against the current `active-trip` unless the user explicitly approves resetting the existing production workspace; it currently still has 47 itinerary items and setup generation resets the single active workspace tables.
+- Plan the next engineering slice around `trip_id`/workspace-compatible business tables before supporting multiple real pilot workspaces.
+- All Templates Context-Aware Engine v1 and the Japan general template quality sprint are now committed, merged to `master`, and deployed to production.
 - During local review, confirm whether the first-entry setup gate should remain strictly required until editor generation succeeds, or whether a planner-only "continue without generating" escape hatch is needed later.
 - During Guided Setup review, check whether the new starter questions are enough for real pilot users: route/cities, dates, traveler names, currencies, expense splitting, style, transport, accommodation, and luggage.
 - Review the Guided Setup polish on phone and desktop: ISO date summaries, days/nights duration, invalid date messaging, disabled generate button before confirmation, and destination country/region label.
 - Review the polished local `/pilot` bilingual manual pilot sales page on `codex/pilot-offer-page`; the current copy should be workspace-led, useful to the whole trip group, and avoid first-person service framing. Do not deploy production or push until the user explicitly asks.
-- The access-control foundation has been reviewed and approved locally; keep it on `master` after merge, but do not deploy production until the user asks for the final batch deployment.
-- Before the future production deployment with `MYSQL_MANAGED_SCHEMA=true`, apply the updated managed schema so `trip_access_controls` exists.
-- After deployment, the planner should run first-time access setup, store the private trip link and one-time owner recovery token outside the app, and share only the private trip link with travelers.
+- The access-control foundation is deployed to production. Keep the private trip link and owner recovery token outside the repo and share only the private trip link with travelers.
 - The website is stable for now; the user plans to enter safe real trip data directly through the live UI.
 - The user has shared the live site link with the 4 travelers for collaborative editing.
 - Keep `Italy Trip 2026 Quick User Guide.docx` available as the short traveler quick-start guide.
@@ -36,9 +34,8 @@
 
 ## Suggested Next Feature
 
-- After the accepted context-aware engine is committed/merged, decide whether v2 should add editable persisted budget categories, an editable emergency-card model, or deeper per-destination content tuning before schema changes.
-- After the accepted Japan general quality sprint is committed/merged, decide whether to add a real persisted budget-category model or editable emergency-card data model later; this sprint kept those as generated notes/counts and did not change schema.
-- After setup generation review, decide whether v2 should add Europe general, budget category scaffolding, or `trip_id`/workspace-compatible business tables before pilot users use generated workspaces.
+- After the controlled production pilot review, prioritize `trip_id`/workspace-compatible business tables before adding more destination templates or running multiple pilot workspaces.
+- Later v2 product quality can add editable persisted budget categories, an editable emergency-card model, or deeper per-destination content tuning after workspace boundary risk is reduced.
 - If Guided Setup v1 is accepted, consider adding a non-destructive preview-only mode or setup-history note before adding more templates.
 - Later mobile bug batch can focus on setup form density and native date input ergonomics if real phone review finds them awkward; no major mobile layout refactor was done in this polish task.
 - After local review and approval of the pilot sales page, decide whether to add real manual contact details for prospects or keep it local until the next product slice.
