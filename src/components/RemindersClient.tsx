@@ -183,30 +183,30 @@ export function RemindersClient({ participants }: RemindersClientProps) {
     <section className="rounded-lg border border-zinc-200 bg-white p-4 shadow-soft">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
-          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-terracotta">
-            {t("reminders.eyebrow")}
-          </p>
-          <h2 className="mt-1 text-lg font-semibold text-ink">{t("reminders.title")}</h2>
+          <div className="reminders-card__topline">
+            <h2 className="text-lg font-semibold text-ink">{t("reminders.title")}</h2>
+            <div className="grid w-full grid-cols-2 gap-2 sm:w-auto">
+              <button
+                type="button"
+                onClick={startAdding}
+                data-edit-required={!canEdit ? "true" : undefined}
+                title={!canEdit ? "Editor mode is required to add reminders." : undefined}
+                className="rounded-md bg-moss px-3 py-2 text-sm font-semibold text-white"
+              >
+                {t("reminders.add")}
+              </button>
+              <button
+                type="button"
+                onClick={() => setExpanded((current) => !current)}
+                className="rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold text-ink"
+              >
+                {expanded ? t("reminders.showLess") : canEdit ? t("reminders.manage") : t("common.view")}
+              </button>
+            </div>
+          </div>
           <p className="mt-1 text-sm leading-6 text-zinc-600">
             {t("reminders.description")}
           </p>
-        </div>
-        <div className="grid w-full grid-cols-2 gap-2 sm:w-auto">
-          <button
-            type="button"
-            onClick={startAdding}
-            disabled={!canEdit}
-            className="rounded-md bg-moss px-3 py-2 text-sm font-semibold text-white"
-          >
-            {t("reminders.add")}
-          </button>
-          <button
-            type="button"
-            onClick={() => setExpanded((current) => !current)}
-            className="rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold text-ink"
-          >
-            {expanded ? t("reminders.showLess") : canEdit ? t("reminders.manage") : t("common.view")}
-          </button>
         </div>
       </div>
 

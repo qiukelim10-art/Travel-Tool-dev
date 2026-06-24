@@ -71,3 +71,4 @@
 - Use Travel Journal skin plus Cockpit interaction for the next private workspace UI direction: warm and personal visually, but still compact, task-led, and mobile-first.
 - Scope the first UI implementation slice to Shell + Today only. Audit all private pages for consistency, but do not redesign every page in one branch.
 - Treat shadcn as a phased target component direction. If introduced, start with Shell + Today primitives and do not let component migration change routes, APIs, access control, setup generation, or business data behavior.
+- Destination-specific visuals such as maps, route marks, stamps, and visual tone must be derived from each workspace's `trip.destination`, `routeCities`, and `routeLabel`. Do not hardcode Italy, Japan, or any other destination into reusable Shell/Today UI, and do not auto-translate user-entered destination or city names.

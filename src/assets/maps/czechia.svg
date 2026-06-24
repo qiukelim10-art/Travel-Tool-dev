@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 680" role="img" aria-label="Czechia silhouette">
+  <title>Czechia silhouette</title>
+  <desc>Country silhouette derived from Natural Earth public domain admin 0 countries data.</desc>
+  <g fill="#8a8170" stroke="#6f6759" stroke-width="2.4" stroke-linejoin="round" opacity="0.48">
+  <path d="M 428.9 169.4 L 492.5 212.6 L 592.9 224.3 L 584.5 261.3 L 657.5 289.0 L 677.5 254.4 L 769.6 269.4 L 782.4 311.4 L 882.2 319.5 L 944.0 385.7 L 904.0 385.8 L 883.2 410.0 L 852.3 415.8 L 843.5 446.4 L 817.8 452.8 L 814.2 465.3 L 768.3 479.2 L 708.9 476.9 L 689.8 506.4 L 627.9 481.1 L 564.9 488.0 L 460.6 447.0 L 413.4 457.1 L 337.8 512.0 L 238.1 468.8 L 162.2 411.1 L 93.7 378.8 L 79.5 322.2 L 56.0 282.3 L 153.6 253.0 L 203.4 219.6 L 299.9 193.5 L 333.5 168.0 L 369.0 183.4 L 428.9 169.4 Z" />
+  </g>
+</svg>

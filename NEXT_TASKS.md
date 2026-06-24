@@ -2,7 +2,10 @@
 
 ## Current Priority
 
-- Review `UI_SHELL_TODAY_AUDIT.md`, then implement only the private workspace Shell + Today UI refresh on `codex/ui-shell-today-journal-cockpit` without backend, API, schema, access-control, setup-generation, payment, Stripe, or Supabase changes.
+- The user accepted the local Shell + Today UI branch work on `codex/ui-shell-today-journal-cockpit`; next action is to commit and merge when explicitly requested. Do not push or deploy unless the user asks.
+- Before staging the accepted branch, decide whether the untracked `Image Reference/` design-reference screenshots should be committed or kept local-only.
+- After this branch is committed and merged, continue the UI refresh page-by-page: Itinerary, Bookings, Budget, and More/Prep, while keeping APIs, schemas, access control, setup generation, payment, and deployment unchanged unless explicitly requested.
+- Keep destination visuals generated from current workspace settings. Maps, postmarks, route pins, and visual tone must derive from `trip.destination`, `routeCities`, and `routeLabel`; do not hardcode Italy, Japan, or any other destination into shared UI components.
 - Pause deeper feature work while the UI design refresh is underway. The approved direction is Travel Journal skin plus Cockpit interaction.
 - Review the production access-controlled workspace after deployment `dpl_4XGZ3zk2jB839zLgicMBthR13oDu` using the private link saved outside the repo at `C:\Users\qiuke\Documents\Italy Trip 2026 Controlled Pilot Access 2026-06-22.txt`.
 - `codex/workspace-boundary-foundation` is merged to `master` and deployed to production. Git push still needs a remote configured before it can be completed from this checkout.
@@ -37,7 +40,10 @@
 
 ## Suggested Next Feature
 
-- After the Shell + Today UI refresh is accepted, continue the UI refresh page-by-page before returning to non-destructive setup preview/history and controlled pilot workflow work.
+- If the route-stop-driven Today visuals are accepted, consider adding a small route-map smoke script for supported city fixtures so country detection, multi-country rendering, and SOS country selection can be regression-checked without manual browser setup.
+- If the expanded map/SOS coverage is accepted, generate quick smoke workspaces or temporary settings for each supported country to visually confirm map scale, route dot placement, and emergency modal content on desktop and 390px mobile.
+- After the corrected Shell + Today UI refresh is accepted, continue the UI refresh page-by-page, starting with the pages exposed through the main nav: Itinerary, Bookings, Budget, and More/Prep, while keeping APIs, schemas, access control, and setup generation unchanged.
+- If the user wants more supported countries later, add real local SVG assets and visual city coordinates behind `src/components/TripRouteMap.tsx` while keeping the same workspace-derived `countryCode`, `countryName`, and destination-coordinate data boundary.
 - Configure a git remote if this project should be pushed to GitHub or another remote repository from this checkout.
 - Later v2 product quality can add editable persisted budget categories, an editable emergency-card model, or deeper per-destination content tuning after workspace boundary risk is reduced.
 - If Guided Setup v1 is accepted, consider adding a non-destructive preview-only mode or setup-history note before adding more templates.

@@ -2,6 +2,19 @@
 
 Last updated: 2026-06-24
 
+## Current Implementation Status
+
+The Shell + Today slice now has a corrected implementation pass that follows the supplied mobile and desktop reference direction more closely:
+
+- App-like Travel Journal shell with serif trip masthead and warm paper surface.
+- Today cockpit primary card with ticket/map/postmark visual.
+- Desktop right rail for needs attention, money, prep, and SOS.
+- Compact access controls that keep viewer/editor, private link, traveler identity, and recovery tools available without dominating the page.
+- Floating mobile bottom navigation.
+- Destination visuals still derive from `trip.destination`, `routeCities`, and `routeLabel`.
+- Route behavior was smoke-tested for Today CTA, attention, money, prep, More, Settings, Packing, Documents, and mobile Bookings.
+- The latest browser-comment pass tightened the primary title sizing, made the destination route-map/postmark card clearer, removed the unused QR-like detail, removed the duplicate lower Needs Attention card, restyled reminders for the cockpit surface, fixed brand/title truncation, changed nav icons to emoji labels, and restored 390px mobile no-overflow.
+
 ## Purpose
 
 This document scopes the first UI redesign branch after `PRODUCT_LAUNCH_PLAN.md`.
@@ -11,6 +24,7 @@ The approved direction is:
 - Visual direction: Travel Journal skin.
 - Interaction model: Cockpit utility.
 - First implementation slice: private workspace Shell + Today only.
+- Destination visuals: maps, route marks, postmarks, and tone must derive from each workspace's destination/route settings, not from hardcoded Italy/Japan assets.
 - Later direction: phased shadcn migration, not a one-branch full-page migration.
 
 No business functionality, API contract, database schema, access-control behavior, setup generation behavior, payment flow, Stripe integration, or Supabase/Postgres work belongs in this slice.
@@ -199,6 +213,7 @@ Implement later in a focused code slice:
   - `/api/expenses`
   - `/api/reminders`
   - `/api/trip-settings`
+- Use destination-derived visual identity for any map, stamp, ticket, or route motif so a Japan workspace looks Japanese, a Korea workspace looks Korean, and a Generic workspace stays safely generic.
 - Do not add new data models.
 
 ## shadcn Migration Guardrail
@@ -230,6 +245,8 @@ The first code slice is complete only when:
 - Viewer/editor mode still behaves the same.
 - English/Chinese toggle still works.
 - User-entered trip content is not auto-translated.
+- Destination-specific map/postmark visuals derive from `trip.destination`, `routeCities`, and `routeLabel`, with no hardcoded workspace destination.
+- Today route maps now use real local SVG silhouette assets for Japan, Korea, and Italy plus normalized city visual coordinates; unsupported countries must show the postcard fallback instead of fake generated shapes.
 - `/itinerary`, `/bookings`, `/budget`, `/packing`, `/documents`, and `/settings` still load.
 
 ## Next Slice
@@ -239,4 +256,3 @@ Recommended next implementation branch work:
 ```text
 Implement the private workspace Shell + Today UI refresh using the Travel Journal skin and Cockpit interaction model, without changing business behavior.
 ```
-

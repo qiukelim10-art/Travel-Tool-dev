@@ -37,6 +37,8 @@ export type SetupTemplateOption = {
   id: SetupTemplateId;
   label: string;
   description: string;
+  countryCode: string;
+  countryName: string;
   defaultDestination: string;
   defaultCities: string[];
   defaultTimezone: string;
@@ -128,6 +130,8 @@ export const setupTemplateOptions: SetupTemplateOption[] = [
     id: "china-city-general",
     label: "China city general",
     description: "One-city China starter workspace with payment, transport, hotel, maps, and connectivity tasks.",
+    countryCode: "CN",
+    countryName: "China",
     defaultDestination: "China",
     defaultCities: ["Shanghai"],
     defaultTimezone: "Asia/Shanghai"
@@ -136,6 +140,8 @@ export const setupTemplateOptions: SetupTemplateOption[] = [
     id: "china-multi-city",
     label: "China multi-city",
     description: "Multi-city China starter workspace with rail, hotel, attraction, payment, and route coordination.",
+    countryCode: "CN",
+    countryName: "China",
     defaultDestination: "China",
     defaultCities: ["Shanghai", "Hangzhou"],
     defaultTimezone: "Asia/Shanghai"
@@ -144,6 +150,8 @@ export const setupTemplateOptions: SetupTemplateOption[] = [
     id: "japan-general",
     label: "Japan general",
     description: "Japan starter workspace with IC card, rail, hotel, restaurant, attraction, and connectivity tasks.",
+    countryCode: "JP",
+    countryName: "Japan",
     defaultDestination: "Japan",
     defaultCities: ["Tokyo", "Kyoto", "Osaka"],
     defaultTimezone: "Asia/Tokyo"
@@ -152,6 +160,8 @@ export const setupTemplateOptions: SetupTemplateOption[] = [
     id: "korea-general",
     label: "Korea general",
     description: "Korea starter workspace with transport card, map apps, hotel, restaurant, beauty, and eSIM tasks.",
+    countryCode: "KR",
+    countryName: "South Korea",
     defaultDestination: "South Korea",
     defaultCities: ["Seoul", "Busan"],
     defaultTimezone: "Asia/Seoul"
@@ -160,6 +170,8 @@ export const setupTemplateOptions: SetupTemplateOption[] = [
     id: "generic-international",
     label: "Generic international",
     description: "Fallback international trip workspace with bookings, documents, packing, route, and admin tasks.",
+    countryCode: "GENERIC",
+    countryName: "International trip",
     defaultDestination: "International trip",
     defaultCities: ["Arrival city", "Main city"],
     defaultTimezone: "UTC"

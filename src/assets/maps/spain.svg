@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 680" role="img" aria-label="Spain silhouette">
+  <title>Spain silhouette</title>
+  <desc>Country silhouette derived from Natural Earth public domain admin 0 countries data.</desc>
+  <g fill="#8a8170" stroke="#6f6759" stroke-width="2.4" stroke-linejoin="round" opacity="0.48">
+  <path d="M 194.5 536.4 L 188.6 512.8 L 215.0 486.0 L 224.8 466.6 L 200.2 445.3 L 219.9 398.4 L 191.3 355.6 L 222.2 349.7 L 225.0 315.9 L 236.6 305.5 L 237.5 249.8 L 270.6 230.4 L 250.6 194.6 L 209.0 192.1 L 196.7 201.1 L 154.5 201.2 L 136.6 166.2 L 107.5 176.6 L 81.6 194.8 L 85.2 143.9 L 56.0 112.9 L 157.0 61.4 L 244.5 74.3 L 340.3 73.8 L 416.3 86.0 L 475.7 82.3 L 591.1 84.6 L 619.6 112.4 L 751.0 144.9 L 777.0 129.4 L 857.4 161.7 L 940.2 152.5 L 944.0 194.0 L 876.3 241.5 L 784.8 256.6 L 778.4 280.7 L 734.5 320.3 L 707.0 378.4 L 734.8 419.2 L 693.5 451.1 L 678.1 497.5 L 624.2 511.7 L 573.6 566.7 L 482.9 567.8 L 414.8 566.4 L 370.1 591.6 L 342.8 618.6 L 307.9 612.7 L 281.4 588.6 L 261.2 547.5 L 194.5 536.4 Z" />
+  </g>
+</svg>
