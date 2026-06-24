@@ -4,8 +4,8 @@
 
 - Review the production access-controlled workspace using the private link saved outside the repo at `C:\Users\qiuke\Documents\Italy Trip 2026 Controlled Pilot Access 2026-06-22.txt`.
 - `codex/workspace-boundary-foundation` is merged to `master`. Do not push or deploy until the user explicitly asks.
-- Before any production deployment, confirm the managed-schema compatibility path should run in production and re-check the protected production workspace data state.
-- Do not run production setup generation against the current `active-trip` unless the user explicitly approves resetting the existing production workspace; production currently still has 47 itinerary items. The local branch scopes reset by `trip_id`, but generation still replaces active-trip content.
+- Production preflight has confirmed the managed-schema compatibility path is additive, and the protected production workspace currently has reminders 11, bookings 14, itinerary 11, expenses 0, packing 16, and documents 11.
+- Do not run production setup generation against the current `active-trip` unless the user explicitly approves resetting the existing production workspace. The merged branch scopes reset by `trip_id`, but generation still replaces active-trip content.
 - All Templates Context-Aware Engine v1 and the Japan general template quality sprint are now committed, merged to `master`, and deployed to production.
 - During local review, confirm whether the first-entry setup gate should remain strictly required until editor generation succeeds, or whether a planner-only "continue without generating" escape hatch is needed later.
 - During Guided Setup review, check whether the new starter questions are enough for real pilot users: route/cities, dates, traveler names, currencies, expense splitting, style, transport, accommodation, and luggage.

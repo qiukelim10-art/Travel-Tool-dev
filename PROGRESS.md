@@ -5,6 +5,9 @@
 - User accepted the local review for `codex/workspace-boundary-foundation`: Dashboard no longer shows `Unknown column 'trip_id' in 'where clause'`, Bookings/Budget/Packing/Documents no longer show red API errors, and phone LAN access no longer gets stuck on `Loading private trip access`.
 - Current local review server was verified on port `3107`: desktop `http://localhost:3107/` and phone LAN `http://192.168.0.7:3107/` both returned page 200 and `/api/health` 200 with `database: ready`.
 - Committed `codex/workspace-boundary-foundation` as `f9b318f` and merged it back to `master`; no push or deploy has been requested.
+- Ran a read-only production preflight before any deploy: `/api/health` returned 200 with `database: ready`, unauthenticated `/api/bookings` returned 401, private-link access status returned 200 as viewer with 4 travelers, and `/api/trip-settings` returned the active Italy Trip workspace.
+- Current production private-link item counts are reminders 11, bookings 14, itinerary 11, expenses 0, packing 16, and documents 11; the earlier 47-itinerary note is stale.
+- Confirmed the merged managed-schema compatibility path is additive for production: it adds/backfills/indexes `trip_id` on existing business tables and does not seed or reset data in `MYSQL_MANAGED_SCHEMA=true` mode.
 
 ## 2026-06-22
 
@@ -26,7 +29,7 @@
 - Deployed `master` to Vercel Production. Alias `https://italy-trip-2026-cyan.vercel.app` is live on deployment `dpl_EPWzYqw25cJ3MJya5kHmUuxcTLx8`.
 - Ran first-time production access setup and saved the private trip link, edit passcode, and owner recovery token outside the repo at `C:\Users\qiuke\Documents\Italy Trip 2026 Controlled Pilot Access 2026-06-22.txt`.
 - Verified production access control: `/api/health` returned 200, unauthenticated `/api/bookings` and `/api/trip-settings` returned 401, private-link viewer reads returned 200, viewer booking write returned 403, and editor mode created then deleted a temporary booking with no leftover smoke item.
-- Did not run production setup generation for the controlled pilot because the protected production workspace still has 47 itinerary items and setup generation resets the active single-trip workspace tables while business tables do not yet have `trip_id`.
+- Did not run production setup generation for the controlled pilot because the protected production workspace had existing itinerary data and setup generation resets the active single-trip workspace tables while business tables did not yet have `trip_id`.
 - User reviewed and accepted All Templates Context-Aware Engine v1 locally before the commit/merge/deploy sequence.
 - Final local validation passed for the accepted setup-generation slice: `npm run lint`, `npm run build`, no `test` script present, CodeGraph status, desktop/LAN page checks, and five-template smoke generation against a temporary MySQL database.
 - Final five-template smoke counts: Japan 14 bookings / 7 itinerary / 23 packing / 12 documents / 16 reminders / 12 budget categories; Korea 13 / 7 / 17 / 11 / 12 / 12; China city 11 / 5 / 18 / 11 / 12 / 12; China multi-city 15 / 8 / 18 / 11 / 12 / 12; Generic 12 / 7 / 16 / 11 / 12 / 10. All smoke cases kept `expenses` empty, generated no fake amounts, used no `Person A/B/C/D`, avoided legal visa claims, generated route legs and seasonal packing, and avoided accommodation for day trip cities.
