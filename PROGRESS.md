@@ -8,6 +8,9 @@
 - Ran a read-only production preflight before any deploy: `/api/health` returned 200 with `database: ready`, unauthenticated `/api/bookings` returned 401, private-link access status returned 200 as viewer with 4 travelers, and `/api/trip-settings` returned the active Italy Trip workspace.
 - Current production private-link item counts are reminders 11, bookings 14, itinerary 11, expenses 0, packing 16, and documents 11; the earlier 47-itinerary note is stale.
 - Confirmed the merged managed-schema compatibility path is additive for production: it adds/backfills/indexes `trip_id` on existing business tables and does not seed or reset data in `MYSQL_MANAGED_SCHEMA=true` mode.
+- Deployed `master` to Vercel Production with deployment `dpl_4XGZ3zk2jB839zLgicMBthR13oDu`; alias `https://italy-trip-2026-cyan.vercel.app` is live.
+- Post-deploy smoke passed: production `/` returned 200, `/api/health` returned 200 with `database: ready`, unauthenticated `/api/bookings` returned 401, private-link access returned viewer mode with 4 travelers, and private-link counts remained reminders 11, bookings 14, itinerary 11, expenses 0, packing 16, and documents 11.
+- Git push could not be completed because this local checkout has no configured git remote in `.git/config`; deployment was completed directly through the linked Vercel project.
 
 ## 2026-06-22
 
