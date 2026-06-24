@@ -76,17 +76,20 @@ CREATE TABLE IF NOT EXISTS `trip_access_controls` (
 
 CREATE TABLE IF NOT EXISTS `reminders` (
   `id` varchar(36) NOT NULL,
+  `trip_id` varchar(36) NOT NULL DEFAULT 'active-trip',
   `text` varchar(500) NOT NULL,
   `priority` enum('High', 'Medium', 'Low') NOT NULL DEFAULT 'Medium',
   `created_by` varchar(80) NOT NULL,
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
+  KEY `idx_reminders_trip` (`trip_id`),
   KEY `idx_reminders_priority_created` (`priority`, `created_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS `booking_items` (
   `id` varchar(36) NOT NULL,
+  `trip_id` varchar(36) NOT NULL DEFAULT 'active-trip',
   `category` enum('Flight', 'Hotel', 'Train', 'Attraction', 'Restaurant', 'Insurance', 'Other') NOT NULL,
   `description` varchar(255) NOT NULL,
   `booking_date` date NOT NULL,
@@ -99,11 +102,13 @@ CREATE TABLE IF NOT EXISTS `booking_items` (
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
+  KEY `idx_booking_items_trip` (`trip_id`),
   KEY `idx_booking_items_filters` (`category`, `status`, `booked_by`, `booking_date`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS `itinerary_items` (
   `id` varchar(36) NOT NULL,
+  `trip_id` varchar(36) NOT NULL DEFAULT 'active-trip',
   `travel_date` date NOT NULL,
   `city` varchar(80) NOT NULL,
   `start_time` time DEFAULT NULL,
@@ -121,12 +126,14 @@ CREATE TABLE IF NOT EXISTS `itinerary_items` (
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
+  KEY `idx_itinerary_items_trip` (`trip_id`),
   KEY `idx_itinerary_items_order` (`travel_date`, `start_time`, `sort_order`, `id`),
     KEY `idx_itinerary_items_city` (`city`, `travel_date`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS `expenses` (
   `id` varchar(36) NOT NULL,
+  `trip_id` varchar(36) NOT NULL DEFAULT 'active-trip',
   `source_type` enum('itinerary', 'booking', 'misc') NOT NULL DEFAULT 'misc',
   `source_id` varchar(36) DEFAULT NULL,
   `title` varchar(255) NOT NULL,
@@ -140,6 +147,7 @@ CREATE TABLE IF NOT EXISTS `expenses` (
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
+  KEY `idx_expenses_trip` (`trip_id`),
   KEY `idx_expenses_source` (`source_type`, `source_id`),
   KEY `idx_expenses_date_currency` (`expense_date`, `currency`),
   KEY `idx_expenses_paid_by` (`paid_by_traveler_id`, `settled`)
@@ -147,11 +155,13 @@ CREATE TABLE IF NOT EXISTS `expenses` (
 
 CREATE TABLE IF NOT EXISTS `expense_splits` (
   `id` varchar(36) NOT NULL,
+  `trip_id` varchar(36) NOT NULL DEFAULT 'active-trip',
   `expense_id` varchar(36) NOT NULL,
   `traveler_id` varchar(80) NOT NULL,
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   UNIQUE KEY `uniq_expense_split_traveler` (`expense_id`, `traveler_id`),
+  KEY `idx_expense_splits_trip` (`trip_id`),
   KEY `idx_expense_splits_traveler` (`traveler_id`),
   CONSTRAINT `fk_expense_split_expense`
     FOREIGN KEY (`expense_id`) REFERENCES `expenses` (`id`)
@@ -160,6 +170,7 @@ CREATE TABLE IF NOT EXISTS `expense_splits` (
 
 CREATE TABLE IF NOT EXISTS `packing_items` (
   `id` varchar(36) NOT NULL,
+  `trip_id` varchar(36) NOT NULL DEFAULT 'active-trip',
   `name` varchar(255) NOT NULL,
   `category` enum('Documents', 'Clothes', 'Electronics', 'Medicine', 'Toiletries', 'Travel Essentials', 'Shared Items', 'Personal Care', 'Other') NOT NULL,
   `priority` enum('High', 'Medium', 'Low') NOT NULL DEFAULT 'Medium',
@@ -169,17 +180,20 @@ CREATE TABLE IF NOT EXISTS `packing_items` (
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
+  KEY `idx_packing_items_trip` (`trip_id`),
   KEY `idx_packing_items_grouping` (`category`, `priority`, `sort_order`, `name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS `packing_item_traveler_statuses` (
   `id` varchar(36) NOT NULL,
+  `trip_id` varchar(36) NOT NULL DEFAULT 'active-trip',
   `item_id` varchar(36) NOT NULL,
   `traveler_id` varchar(80) NOT NULL,
   `status` enum('required', 'packed', 'not_needed') NOT NULL DEFAULT 'required',
   `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   UNIQUE KEY `uniq_packing_item_traveler` (`item_id`, `traveler_id`),
+  KEY `idx_packing_statuses_trip` (`trip_id`),
   KEY `idx_packing_traveler_status` (`traveler_id`, `status`),
   CONSTRAINT `fk_packing_status_item`
     FOREIGN KEY (`item_id`) REFERENCES `packing_items` (`id`)
@@ -188,6 +202,7 @@ CREATE TABLE IF NOT EXISTS `packing_item_traveler_statuses` (
 
 CREATE TABLE IF NOT EXISTS `document_items` (
   `id` varchar(36) NOT NULL,
+  `trip_id` varchar(36) NOT NULL DEFAULT 'active-trip',
   `title` varchar(255) NOT NULL,
   `category` enum('Passport', 'Flight', 'Hotel', 'Insurance', 'Visa / Entry', 'Transport', 'Booking', 'Other') NOT NULL,
   `priority` enum('High', 'Medium', 'Low') NOT NULL DEFAULT 'Medium',
@@ -201,18 +216,21 @@ CREATE TABLE IF NOT EXISTS `document_items` (
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
+  KEY `idx_document_items_trip` (`trip_id`),
   KEY `idx_document_items_grouping` (`category`, `priority`, `status`, `sort_order`, `title`),
   KEY `idx_document_items_protected` (`requires_passcode`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS `document_item_traveler_statuses` (
   `id` varchar(36) NOT NULL,
+  `trip_id` varchar(36) NOT NULL DEFAULT 'active-trip',
   `item_id` varchar(36) NOT NULL,
   `traveler_id` varchar(80) NOT NULL,
   `status` enum('required', 'saved', 'not_needed') NOT NULL DEFAULT 'required',
   `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   UNIQUE KEY `uniq_document_item_traveler` (`item_id`, `traveler_id`),
+  KEY `idx_document_statuses_trip` (`trip_id`),
   KEY `idx_document_traveler_status` (`traveler_id`, `status`),
   CONSTRAINT `fk_document_status_item`
     FOREIGN KEY (`item_id`) REFERENCES `document_items` (`id`)
