@@ -37,10 +37,12 @@
 - All Templates Context-Aware Engine v1 is merged to `master` and deployed: setup generation derives route cities, route legs, overnight cities, day trip cities, duration, season, accommodation, luggage, transport, and currencies, then applies that context across China city, China multi-city, Japan, Korea, and Generic templates.
 - The second-round Universal Travel Cockpit UI polish was committed on `codex/ui-skill-research` and merged into `master`; final build/lint, desktop/LAN page/API checks, and mobile no-horizontal-overflow QA passed before merge.
 - Workspace boundary foundation is merged to `master` and deployed to production in `dpl_4XGZ3zk2jB839zLgicMBthR13oDu`: existing business tables now receive `trip_id`, active-trip CRUD/setup reset is scoped by `trip_id`, setup-generated internal business row IDs use UUIDs, five-template smoke confirmed `other-trip` sentinel rows are preserved, and user review confirmed Dashboard/Bookings/Budget/Packing/Documents/phone loading are fixed.
+- `PRODUCT_LAUNCH_PLAN.md` now defines the roadmap from current deployed prototype to product launch; the immediate next priority is a UI design refresh before deeper product feature work.
 
 ## Highest Priority Task
 
 - Review the production access-controlled controlled pilot after workspace-boundary deployment using the private link saved outside the repo at `C:\Users\qiuke\Documents\Italy Trip 2026 Controlled Pilot Access 2026-06-22.txt`.
+- Pause deeper feature work and start the UI design refresh, beginning with the private workspace shell and Today page.
 - Do not run setup generation against the current production `active-trip` without explicit destructive approval; current production private-link counts are reminders 11, bookings 14, itinerary 11, expenses 0, packing 16, and documents 11.
 - Review the polished local `/pilot` bilingual manual pilot sales page; keep the page framed around the whole group's travel experience rather than planner-only pain. Do not deploy or push until the user explicitly asks.
 - Git push from this checkout needs a remote configured first; the Vercel production deployment has already been completed through the linked Vercel project.

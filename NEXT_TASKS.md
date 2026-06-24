@@ -2,6 +2,7 @@
 
 ## Current Priority
 
+- Pause deeper feature work and start the UI design refresh. First task: audit and redesign the private workspace shell and Today page without backend changes.
 - Review the production access-controlled workspace after deployment `dpl_4XGZ3zk2jB839zLgicMBthR13oDu` using the private link saved outside the repo at `C:\Users\qiuke\Documents\Italy Trip 2026 Controlled Pilot Access 2026-06-22.txt`.
 - `codex/workspace-boundary-foundation` is merged to `master` and deployed to production. Git push still needs a remote configured before it can be completed from this checkout.
 - Production preflight and post-deploy smoke confirmed the managed-schema compatibility path is additive, and the protected production workspace currently has reminders 11, bookings 14, itinerary 11, expenses 0, packing 16, and documents 11.
@@ -35,7 +36,7 @@
 
 ## Suggested Next Feature
 
-- The next product slice should be non-destructive setup preview/history plus a controlled pilot workflow that can create/review a starter workspace without replacing the live `active-trip` unexpectedly.
+- After the UI design refresh, the next product slice should be non-destructive setup preview/history plus a controlled pilot workflow that can create/review a starter workspace without replacing the live `active-trip` unexpectedly.
 - Configure a git remote if this project should be pushed to GitHub or another remote repository from this checkout.
 - Later v2 product quality can add editable persisted budget categories, an editable emergency-card model, or deeper per-destination content tuning after workspace boundary risk is reduced.
 - If Guided Setup v1 is accepted, consider adding a non-destructive preview-only mode or setup-history note before adding more templates.

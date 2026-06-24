@@ -2,6 +2,7 @@
 
 ## 2026-06-24
 
+- Added `PRODUCT_LAUNCH_PLAN.md` as the durable roadmap from the current deployed prototype to a launchable product, with the immediate next priority set to UI design refresh before further feature work.
 - User accepted the local review for `codex/workspace-boundary-foundation`: Dashboard no longer shows `Unknown column 'trip_id' in 'where clause'`, Bookings/Budget/Packing/Documents no longer show red API errors, and phone LAN access no longer gets stuck on `Loading private trip access`.
 - Current local review server was verified on port `3107`: desktop `http://localhost:3107/` and phone LAN `http://192.168.0.7:3107/` both returned page 200 and `/api/health` 200 with `database: ready`.
 - Committed `codex/workspace-boundary-foundation` as `f9b318f` and merged it back to `master`; no push or deploy has been requested.
