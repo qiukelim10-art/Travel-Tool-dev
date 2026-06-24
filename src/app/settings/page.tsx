@@ -489,7 +489,13 @@ function formToSetupGenerationBase(form: SettingsForm) {
     timezone: form.trip.timezone,
     defaultCurrencies: form.trip.defaultCurrencies,
     travelerNames: form.travelers.filter((traveler) => traveler.isActive).map((traveler) => traveler.displayName),
-    routeCities: form.routeStops.map((stop) => stop.city)
+    routeCities: form.routeStops.map((stop) => stop.city),
+    routeStops: form.routeStops.map((stop) => ({
+      city: stop.city,
+      country: stop.country,
+      startDate: stop.startDate,
+      endDate: stop.endDate
+    }))
   };
 }
 

@@ -32,6 +32,12 @@ export type SetupGenerationBase = {
   defaultCurrencies: SharedCurrency[];
   travelerNames: string[];
   routeCities: string[];
+  routeStops?: Array<{
+    city: string;
+    country?: string | null;
+    startDate?: string | null;
+    endDate?: string | null;
+  }>;
 };
 
 type SetupGenerationPanelProps = {
@@ -80,8 +86,10 @@ const copy = {
     tripName: "Trip name",
     destination: "Destination country / region",
     route: "Cities / route",
+    routeEmpty: "No route stops yet.",
     routePlaceholder: "Shanghai -> Hangzhou -> Suzhou",
     routeHelp: "Use arrows, commas, slash, semicolons, or line breaks. Examples: Shanghai, Tokyo, Seoul, Osaka -> Kyoto -> Nara.",
+    routeDerivedHelp: "Generated from the Route stops section above. Edit route stops there to change this route.",
     overnightCities: "Overnight cities",
     overnightPlaceholder: "Osaka -> Kyoto",
     overnightHelp: "Leave blank to use route cities as overnight stops, except day trip cities.",
@@ -182,8 +190,10 @@ const copy = {
     tripName: "行程名称",
     destination: "目的地国家 / 地区",
     route: "城市 / 路线",
+    routeEmpty: "还没有路线城市。",
     routePlaceholder: "上海 -> 杭州 -> 苏州",
     routeHelp: "支持箭头、逗号、斜杠、分号、顿号或换行。例如：上海、东京、首尔、大阪 -> 京都 -> 奈良。",
+    routeDerivedHelp: "这里会根据上方 Route stops 自动生成。需要修改路线时，请编辑上方路线城市。",
     overnightCities: "过夜城市",
     overnightPlaceholder: "大阪 -> 京都",
     overnightHelp: "留空时会按路线城市生成住宿，但会排除当天往返城市。",
@@ -286,7 +296,7 @@ export function SetupGenerationPanel({
   const { mode } = useTripAccess();
   const canEdit = mode === "editor";
   const labels = copy[language];
-  const [form, setForm] = useState<SetupFormState>(() => buildInitialForm(base));
+  const [form, setForm] = useState<SetupFormState>(() => buildInitialForm(base, surface));
   const [initializedFromBase, setInitializedFromBase] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -295,13 +305,24 @@ export function SetupGenerationPanel({
   const title = surface === "gate" ? labels.titleGate : surface === "dashboard" ? labels.titleDashboard : labels.titleSettings;
   const description =
     surface === "gate" ? labels.descriptionGate : surface === "dashboard" ? labels.descriptionDashboard : labels.descriptionSettings;
+  const derivedRouteText = useMemo(() => buildRouteTextFromBase(base), [base]);
 
   useEffect(() => {
     if (!loadingBase && !initializedFromBase) {
-      setForm(buildInitialForm(base));
+      setForm(buildInitialForm(base, surface));
       setInitializedFromBase(true);
     }
-  }, [base, initializedFromBase, loadingBase]);
+  }, [base, initializedFromBase, loadingBase, surface]);
+
+  useEffect(() => {
+    if (surface !== "settings" || loadingBase || !initializedFromBase) {
+      return;
+    }
+
+    setForm((current) =>
+      current.routeText === derivedRouteText ? current : { ...current, routeText: derivedRouteText }
+    );
+  }, [derivedRouteText, initializedFromBase, loadingBase, surface]);
 
   const generationInput = useMemo(() => buildGenerationInput(form), [form]);
   const formValidationError = useMemo(() => validateSetupForm(form, labels), [form, labels]);
@@ -373,7 +394,7 @@ export function SetupGenerationPanel({
       ...current,
       template: nextTemplate,
       destination: option.defaultDestination,
-      routeText: option.defaultCities.join(" -> "),
+      routeText: surface === "settings" ? derivedRouteText : option.defaultCities.join(" -> "),
       overnightText: "",
       dayTripText: "",
       timezone: option.defaultTimezone,
@@ -453,18 +474,28 @@ export function SetupGenerationPanel({
               </p>
             </div>
           </div>
-          <label className="mt-3 block text-sm font-semibold text-ink">
-            {labels.route}
-            <textarea
-              name={`${surface}-setup-route`}
-              value={form.routeText}
-              onChange={(event) => setForm((current) => ({ ...current, routeText: event.target.value }))}
-              placeholder={labels.routePlaceholder}
-              rows={2}
-              className="mt-2 block w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-base text-zinc-700 sm:text-sm"
-            />
-            <span className="mt-1 block text-xs font-normal leading-5 text-zinc-500">{labels.routeHelp}</span>
-          </label>
+          {surface === "settings" ? (
+            <div className="mt-3 block text-sm font-semibold text-ink">
+              <span>{labels.route}</span>
+              <p className="mt-2 rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-base font-normal text-zinc-700 sm:text-sm">
+                {form.routeText || labels.routeEmpty}
+              </p>
+              <span className="mt-1 block text-xs font-normal leading-5 text-zinc-500">{labels.routeDerivedHelp}</span>
+            </div>
+          ) : (
+            <label className="mt-3 block text-sm font-semibold text-ink">
+              {labels.route}
+              <textarea
+                name={`${surface}-setup-route`}
+                value={form.routeText}
+                onChange={(event) => setForm((current) => ({ ...current, routeText: event.target.value }))}
+                placeholder={labels.routePlaceholder}
+                rows={2}
+                className="mt-2 block w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-base text-zinc-700 sm:text-sm"
+              />
+              <span className="mt-1 block text-xs font-normal leading-5 text-zinc-500">{labels.routeHelp}</span>
+            </label>
+          )}
           <div className="mt-3 grid gap-3 md:grid-cols-2">
             <label className="block text-sm font-semibold text-ink">
               {labels.overnightCities}
@@ -655,11 +686,12 @@ export function SetupGenerationPanel({
   );
 }
 
-function buildInitialForm(base: SetupGenerationBase): SetupFormState {
+function buildInitialForm(base: SetupGenerationBase, surface: SetupGenerationPanelProps["surface"] = "settings"): SetupFormState {
   const template = inferTemplate(base);
   const currencies = base.defaultCurrencies.length > 0 ? base.defaultCurrencies : recommendedCurrenciesForTemplate(template);
   const travelerCount = clampTravelerCount(base.travelerNames.length || 4);
   const templateOption = getSetupTemplateOption(template);
+  const routeText = buildRouteTextFromBase(base);
 
   return {
     template,
@@ -668,7 +700,7 @@ function buildInitialForm(base: SetupGenerationBase): SetupFormState {
     startDate: base.startDate ?? "",
     endDate: base.endDate ?? "",
     timezone: base.timezone || templateOption.defaultTimezone,
-    routeText: (base.routeCities.length > 0 ? base.routeCities : templateOption.defaultCities).join(" -> "),
+    routeText: routeText || (surface === "settings" ? "" : templateOption.defaultCities.join(" -> ")),
     overnightText: "",
     dayTripText: "",
     travelerCount,
@@ -681,6 +713,15 @@ function buildInitialForm(base: SetupGenerationBase): SetupFormState {
     luggageMode: "checked-luggage",
     expenseSplittingEnabled: true
   };
+}
+
+function buildRouteTextFromBase(base: SetupGenerationBase) {
+  const stopCities = base.routeStops
+    ?.map((stop) => stop.city.trim())
+    .filter(Boolean);
+  const routeCities = stopCities?.length ? stopCities : base.routeCities.map((city) => city.trim()).filter(Boolean);
+
+  return routeCities.join(" -> ");
 }
 
 function buildGenerationInput(form: SetupFormState): SetupGenerationInput {

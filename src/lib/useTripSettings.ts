@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { travelers as fallbackTravelers, tripInfo, type Traveler } from "@/data/tripData";
-import type { SharedCurrency, TripSettingsResponse } from "@/lib/sharedDataTypes";
+import type { SharedCurrency, TripRouteStop, TripSettingsResponse } from "@/lib/sharedDataTypes";
 
 const requestTimeoutMs = 10000;
 const tripSettingsCacheKey = "trip-dashboard-active-settings";
@@ -17,6 +17,7 @@ export type TripSettingsView = {
   startDate: string | null;
   endDate: string | null;
   dateRangeLabel: string;
+  routeStops: TripSettingsRouteStopView[];
   routeCities: string[];
   routeLabel: string;
   travelerCount: number;
@@ -28,12 +29,21 @@ export type TripSettingsView = {
   setupCompletedAt: string | null;
 };
 
+export type TripSettingsRouteStopView = Pick<TripRouteStop, "city" | "country" | "startDate" | "endDate" | "sortOrder">;
+
 const fallbackTripSettingsView: TripSettingsView = {
   name: tripInfo.title,
   destination: tripInfo.countries[0] ?? "",
   startDate: tripInfo.startDate,
   endDate: tripInfo.endDate,
   dateRangeLabel: `${formatShortDate(tripInfo.startDate)} - ${formatShortDate(tripInfo.endDate)}`,
+  routeStops: tripInfo.cities.map((city, index) => ({
+    city,
+    country: tripInfo.countries[0] ?? null,
+    startDate: index === 0 ? tripInfo.startDate : null,
+    endDate: index === tripInfo.cities.length - 1 ? tripInfo.endDate : null,
+    sortOrder: index + 1
+  })),
   routeCities: tripInfo.cities,
   routeLabel: tripInfo.cities.join(" -> "),
   travelerCount: tripInfo.participants.length,
@@ -149,7 +159,17 @@ export function publishTripSettings(settings: TripSettingsResponse) {
 }
 
 function buildTripSettingsView(settings: TripSettingsResponse): TripSettingsView {
-  const routeCities = settings.routeStops.map((stop) => stop.city).filter(Boolean);
+  const routeStops = settings.routeStops
+    .slice()
+    .sort((left, right) => left.sortOrder - right.sortOrder)
+    .map((stop) => ({
+      city: stop.city,
+      country: stop.country,
+      startDate: stop.startDate,
+      endDate: stop.endDate,
+      sortOrder: stop.sortOrder
+    }));
+  const routeCities = routeStops.map((stop) => stop.city).filter(Boolean);
   const activeTravelers = settings.travelers.filter((traveler) => traveler.isActive);
   const travelerDisplayNames = activeTravelers.map((traveler) => traveler.displayName);
   const mappedTravelers = settings.travelers.map((traveler) => ({
@@ -166,6 +186,7 @@ function buildTripSettingsView(settings: TripSettingsResponse): TripSettingsView
     startDate: settings.trip.startDate,
     endDate: settings.trip.endDate,
     dateRangeLabel: formatDateRange(settings.trip.startDate, settings.trip.endDate),
+    routeStops,
     routeCities,
     routeLabel: routeCities.length > 0 ? routeCities.join(" -> ") : settings.trip.destination,
     travelerCount: activeTravelers.length,

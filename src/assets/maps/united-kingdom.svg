@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 680" role="img" aria-label="United Kingdom silhouette">
+  <title>United Kingdom silhouette</title>
+  <desc>Country silhouette derived from Natural Earth public domain admin 0 countries data.</desc>
+  <g fill="#8a8170" stroke="#6f6759" stroke-width="2.4" stroke-linejoin="round" opacity="0.48">
+  <path d="M 287.0 368.2 L 237.5 354.7 L 197.1 355.6 L 210.6 320.5 L 197.1 285.4 L 251.9 282.7 L 322.1 323.2 L 287.0 368.2 Z" />
+  <path d="M 490.3 398.5 L 490.4 398.5 L 500.0 360.5 L 456.2 320.1 L 455.2 319.2 L 375.7 307.7 L 360.1 290.0 L 383.9 260.7 L 362.3 242.7 L 327.1 273.6 L 323.2 210.5 L 290.2 177.1 L 314.0 109.4 L 364.8 56.3 L 417.1 61.5 L 496.1 56.0 L 426.1 126.8 L 492.8 117.9 L 564.6 118.2 L 547.5 171.6 L 488.6 230.2 L 556.3 234.4 L 561.5 241.3 L 619.8 318.6 L 664.7 329.1 L 705.0 403.7 L 723.6 429.5 L 802.9 442.0 L 795.0 483.9 L 761.6 503.1 L 787.8 537.0 L 728.9 571.2 L 641.3 570.6 L 529.8 588.6 L 499.3 575.8 L 456.0 606.4 L 395.4 599.0 L 349.4 624.0 L 314.6 610.9 L 410.6 542.2 L 469.3 528.0 L 468.7 528.0 L 366.5 517.0 L 348.0 491.0 L 416.4 470.7 L 380.5 435.4 L 393.0 392.5 L 490.3 398.5 Z" />
+  </g>
+</svg>

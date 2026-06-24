@@ -514,30 +514,30 @@ export function TripAccessToolbar() {
   }
 
   return (
-    <section className="border-b border-zinc-200 bg-white/90 px-4 py-3 backdrop-blur">
+    <section className="access-dock px-4 py-3 backdrop-blur">
       <div className="mx-auto grid max-w-6xl gap-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-start">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="rounded-full bg-moss/10 px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.08em] text-moss">
+            <span className="access-dock__mode rounded-full px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.08em]">
               {access.mode === "editor" ? "Editor mode" : "Viewer mode"}
             </span>
             <button
               type="button"
               onClick={() => void copyPrivateLink()}
-              className="rounded-md border border-zinc-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-ink"
+              className="access-dock__button rounded-md px-2.5 py-1.5 text-xs font-semibold"
             >
               Copy private link
             </button>
           </div>
-          <p className="mt-2 text-sm leading-6 text-zinc-600">
+          <p className="mt-2 hidden text-sm leading-6 text-zinc-600 sm:block">
             Viewer mode can only update your own low-risk checklist status after selecting a traveler identity.
           </p>
-          <label className="mt-2 block max-w-sm text-sm font-semibold text-ink">
-            Traveler identity
+          <label className="access-dock__traveler mt-2 block max-w-sm text-sm font-semibold text-ink">
+            <span className="access-dock__traveler-label">Traveler identity</span>
             <select
               value={access.selectedTravelerId}
               onChange={(event) => access.setSelectedTravelerId(event.target.value)}
-              className="mt-1 block w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-700"
+              className="access-dock__select mt-1 block w-full rounded-md px-3 py-2 text-sm text-zinc-700"
             >
               <option value="">Select traveler</option>
               {activeTravelers.map((traveler) => (
@@ -550,82 +550,87 @@ export function TripAccessToolbar() {
         </div>
 
         <div className="grid gap-2 md:min-w-80">
-          {access.mode === "editor" ? (
-            <div className="flex flex-col gap-2 sm:flex-row md:justify-end">
-              <button
-                type="button"
-                onClick={createRecoveryToken}
-                disabled={submitting}
-                className="rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold text-ink disabled:opacity-60"
-              >
-                New recovery token
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  access.exitEditorMode();
-                  setNotice("Returned to viewer mode.");
-                }}
-                className="rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold text-ink"
-              >
-                Exit editor
-              </button>
+          <details className="access-dock__details rounded-md p-3" open={access.mode === "editor"}>
+            <summary className="cursor-pointer text-sm font-semibold text-ink">Editor tools</summary>
+            <div className="mt-3 grid gap-2">
+              {access.mode === "editor" ? (
+                <div className="flex flex-col gap-2 sm:flex-row md:justify-end">
+                  <button
+                    type="button"
+                    onClick={createRecoveryToken}
+                    disabled={submitting}
+                    className="access-dock__button rounded-md px-3 py-2 text-sm font-semibold disabled:opacity-60"
+                  >
+                    New recovery token
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      access.exitEditorMode();
+                      setNotice("Returned to viewer mode.");
+                    }}
+                    className="access-dock__button rounded-md px-3 py-2 text-sm font-semibold"
+                  >
+                    Exit editor
+                  </button>
+                </div>
+              ) : (
+                <form onSubmit={submitEditorPasscode} className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
+                  <input
+                    type="password"
+                    value={passcode}
+                    onChange={(event) => setPasscode(event.target.value)}
+                    placeholder="Planner edit passcode"
+                    className="access-dock__select rounded-md px-3 py-2 text-sm text-zinc-700"
+                  />
+                  <button
+                    type="submit"
+                    disabled={submitting}
+                    className="access-dock__primary rounded-md px-3 py-2 text-sm font-semibold disabled:opacity-60"
+                  >
+                    {submitting ? "Checking..." : "Enter editor"}
+                  </button>
+                </form>
+              )}
+
+              {access.mode !== "editor" ? (
+                <details className="access-dock__details rounded-md p-3">
+                  <summary className="cursor-pointer text-sm font-semibold text-ink">Recover editor access</summary>
+                  <form onSubmit={submitRecovery} className="mt-3 grid gap-2">
+                    <input
+                      type="password"
+                      value={recoveryToken}
+                      onChange={(event) => setRecoveryToken(event.target.value)}
+                      placeholder="Owner recovery token"
+                      className="access-dock__select rounded-md px-3 py-2 text-sm text-zinc-700"
+                    />
+                    <input
+                      type="password"
+                      value={newPasscode}
+                      onChange={(event) => setNewPasscode(event.target.value)}
+                      placeholder="New edit passcode"
+                      className="access-dock__select rounded-md px-3 py-2 text-sm text-zinc-700"
+                    />
+                    <button
+                      type="submit"
+                      disabled={submitting}
+                      className="access-dock__primary rounded-md px-3 py-2 text-sm font-semibold disabled:opacity-60"
+                    >
+                      Reset passcode
+                    </button>
+                  </form>
+                </details>
+              ) : null}
+
+              {oneTimeRecoveryToken ? (
+                <TokenBox
+                  label="One-time owner recovery token"
+                  value={oneTimeRecoveryToken}
+                  onCopy={() => void copyText(oneTimeRecoveryToken, setNotice, setError)}
+                />
+              ) : null}
             </div>
-          ) : (
-            <form onSubmit={submitEditorPasscode} className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
-              <input
-                type="password"
-                value={passcode}
-                onChange={(event) => setPasscode(event.target.value)}
-                placeholder="Planner edit passcode"
-                className="rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-700"
-              />
-              <button
-                type="submit"
-                disabled={submitting}
-                className="rounded-md bg-moss px-3 py-2 text-sm font-semibold text-white disabled:opacity-60"
-              >
-                {submitting ? "Checking..." : "Enter editor"}
-              </button>
-            </form>
-          )}
-
-          {access.mode !== "editor" ? (
-            <details className="rounded-md border border-zinc-200 bg-zinc-50 p-3">
-              <summary className="cursor-pointer text-sm font-semibold text-ink">Recover editor access</summary>
-              <form onSubmit={submitRecovery} className="mt-3 grid gap-2">
-                <input
-                  type="password"
-                  value={recoveryToken}
-                  onChange={(event) => setRecoveryToken(event.target.value)}
-                  placeholder="Owner recovery token"
-                  className="rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-700"
-                />
-                <input
-                  type="password"
-                  value={newPasscode}
-                  onChange={(event) => setNewPasscode(event.target.value)}
-                  placeholder="New edit passcode"
-                  className="rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-700"
-                />
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="rounded-md bg-moss px-3 py-2 text-sm font-semibold text-white disabled:opacity-60"
-                >
-                  Reset passcode
-                </button>
-              </form>
-            </details>
-          ) : null}
-
-          {oneTimeRecoveryToken ? (
-            <TokenBox
-              label="One-time owner recovery token"
-              value={oneTimeRecoveryToken}
-              onCopy={() => void copyText(oneTimeRecoveryToken, setNotice, setError)}
-            />
-          ) : null}
+          </details>
           {manualCopyValue ? (
             <p className="break-all rounded-md border border-zinc-200 bg-white px-3 py-2 text-xs leading-5 text-zinc-700">
               {manualCopyValue}

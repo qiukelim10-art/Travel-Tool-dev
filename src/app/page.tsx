@@ -2,12 +2,12 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { DashboardBudgetWidget } from "@/components/DashboardBudgetWidget";
-import { EmergencyQuickAccess } from "@/components/EmergencyQuickAccess";
 import { RemindersClient } from "@/components/RemindersClient";
 import { SetupGenerationPanel } from "@/components/SetupGenerationPanel";
 import { StatusBadge } from "@/components/StatusBadge";
-import { useLanguage } from "@/lib/i18n";
+import { TripRouteMap } from "@/components/TripRouteMap";
+import { getDestinationVisualIdentity, type DestinationVisualIdentity } from "@/lib/destinationVisuals";
+import { useLanguage, type Language } from "@/lib/i18n";
 import { translateText } from "@/lib/localize";
 import type { SharedBooking, SharedItineraryItem } from "@/lib/sharedDataTypes";
 import { useTripSettingsView } from "@/lib/useTripSettings";
@@ -16,7 +16,7 @@ const attentionStatuses = ["Need Confirmation", "Not Booked", "Pending"] as cons
 const requestTimeoutMs = 10000;
 
 export default function DashboardPage() {
-  const { t } = useLanguage();
+  const { language, t } = useLanguage();
   const { trip, loading: tripSettingsLoading } = useTripSettingsView();
   const [bookings, setBookings] = useState<SharedBooking[]>([]);
   const [bookingsLoading, setBookingsLoading] = useState(true);
@@ -49,6 +49,17 @@ export default function DashboardPage() {
   const destinationRoute = trip.destination
     ? `${trip.destination}: ${trip.routeLabel}`
     : trip.routeLabel;
+  const destinationVisual = useMemo(
+    () =>
+      getDestinationVisualIdentity({
+        destination: trip.destination,
+        routeCities: trip.routeCities,
+        routeLabel: trip.routeLabel,
+        routeStops: trip.routeStops,
+        tripName: trip.name
+      }),
+    [trip.destination, trip.name, trip.routeCities, trip.routeLabel, trip.routeStops]
+  );
 
   useEffect(() => {
     if (tripSettingsLoading || setupRequired) {
@@ -190,7 +201,8 @@ export default function DashboardPage() {
             timezone: trip.timezone,
             defaultCurrencies: trip.defaultCurrencies,
             travelerNames: trip.activeTravelers.map((traveler) => traveler.displayName ?? traveler.name),
-            routeCities: trip.routeCities
+            routeCities: trip.routeCities,
+            routeStops: trip.routeStops
           }}
           onGenerated={() => setSetupRefreshKey((current) => current + 1)}
         />
@@ -199,79 +211,362 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="space-y-5">
-      <section className="travel-cover p-5 sm:p-6">
-        <div className="relative grid gap-4 lg:grid-cols-[minmax(0,1fr)_18rem]">
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <p className="rounded-full bg-white/75 px-3 py-1 text-xs font-semibold uppercase tracking-[0.08em] text-stamp">
-                {t("dashboard.eyebrow")}
-              </p>
-              <span className="rounded-full bg-sky/70 px-3 py-1 text-xs font-semibold text-signal">
-                {trip.travelerCount} {t("dashboard.travellers")}
-              </span>
-            </div>
-            <h1 className="mt-4 max-w-3xl break-words text-3xl font-semibold leading-tight text-ink sm:text-4xl lg:text-5xl">
-              {trip.name}
-            </h1>
-            <p className="mt-3 max-w-3xl break-words text-sm leading-6 text-zinc-700 sm:text-base">
-              {destinationRoute}
-            </p>
-            <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-3">
-              <TripSignal
-                href="/settings"
-                label={t("dashboard.dates")}
-                value={trip.dateRangeLabel}
-                actionLabel={t("common.edit")}
-                className="order-1"
-              />
-              <TripSignal
-                href="/itinerary"
-                label={t("dashboard.route")}
-                value={trip.routeLabel}
-                actionLabel={t("dashboard.action.plan")}
-                className="order-3 col-span-2 sm:order-2 sm:col-span-1"
-                showFullValue
-              />
-              <TripSignal
-                href="/settings"
-                label={t("dashboard.crew")}
-                value={`${trip.travelerCount} ${t("dashboard.travellers")}`}
-                actionLabel={t("common.edit")}
-                className="order-2 sm:order-3"
-              />
-            </div>
-          </div>
-          <div className="grid gap-3">
-            <NextPlanMini
-              item={nextItineraryItem}
-              loading={itineraryLoading}
-              error={itineraryError}
-            />
-            <EmergencyQuickAccess />
-          </div>
+    <div className={`today-shell ${destinationVisual.toneClass}`}>
+      <MobileTripMasthead
+        dateRangeLabel={trip.dateRangeLabel}
+        routeLabel={trip.routeLabel}
+        title={trip.name}
+        visual={destinationVisual}
+      />
+
+      <section className="today-cockpit-grid">
+        <div className="today-cockpit-main">
+          <PrimaryPlanCard
+            error={itineraryError}
+            item={nextItineraryItem}
+            loading={itineraryLoading}
+            routeLabel={trip.routeLabel}
+            visual={destinationVisual}
+          />
+
+          <section className="today-desktop-lower" aria-label="Desktop trip summaries">
+            <RemindersClient participants={trip.travelerDisplayNames} />
+          </section>
         </div>
-      </section>
 
-      <section className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
-        <NextPlanCard
-          item={nextItineraryItem}
-          loading={itineraryLoading}
-          error={itineraryError}
-        />
-        <NeedsAttentionCard
-          bookings={priorityBookings}
-          totalCount={pendingBookings.length}
-          loading={bookingsLoading}
-          error={bookingsError}
-        />
-      </section>
-
-      <section className="grid gap-5 lg:grid-cols-[1fr_0.95fr]">
-        <DashboardBudgetWidget defaultCurrencies={trip.defaultCurrencies} />
-        <RemindersClient participants={trip.travelerDisplayNames} />
+        <aside className="today-summary-rail" aria-label="Today summary">
+          <AttentionSummaryCard
+            bookings={priorityBookings}
+            totalCount={pendingBookings.length}
+            loading={bookingsLoading}
+            error={bookingsError}
+          />
+          <SummaryLinkCard
+            href="/budget"
+            icon="money"
+            eyebrow={language === "zh" ? "费用" : "Money"}
+            title={language === "zh" ? "费用概览" : "Money"}
+            detail={language === "zh" ? "打开共同费用" : "Open shared costs"}
+          />
+          <SummaryLinkCard
+            href="/documents"
+            icon="prep"
+            eyebrow={language === "zh" ? "准备" : "Prep checklist"}
+            title={language === "zh" ? "行李和文件" : "Prep"}
+            detail={language === "zh" ? "检查文件和行李清单" : "Documents and packing lists"}
+          />
+          <DestinationStampCard date={trip.startDate} visual={destinationVisual} />
+        </aside>
       </section>
     </div>
+  );
+}
+
+function MobileTripMasthead({
+  dateRangeLabel,
+  routeLabel,
+  title,
+  visual
+}: {
+  dateRangeLabel: string;
+  routeLabel: string;
+  title: string;
+  visual: DestinationVisualIdentity;
+}) {
+  return (
+    <section className="mobile-trip-masthead" aria-label="Trip overview">
+      <div className="mobile-trip-masthead__copy">
+        <h1>{title}</h1>
+        <p>{routeLabel}</p>
+        <span className="mobile-trip-date-pill">{dateRangeLabel}</span>
+      </div>
+      <TripRouteMap
+        compact
+        cityName={visual.routeMarks[0] ?? visual.destinationLabel}
+        countryCode={visual.countryCode}
+        countryName={visual.countryName}
+        destinations={visual.destinations}
+        label={formatRouteMapTitle(visual)}
+      />
+    </section>
+  );
+}
+
+function PrimaryPlanCard({
+  error,
+  item,
+  loading,
+  routeLabel,
+  visual
+}: {
+  error: string | null;
+  item: SharedItineraryItem | null;
+  loading: boolean;
+  routeLabel: string;
+  visual: DestinationVisualIdentity;
+}) {
+  const { t } = useLanguage();
+  const title = item?.title ?? t("dashboard.noItineraryItems");
+  const timeLabel = item?.startTime || item?.travelDate || "";
+  const locationLabel = item?.location || item?.city || routeLabel;
+  const details = item?.details || item?.transport || "";
+
+  return (
+    <article className="primary-plan-card">
+      <div className="primary-plan-card__copy">
+        <div className="primary-plan-card__topline">
+          <p className="cockpit-eyebrow">{t("dashboard.nextUp")}</p>
+          <Link href="/itinerary" className="cockpit-primary-button">
+            {t("dashboard.viewItinerary")}
+            <span aria-hidden="true">›</span>
+          </Link>
+        </div>
+        {loading ? <p className="cockpit-muted">{t("itinerary.loading")}</p> : null}
+        {error && !loading ? <p className="cockpit-error">{error}</p> : null}
+        {!loading && !error ? (
+          <>
+            <h2>{title}</h2>
+            <div className="primary-plan-card__meta">
+              <div className="plan-meta-row">
+                <span className="plan-meta-icon plan-meta-icon--time" aria-hidden="true" />
+                <strong>{timeLabel || item?.travelDate || ""}</strong>
+              </div>
+              <div className="plan-meta-row">
+                <span className="plan-meta-icon plan-meta-icon--pin" aria-hidden="true" />
+                <span>
+                  <strong>{locationLabel}</strong>
+                  {details ? <small>{details}</small> : null}
+                </span>
+              </div>
+            </div>
+          </>
+        ) : null}
+      </div>
+      <TravelTicketVisual item={item} routeLabel={routeLabel} visual={visual} />
+    </article>
+  );
+}
+
+function TravelTicketVisual({
+  item,
+  routeLabel,
+  visual
+}: {
+  item: SharedItineraryItem | null;
+  routeLabel: string;
+  visual: DestinationVisualIdentity;
+}) {
+  const routeSummary = summarizeRouteMarks(visual.routeMarks, item?.city ?? routeLabel);
+
+  return (
+    <aside className="travel-ticket-visual" aria-label="Trip ticket visual">
+      <div className="travel-ticket-visual__top">
+        <span>{formatRouteMapTitle(visual)}</span>
+      </div>
+      <TripRouteMap
+        cityName={item?.city ?? visual.routeMarks[0] ?? routeLabel}
+        countryCode={visual.countryCode}
+        countryName={visual.countryName}
+        date={item?.travelDate}
+        destinations={visual.destinations}
+        label={formatRouteMapTitle(visual)}
+      />
+      <div className="travel-ticket-visual__footer">
+        {item?.travelDate ? <span>{item.travelDate}</span> : null}
+        {routeSummary ? <span>{routeSummary}</span> : null}
+      </div>
+    </aside>
+  );
+}
+
+function AttentionSummaryCard({
+  bookings,
+  error,
+  loading,
+  totalCount
+}: {
+  bookings: SharedBooking[];
+  error: string | null;
+  loading: boolean;
+  totalCount: number;
+}) {
+  const { language, t } = useLanguage();
+
+  return (
+    <article className="cockpit-card attention-summary-card">
+      <div className="cockpit-card__heading">
+        <div>
+          <p className="cockpit-eyebrow">{t("dashboard.needsAttention")}</p>
+          <h2>{totalCount}</h2>
+        </div>
+        <Link href="/bookings" aria-label={t("dashboard.openBookings")} className="cockpit-arrow-link">
+          ›
+        </Link>
+      </div>
+      {loading ? <p className="cockpit-muted">{t("bookings.loading")}</p> : null}
+      {error && !loading ? <p className="cockpit-error">{error}</p> : null}
+      {!loading && !error && bookings.length === 0 ? (
+        <p className="cockpit-muted">{t("dashboard.noBookingAttention")}</p>
+      ) : null}
+      {!loading && !error && bookings.length > 0 ? (
+        <ul className="attention-list">
+          {bookings.map((booking) => (
+            <li key={booking.id}>
+              <span className="summary-icon summary-icon--calendar" aria-hidden="true" />
+              <span>
+                <strong>{booking.description}</strong>
+                <small>
+                  {translateText(language, booking.category)} · {booking.date}
+                </small>
+              </span>
+              <span className="attention-list__chevron" aria-hidden="true">›</span>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </article>
+  );
+}
+
+function SummaryLinkCard({
+  detail,
+  eyebrow,
+  href,
+  icon,
+  title
+}: {
+  detail: string;
+  eyebrow: string;
+  href: string;
+  icon: "money" | "prep";
+  title: string;
+}) {
+  return (
+    <Link href={href} className="cockpit-card summary-link-card">
+      <span className={`summary-icon summary-icon--${icon}`} aria-hidden="true" />
+      <span className="min-w-0">
+        <span className="cockpit-eyebrow">{eyebrow}</span>
+        <strong>{title}</strong>
+        <small>{detail}</small>
+      </span>
+      <span className="summary-link-card__chevron" aria-hidden="true">›</span>
+    </Link>
+  );
+}
+
+function DestinationStampCard({
+  date,
+  visual
+}: {
+  date?: string | null;
+  visual: DestinationVisualIdentity;
+}) {
+  const routeSummary = summarizeRouteMarks(visual.routeMarks, visual.destinationLabel);
+
+  return (
+    <article className="destination-stamp-card" aria-label={`${visual.destinationLabel} route postcard`}>
+      <TripRouteMap
+        className="trip-route-map--rail"
+        cityName={visual.routeMarks[0] ?? visual.destinationLabel}
+        countryCode={visual.countryCode}
+        countryName={visual.countryName}
+        date={date}
+        destinations={visual.destinations}
+        label={formatRouteMapTitle(visual)}
+      />
+      <p>{routeSummary}</p>
+    </article>
+  );
+}
+
+function summarizeRouteMarks(routeMarks: string[], fallback: string) {
+  const seen = new Set<string>();
+  const uniqueMarks = routeMarks
+    .map((mark) => mark.trim())
+    .filter(Boolean)
+    .filter((mark) => {
+      const key = mark.toLocaleLowerCase();
+      if (seen.has(key)) {
+        return false;
+      }
+
+      seen.add(key);
+      return true;
+    });
+
+  return uniqueMarks.length > 0 ? uniqueMarks.join(" / ") : fallback;
+}
+
+function formatRouteMapTitle(visual: DestinationVisualIdentity) {
+  return `${formatCountryMapLabel(visual)} route map`;
+}
+
+function formatCountryMapLabel(visual: DestinationVisualIdentity) {
+  if (visual.countryNames.length > 1) {
+    return "Multi-country";
+  }
+
+  if (visual.countryCode === "GB") {
+    return "UK";
+  }
+
+  if (visual.countryCode === "KR") {
+    return "Korea";
+  }
+
+  if (visual.countryCode === "GENERIC") {
+    return visual.destinationLabel;
+  }
+
+  return visual.countryName.split(/\s+/)[0] || visual.destinationLabel;
+}
+
+function DestinationMapCard({
+  language,
+  visual
+}: {
+  language: Language;
+  visual: DestinationVisualIdentity;
+}) {
+  const mapTitle =
+    language === "zh"
+      ? `${visual.destinationLabel} 路线地图`
+      : `${visual.destinationLabel} route map`;
+  const routeLabel = language === "zh" ? "当前路线" : "Current route";
+  const stampHint = language === "zh" ? "根据当前 workspace" : "From this workspace";
+
+  return (
+    <aside className="destination-map-card" aria-label={mapTitle}>
+      <div className="destination-map-card__top">
+        <div>
+          <p className="destination-map-card__eyebrow">{routeLabel}</p>
+          <h2>{mapTitle}</h2>
+        </div>
+        <div className="destination-postmark" aria-label={language === "zh" ? "旅行邮戳" : "Trip postmark"}>
+          <span>{visual.stampLabel}</span>
+          <small>{visual.stampDetail}</small>
+        </div>
+      </div>
+      <div className="destination-map-canvas" aria-hidden="true">
+        <div className={`destination-map-shape ${visual.shapeClass}`} />
+        <div className="destination-map-route">
+          {visual.routeMarks.map((mark, index) => (
+            <span key={`${mark}-${index}`} className="destination-map-pin">
+              {index + 1}
+            </span>
+          ))}
+        </div>
+      </div>
+      <div className="destination-route-pins">
+        {visual.routeMarks.map((mark, index) => (
+          <span key={mark} className="destination-route-pin">
+            <span>{index + 1}</span>
+            {mark}
+          </span>
+        ))}
+      </div>
+      <p className="destination-map-card__note">{stampHint}</p>
+    </aside>
   );
 }
 
