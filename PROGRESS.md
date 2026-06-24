@@ -2,6 +2,7 @@
 
 ## 2026-06-24
 
+- Started `codex/ui-shell-today-journal-cockpit` after committing the product launch roadmap on `master`; captured desktop and 390px mobile audit screenshots for the private workspace pages and documented the Shell + Today UI direction in `UI_SHELL_TODAY_AUDIT.md` without changing source code or business behavior.
 - Added `PRODUCT_LAUNCH_PLAN.md` as the durable roadmap from the current deployed prototype to a launchable product, with the immediate next priority set to UI design refresh before further feature work.
 - User accepted the local review for `codex/workspace-boundary-foundation`: Dashboard no longer shows `Unknown column 'trip_id' in 'where clause'`, Bookings/Budget/Packing/Documents no longer show red API errors, and phone LAN access no longer gets stuck on `Loading private trip access`.
 - Current local review server was verified on port `3107`: desktop `http://localhost:3107/` and phone LAN `http://192.168.0.7:3107/` both returned page 200 and `/api/health` 200 with `database: ready`.

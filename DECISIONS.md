@@ -65,3 +65,9 @@
 - Add `trip_id` to existing business tables as a workspace-boundary foundation before supporting multiple real pilot workspaces. The app remains a single active-trip product for now, but CRUD and setup-generation reset must be scoped to `active-trip` so future workspace rows are not accidentally read, changed, or deleted.
 - In managed-schema mode, compatibility may safely add/backfill/index `trip_id` on existing business tables, but it still must not seed rows, reset rows, create unrelated business tables, or run setup generation automatically.
 - Keep existing business row primary keys globally unique for this slice and use UUIDs for newly setup-generated business rows to reduce future cross-workspace ID collision risk; do not introduce a full multi-trip dashboard or composite-key redesign yet.
+
+## 2026-06-24
+
+- Use Travel Journal skin plus Cockpit interaction for the next private workspace UI direction: warm and personal visually, but still compact, task-led, and mobile-first.
+- Scope the first UI implementation slice to Shell + Today only. Audit all private pages for consistency, but do not redesign every page in one branch.
+- Treat shadcn as a phased target component direction. If introduced, start with Shell + Today primitives and do not let component migration change routes, APIs, access control, setup generation, or business data behavior.

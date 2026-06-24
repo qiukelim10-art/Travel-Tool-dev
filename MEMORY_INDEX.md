@@ -38,11 +38,13 @@
 - The second-round Universal Travel Cockpit UI polish was committed on `codex/ui-skill-research` and merged into `master`; final build/lint, desktop/LAN page/API checks, and mobile no-horizontal-overflow QA passed before merge.
 - Workspace boundary foundation is merged to `master` and deployed to production in `dpl_4XGZ3zk2jB839zLgicMBthR13oDu`: existing business tables now receive `trip_id`, active-trip CRUD/setup reset is scoped by `trip_id`, setup-generated internal business row IDs use UUIDs, five-template smoke confirmed `other-trip` sentinel rows are preserved, and user review confirmed Dashboard/Bookings/Budget/Packing/Documents/phone loading are fixed.
 - `PRODUCT_LAUNCH_PLAN.md` now defines the roadmap from current deployed prototype to product launch; the immediate next priority is a UI design refresh before deeper product feature work.
+- `UI_SHELL_TODAY_AUDIT.md` now captures the first UI redesign branch scope: Travel Journal skin, Cockpit interaction, Shell + Today first, shadcn as a phased target, and no business behavior changes in the first implementation slice.
 
 ## Highest Priority Task
 
 - Review the production access-controlled controlled pilot after workspace-boundary deployment using the private link saved outside the repo at `C:\Users\qiuke\Documents\Italy Trip 2026 Controlled Pilot Access 2026-06-22.txt`.
-- Pause deeper feature work and start the UI design refresh, beginning with the private workspace shell and Today page.
+- Review `UI_SHELL_TODAY_AUDIT.md`, then implement the private workspace shell and Today page refresh on `codex/ui-shell-today-journal-cockpit`.
+- Pause deeper feature work while the UI design refresh is underway.
 - Do not run setup generation against the current production `active-trip` without explicit destructive approval; current production private-link counts are reminders 11, bookings 14, itinerary 11, expenses 0, packing 16, and documents 11.
 - Review the polished local `/pilot` bilingual manual pilot sales page; keep the page framed around the whole group's travel experience rather than planner-only pain. Do not deploy or push until the user explicitly asks.
 - Git push from this checkout needs a remote configured first; the Vercel production deployment has already been completed through the linked Vercel project.
@@ -117,3 +119,4 @@
 - Next dev LAN testing currently allows `172.20.10.4` and `192.168.0.9` in `next.config.mjs` `allowedDevOrigins`; update this list when the computer's LAN IP changes.
 - Live place discovery should stay in the Google Maps app unless the user later asks for a real in-app feature.
 - `src/data/tripData.ts` is explicitly marked as safe demo/placeholder seed data; replace only with non-sensitive real details.
+- The first UI redesign implementation should keep existing routes, APIs, access behavior, setup generation behavior, and user-entered content rules unchanged. shadcn is a phased target, not a one-branch full-page migration.
