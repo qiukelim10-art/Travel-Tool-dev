@@ -1,7 +1,26 @@
 # Progress
 
+## 2026-06-24
+
+- User accepted the local review for `codex/workspace-boundary-foundation`: Dashboard no longer shows `Unknown column 'trip_id' in 'where clause'`, Bookings/Budget/Packing/Documents no longer show red API errors, and phone LAN access no longer gets stuck on `Loading private trip access`.
+- Current local review server was verified on port `3107`: desktop `http://localhost:3107/` and phone LAN `http://192.168.0.7:3107/` both returned page 200 and `/api/health` 200 with `database: ready`.
+- The workspace boundary branch is accepted for commit and merge back to `master`; no push or deploy has been requested.
+
 ## 2026-06-22
 
+- Continued on new branch `codex/workspace-boundary-foundation` with no worktree, push, deploy, or commit.
+- Fixed local review blockers on `codex/workspace-boundary-foundation`: desktop red API errors were caused by the existing dev process skipping the new `trip_id` compatibility migration after HMR, and phone loading was caused by the current LAN host `192.168.0.6` missing from `next.config.mjs` `allowedDevOrigins`.
+- Added a shared data store compatibility version guard so runtime compatibility initialization reruns after schema-scope code changes, then verified the local MySQL business tables now have `trip_id` and all existing rows are backfilled to `active-trip`.
+- Restarted the local review server on port `3107`; verified desktop and LAN `/` plus `/api/health` return 200.
+- Added workspace boundary foundation for existing business data: reminders, bookings, itinerary, expenses, expense splits, packing, packing traveler statuses, documents, and document traveler statuses now have `trip_id` columns in runtime schema creation and both schema SQL files.
+- Added safe compatibility initialization so existing managed/local tables can receive `trip_id`, backfill current rows to `active-trip`, and add indexes without seeding or resetting data.
+- Scoped shared data CRUD, booking-to-budget expense sync, checklist status updates, protected document unlocks, and setup-generation reset/insert logic to `active-trip`.
+- Changed setup-generated internal business row IDs to UUIDs to reduce future cross-workspace ID collision risk.
+- Cleaned the Japan generated reminder wording from a legal-style disclaimer to an official-source check without making visa or entry eligibility claims.
+- Verified `npm run build` and `npm run lint`.
+- Ran five-template setup-generation smoke against temporary MySQL database `italy_trip_smoke_workspace_boundary_3` on `next start` port `3124`: Japan 16 reminders / 14 bookings / 7 itinerary / 23 packing / 12 documents / 0 expenses; Korea 11 / 11 / 7 / 17 / 11 / 0; China city 11 / 9 / 7 / 18 / 11 / 0; China multi-city 12 / 13 / 7 / 18 / 11 / 0; Generic 11 / 10 / 7 / 16 / 11 / 0.
+- Smoke quality checks passed for all five templates: no fake amounts, expense ledger empty, no `Person A/B/C/D`, no legal visa claims, route legs generated where expected, seasonal packing included, and day trip cities did not create accommodation.
+- Inserted `other-trip` sentinel rows across all scoped business tables during smoke; setup generation preserved all sentinel rows, confirming active-trip reset no longer deletes other trip data.
 - Committed and merged All Templates Context-Aware Engine v1 into `master` as `f9aa6ef`, then added managed-schema production compatibility as `fb3c0b8`.
 - Production readiness audit found Vercel Production env vars are present but sensitive values cannot be pulled locally for direct DB schema inspection; added safe managed-schema compatibility so production can add `trips.setup_completed_at`, create `trip_access_controls`, and expand currency enums without seeding or resetting workspace data.
 - Deployed `master` to Vercel Production. Alias `https://italy-trip-2026-cyan.vercel.app` is live on deployment `dpl_EPWzYqw25cJ3MJya5kHmUuxcTLx8`.

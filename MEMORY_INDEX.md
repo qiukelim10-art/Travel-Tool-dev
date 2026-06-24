@@ -36,13 +36,16 @@
 - Japan general template quality sprint is merged to `master` and deployed: generated Japan starter workspaces are substantially richer across packing, documents, bookings, reminders, itinerary shell, budget-category planning, and emergency placeholders.
 - All Templates Context-Aware Engine v1 is merged to `master` and deployed: setup generation derives route cities, route legs, overnight cities, day trip cities, duration, season, accommodation, luggage, transport, and currencies, then applies that context across China city, China multi-city, Japan, Korea, and Generic templates.
 - The second-round Universal Travel Cockpit UI polish was committed on `codex/ui-skill-research` and merged into `master`; final build/lint, desktop/LAN page/API checks, and mobile no-horizontal-overflow QA passed before merge.
+- Workspace boundary foundation is accepted locally on `codex/workspace-boundary-foundation`: existing business tables now receive `trip_id`, active-trip CRUD/setup reset is scoped by `trip_id`, setup-generated internal business row IDs use UUIDs, five-template smoke confirmed `other-trip` sentinel rows are preserved, and user review confirmed Dashboard/Bookings/Budget/Packing/Documents/phone loading are fixed.
+- Local review for `codex/workspace-boundary-foundation` is running on port `3107`; desktop is `http://localhost:3107/` and current phone LAN is `http://192.168.0.7:3107/`.
 
 ## Highest Priority Task
 
 - Review the production access-controlled controlled pilot using the private link saved outside the repo at `C:\Users\qiuke\Documents\Italy Trip 2026 Controlled Pilot Access 2026-06-22.txt`.
 - Do not run setup generation against the current production `active-trip` without explicit destructive approval; production still has 47 itinerary items and setup generation resets the single active workspace tables.
 - Review the polished local `/pilot` bilingual manual pilot sales page; keep the page framed around the whole group's travel experience rather than planner-only pain. Do not deploy or push until the user explicitly asks.
-- Review `codex/setup-template-generation` locally with the first-entry setup gate; do not push or deploy until explicitly requested.
+- Commit and merge the accepted `codex/workspace-boundary-foundation` branch before any next production deployment.
+- Review `codex/setup-template-generation` locally with the first-entry setup gate only if that old branch is explicitly resumed; do not push or deploy until explicitly requested.
 - Keep the approved access-control foundation on `master` after merge, but do not deploy production until the user asks for the final batch deployment.
 - Before the future production deployment, apply the updated managed schema so `trip_access_controls` exists; after deploy, run first-time access setup, save the private link and one-time owner recovery token outside the app, and share the private link with travelers.
 - The live site is stable for now; the user and travel group will enter safe real trip data through the UI.
@@ -61,6 +64,7 @@
 - The public Vercel deployment is intentionally URL-accessible: anyone with the live link can view and edit shared trip data. Do not enter sensitive real trip details before approving an access-control approach.
 - Production access control is active after deployment `dpl_EPWzYqw25cJ3MJya5kHmUuxcTLx8`; unauthenticated workspace API reads now return 401 and private-link viewer reads return 200.
 - Real passport numbers, payment card details, full confirmations, private document files, and personal contact details should still not be entered. Documents can store folder links, but real files must stay in permission-controlled cloud storage and passcodes must not be written in notes.
+- On local review servers, a desktop `Unknown column 'trip_id' in 'where clause'` error can mean the long-running Next dev process kept an old initialized shared-data-store global after a schema-compatibility code change. The workspace-boundary branch now uses a compatibility version guard so startup reruns the additive migration.
 
 ## Important Architecture Note
 
@@ -68,7 +72,7 @@
 - Product direction is one paid workspace per trip, but the first implementation should not jump to a full multi-trip SaaS dashboard. When adding or substantially changing business data structures, avoid deepening the single active-trip assumption and prefer workspace_id/trip_id-compatible design.
 - The private trip link is a convenience boundary, not high-security storage. Treat the workspace as lightweight coordination, not a secure vault, and keep sensitive personal documents, passport scans, payment details, private passcodes, and confidential identity information out of the product.
 - First-version workspace generation should be guided setup plus rule-based templates for China city general, China multi-city, Japan, Korea, and Generic international trip fallback. Do not add AI dependency or paid API dependency for workspace generation.
-- In the current single-active-trip implementation, `/api/setup-generation` resets shared starter workspace tables because reminders, bookings, itinerary, expenses, packing, and documents do not yet have `trip_id`; keep the mutation editor-only and clearly confirmed in `/settings`, and do not run it on production active-trip while existing production data should be preserved.
+- In the local workspace-boundary branch, `/api/setup-generation` resets only `active-trip` scoped rows because reminders, bookings, itinerary, expenses, packing, and documents now have `trip_id`; keep the mutation editor-only and clearly confirmed in `/settings`, and still do not run it on production active-trip while existing production data should be preserved.
 - Setup generation should never create `Person A/B/C/D` display names for new starter workspaces. User-provided traveler names are kept, and blanks become neutral `Traveler N` labels.
 - Setup generation should default first-generation booking checklist `bookedBy` owners to the workspace generation owner, not rotate the work across travelers; users can change owners later in Bookings.
 - Japan general template quality sprint keeps the expense ledger empty and represents Japan budget-category planning through setup summary/trip notes, because there is still no separate persisted budget-category table.
@@ -81,9 +85,10 @@
 - Vercel serverless functions require `mysql2/promise` to be statically imported so the dependency is bundled; avoid dynamic `eval("require")` for this runtime dependency.
 - Zero-cost Vercel/Aiven preparation files now include `DEPLOYMENT_PREVIEW_GUIDE.md`, `database/managed-schema.sql`, `database/preview-seed.sql`, and `/api/health` for deployment smoke checks.
 - Most trip pages still use static data, but reminders, bookings, itinerary, and packing now use local Next API + MySQL prototype paths.
-- Active trip settings are now separate from business data: `trips`, `trip_travelers`, and `trip_route_stops` seed `active-trip` only when `trips` is empty. Existing reminders, bookings, itinerary, expenses, packing, and documents tables do not have `trip_id` yet.
+- Active trip settings are separate from business data: `trips`, `trip_travelers`, and `trip_route_stops` seed `active-trip` only when `trips` is empty. On `codex/workspace-boundary-foundation`, existing business tables also have `trip_id` and active-trip scoped CRUD, while the app still does not expose a multi-trip dashboard.
 - Access control uses `trip_access_controls` keyed by `trip_id` for the current `active-trip`; no database-wide business-table `trip_id` migration has been done.
 - With `MYSQL_MANAGED_SCHEMA=true`, production now runs safe additive compatibility checks for `setup_completed_at`, `trip_access_controls`, and expanded currency enums before serving shared data requests; this does not seed or reset workspace data.
+- The workspace boundary branch extends safe compatibility checks to add/backfill/index `trip_id` on existing business tables; this still does not seed, reset, or create new business tables in managed-schema mode.
 - `/api/trip-settings` returns and updates the active trip, travelers, and route stops. Dashboard and Layout consume it for trip name, date range, destination/route, traveler count, and brand display; trip name, destination, city names, traveler display names, and notes remain untranslated user/data content.
 - Expenses, packing, and documents APIs now return active trip travelers with compatible `name/displayOrder` fields. New business forms use active travelers, while existing inactive traveler references remain visible for history.
 - Documents uses `document_items` and `document_item_traveler_statuses` through local Next API + MySQL prototype paths; protected list responses intentionally hide `externalUrl`, passcode hash, and salt until `/api/documents/[id]/unlock` succeeds.

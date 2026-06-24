@@ -3,8 +3,9 @@
 ## Current Priority
 
 - Review the production access-controlled workspace using the private link saved outside the repo at `C:\Users\qiuke\Documents\Italy Trip 2026 Controlled Pilot Access 2026-06-22.txt`.
-- Do not run production setup generation against the current `active-trip` unless the user explicitly approves resetting the existing production workspace; it currently still has 47 itinerary items and setup generation resets the single active workspace tables.
-- Plan the next engineering slice around `trip_id`/workspace-compatible business tables before supporting multiple real pilot workspaces.
+- Commit and merge the accepted `codex/workspace-boundary-foundation` branch back to `master`; the user confirmed local review passed on desktop and phone.
+- After merge, do not push or deploy until the user explicitly asks. Deploy only after confirming the managed-schema compatibility path should run in production.
+- Do not run production setup generation against the current `active-trip` unless the user explicitly approves resetting the existing production workspace; production currently still has 47 itinerary items. The local branch scopes reset by `trip_id`, but generation still replaces active-trip content.
 - All Templates Context-Aware Engine v1 and the Japan general template quality sprint are now committed, merged to `master`, and deployed to production.
 - During local review, confirm whether the first-entry setup gate should remain strictly required until editor generation succeeds, or whether a planner-only "continue without generating" escape hatch is needed later.
 - During Guided Setup review, check whether the new starter questions are enough for real pilot users: route/cities, dates, traveler names, currencies, expense splitting, style, transport, accommodation, and luggage.
@@ -23,7 +24,7 @@
 - Keep standalone Map, Food, and Attractions pages removed unless the user later asks for a real in-app feature beyond Google Maps app links.
 - Keep the mobile browsing experience clear, practical, and easy for all 4 travellers.
 - When a website change is ready for review, give both the computer URL and phone URL with verified page/API status.
-- If phone loading appears again after changing Wi-Fi/hotspot, check whether the new LAN IP needs to be added to `next.config.mjs` `allowedDevOrigins`.
+- If phone loading appears again after changing Wi-Fi/hotspot, check whether the new LAN IP needs to be added to `next.config.mjs` `allowedDevOrigins`; current local review is `192.168.0.7` on port `3107`.
 
 ## Data Safety
 
@@ -34,7 +35,7 @@
 
 ## Suggested Next Feature
 
-- After the controlled production pilot review, prioritize `trip_id`/workspace-compatible business tables before adding more destination templates or running multiple pilot workspaces.
+- After reviewing and merging the workspace boundary foundation, the next product slice should be non-destructive setup preview/history or a controlled pilot workflow that can create/review a starter workspace without replacing the live `active-trip` unexpectedly.
 - Later v2 product quality can add editable persisted budget categories, an editable emergency-card model, or deeper per-destination content tuning after workspace boundary risk is reduced.
 - If Guided Setup v1 is accepted, consider adding a non-destructive preview-only mode or setup-history note before adding more templates.
 - Later mobile bug batch can focus on setup form density and native date input ergonomics if real phone review finds them awkward; no major mobile layout refactor was done in this polish task.

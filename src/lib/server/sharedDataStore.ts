@@ -67,6 +67,7 @@ type SharedDataStoreState = {
   serverPool: MysqlPool | null;
   appPool: MysqlPool | null;
   initialized: boolean;
+  compatibilityVersion: number;
   initializePromise: Promise<void> | null;
 };
 
@@ -78,6 +79,7 @@ const sharedDataStoreState = (
   serverPool: null,
   appPool: null,
   initialized: false,
+  compatibilityVersion: 0,
   initializePromise: null
 };
 
@@ -88,6 +90,7 @@ const priorityRank: Record<string, number> = {
 };
 
 const activeTripId = "active-trip";
+const sharedDataStoreCompatibilityVersion = 2;
 const defaultTripCurrencies = ["EUR", "SGD", "MYR"] as const satisfies readonly SharedCurrency[];
 const defaultTripRouteStops = ["Rome", "Florence", "Venice", "Milan"] as const;
 const editorSessionDurationMs = 12 * 60 * 60 * 1000;
@@ -635,12 +638,14 @@ async function createTables() {
   await pool.execute(`
     CREATE TABLE IF NOT EXISTS reminders (
       id varchar(36) NOT NULL,
+      trip_id varchar(36) NOT NULL DEFAULT 'active-trip',
       text varchar(500) NOT NULL,
       priority enum('High', 'Medium', 'Low') NOT NULL DEFAULT 'Medium',
       created_by varchar(80) NOT NULL,
       created_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
       updated_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
       PRIMARY KEY (id),
+      KEY idx_reminders_trip (trip_id),
       KEY idx_reminders_priority_created (priority, created_at)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
   `);
@@ -648,6 +653,7 @@ async function createTables() {
   await pool.execute(`
     CREATE TABLE IF NOT EXISTS booking_items (
       id varchar(36) NOT NULL,
+      trip_id varchar(36) NOT NULL DEFAULT 'active-trip',
       category enum('Flight', 'Hotel', 'Train', 'Attraction', 'Restaurant', 'Insurance', 'Other') NOT NULL,
       description varchar(255) NOT NULL,
       booking_date date NOT NULL,
@@ -660,6 +666,7 @@ async function createTables() {
       created_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
       updated_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
       PRIMARY KEY (id),
+      KEY idx_booking_items_trip (trip_id),
       KEY idx_booking_items_filters (category, status, booked_by, booking_date)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
   `);
@@ -667,6 +674,7 @@ async function createTables() {
   await pool.execute(`
     CREATE TABLE IF NOT EXISTS itinerary_items (
       id varchar(36) NOT NULL,
+      trip_id varchar(36) NOT NULL DEFAULT 'active-trip',
       travel_date date NOT NULL,
       city varchar(80) NOT NULL,
       start_time time DEFAULT NULL,
@@ -684,6 +692,7 @@ async function createTables() {
       created_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
       updated_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
       PRIMARY KEY (id),
+      KEY idx_itinerary_items_trip (trip_id),
       KEY idx_itinerary_items_order (travel_date, start_time, sort_order, id),
       KEY idx_itinerary_items_city (city, travel_date)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
@@ -692,6 +701,7 @@ async function createTables() {
   await pool.execute(`
     CREATE TABLE IF NOT EXISTS expenses (
       id varchar(36) NOT NULL,
+      trip_id varchar(36) NOT NULL DEFAULT 'active-trip',
       source_type enum('itinerary', 'booking', 'misc') NOT NULL DEFAULT 'misc',
       source_id varchar(36) DEFAULT NULL,
       title varchar(255) NOT NULL,
@@ -705,6 +715,7 @@ async function createTables() {
       created_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
       updated_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
       PRIMARY KEY (id),
+      KEY idx_expenses_trip (trip_id),
       KEY idx_expenses_source (source_type, source_id),
       KEY idx_expenses_date_currency (expense_date, currency),
       KEY idx_expenses_paid_by (paid_by_traveler_id, settled)
@@ -714,11 +725,13 @@ async function createTables() {
   await pool.execute(`
     CREATE TABLE IF NOT EXISTS expense_splits (
       id varchar(36) NOT NULL,
+      trip_id varchar(36) NOT NULL DEFAULT 'active-trip',
       expense_id varchar(36) NOT NULL,
       traveler_id varchar(80) NOT NULL,
       created_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
       PRIMARY KEY (id),
       UNIQUE KEY uniq_expense_split_traveler (expense_id, traveler_id),
+      KEY idx_expense_splits_trip (trip_id),
       KEY idx_expense_splits_traveler (traveler_id),
       CONSTRAINT fk_expense_split_expense
         FOREIGN KEY (expense_id) REFERENCES expenses (id)
@@ -729,6 +742,7 @@ async function createTables() {
   await pool.execute(`
     CREATE TABLE IF NOT EXISTS packing_items (
       id varchar(36) NOT NULL,
+      trip_id varchar(36) NOT NULL DEFAULT 'active-trip',
       name varchar(255) NOT NULL,
       category enum('Documents', 'Clothes', 'Electronics', 'Medicine', 'Toiletries', 'Travel Essentials', 'Shared Items', 'Personal Care', 'Other') NOT NULL,
       priority enum('High', 'Medium', 'Low') NOT NULL DEFAULT 'Medium',
@@ -738,6 +752,7 @@ async function createTables() {
       created_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
       updated_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
       PRIMARY KEY (id),
+      KEY idx_packing_items_trip (trip_id),
       KEY idx_packing_items_grouping (category, priority, sort_order, name)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
   `);
@@ -745,12 +760,14 @@ async function createTables() {
   await pool.execute(`
     CREATE TABLE IF NOT EXISTS packing_item_traveler_statuses (
       id varchar(36) NOT NULL,
+      trip_id varchar(36) NOT NULL DEFAULT 'active-trip',
       item_id varchar(36) NOT NULL,
       traveler_id varchar(80) NOT NULL,
       status enum('required', 'packed', 'not_needed') NOT NULL DEFAULT 'required',
       updated_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
       PRIMARY KEY (id),
       UNIQUE KEY uniq_packing_item_traveler (item_id, traveler_id),
+      KEY idx_packing_statuses_trip (trip_id),
       KEY idx_packing_traveler_status (traveler_id, status),
       CONSTRAINT fk_packing_status_item
         FOREIGN KEY (item_id) REFERENCES packing_items (id)
@@ -761,6 +778,7 @@ async function createTables() {
   await pool.execute(`
     CREATE TABLE IF NOT EXISTS document_items (
       id varchar(36) NOT NULL,
+      trip_id varchar(36) NOT NULL DEFAULT 'active-trip',
       title varchar(255) NOT NULL,
       category enum('Passport', 'Flight', 'Hotel', 'Insurance', 'Visa / Entry', 'Transport', 'Booking', 'Other') NOT NULL,
       priority enum('High', 'Medium', 'Low') NOT NULL DEFAULT 'Medium',
@@ -774,6 +792,7 @@ async function createTables() {
       created_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
       updated_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
       PRIMARY KEY (id),
+      KEY idx_document_items_trip (trip_id),
       KEY idx_document_items_grouping (category, priority, status, sort_order, title),
       KEY idx_document_items_protected (requires_passcode)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
@@ -782,12 +801,14 @@ async function createTables() {
   await pool.execute(`
     CREATE TABLE IF NOT EXISTS document_item_traveler_statuses (
       id varchar(36) NOT NULL,
+      trip_id varchar(36) NOT NULL DEFAULT 'active-trip',
       item_id varchar(36) NOT NULL,
       traveler_id varchar(80) NOT NULL,
       status enum('required', 'saved', 'not_needed') NOT NULL DEFAULT 'required',
       updated_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
       PRIMARY KEY (id),
       UNIQUE KEY uniq_document_item_traveler (item_id, traveler_id),
+      KEY idx_document_statuses_trip (trip_id),
       KEY idx_document_traveler_status (traveler_id, status),
       CONSTRAINT fk_document_status_item
         FOREIGN KEY (item_id) REFERENCES document_items (id)
@@ -802,6 +823,46 @@ async function updateCurrencyEnums() {
   await pool.execute(`ALTER TABLE booking_items MODIFY currency enum(${currencyEnumValues}) DEFAULT NULL`);
   await pool.execute(`ALTER TABLE itinerary_items MODIFY currency enum(${currencyEnumValues}) NOT NULL DEFAULT 'EUR'`);
   await pool.execute(`ALTER TABLE expenses MODIFY currency enum(${currencyEnumValues}) NOT NULL`);
+}
+
+async function addColumnIfMissing(table: string, column: string, definition: string) {
+  try {
+    await getAppPool().execute(`ALTER TABLE \`${table}\` ADD COLUMN \`${column}\` ${definition}`);
+  } catch (error) {
+    if ((error as { code?: string }).code !== "ER_DUP_FIELDNAME") {
+      throw error;
+    }
+  }
+}
+
+async function addIndexIfMissing(table: string, indexName: string, columns: string) {
+  try {
+    await getAppPool().execute(`ALTER TABLE \`${table}\` ADD KEY \`${indexName}\` (${columns})`);
+  } catch (error) {
+    if ((error as { code?: string }).code !== "ER_DUP_KEYNAME") {
+      throw error;
+    }
+  }
+}
+
+async function ensureTripScopeColumn(table: string, indexName: string) {
+  await addColumnIfMissing(table, "trip_id", `varchar(36) NOT NULL DEFAULT '${activeTripId}' AFTER id`);
+  await getAppPool().execute(`UPDATE \`${table}\` SET trip_id = ? WHERE trip_id IS NULL OR trip_id = ''`, [
+    activeTripId
+  ]);
+  await addIndexIfMissing(table, indexName, "`trip_id`");
+}
+
+async function ensureBusinessTableTripScope() {
+  await ensureTripScopeColumn("reminders", "idx_reminders_trip");
+  await ensureTripScopeColumn("booking_items", "idx_booking_items_trip");
+  await ensureTripScopeColumn("itinerary_items", "idx_itinerary_items_trip");
+  await ensureTripScopeColumn("expenses", "idx_expenses_trip");
+  await ensureTripScopeColumn("expense_splits", "idx_expense_splits_trip");
+  await ensureTripScopeColumn("packing_items", "idx_packing_items_trip");
+  await ensureTripScopeColumn("packing_item_traveler_statuses", "idx_packing_statuses_trip");
+  await ensureTripScopeColumn("document_items", "idx_document_items_trip");
+  await ensureTripScopeColumn("document_item_traveler_statuses", "idx_document_statuses_trip");
 }
 
 async function ensureTripAccessControlsTable() {
@@ -843,6 +904,7 @@ async function ensureManagedSchemaCompatibility() {
   await ensureTripSetupCompletedColumn();
   await updateCurrencyEnums();
   await ensureTripAccessControlsTable();
+  await ensureBusinessTableTripScope();
 }
 
 function listText(label: string, items: string[]) {
@@ -981,29 +1043,35 @@ async function seedTables() {
   const pool = getAppPool();
   await seedActiveTripSettings();
 
-  const [reminderRows] = await pool.execute<DbRow[]>("SELECT COUNT(*) AS count FROM reminders");
+  const [reminderRows] = await pool.execute<DbRow[]>("SELECT COUNT(*) AS count FROM reminders WHERE trip_id = ?", [
+    activeTripId
+  ]);
   const reminderCount = Number(reminderRows[0]?.count ?? 0);
 
   if (reminderCount === 0) {
     for (const [index, reminder] of tripInfo.reminders.entries()) {
       await pool.execute(
-        "INSERT INTO reminders (id, text, priority, created_by) VALUES (?, ?, ?, ?)",
-        [`seed-reminder-${index + 1}`, reminder, index < 2 ? "High" : "Medium", "Person A"]
+        "INSERT INTO reminders (id, trip_id, text, priority, created_by) VALUES (?, ?, ?, ?, ?)",
+        [`seed-reminder-${index + 1}`, activeTripId, reminder, index < 2 ? "High" : "Medium", "Person A"]
       );
     }
   }
 
-  const [bookingRows] = await pool.execute<DbRow[]>("SELECT COUNT(*) AS count FROM booking_items");
+  const [bookingRows] = await pool.execute<DbRow[]>(
+    "SELECT COUNT(*) AS count FROM booking_items WHERE trip_id = ?",
+    [activeTripId]
+  );
   const bookingCount = Number(bookingRows[0]?.count ?? 0);
 
   if (bookingCount === 0) {
     for (const booking of bookings) {
       await pool.execute(
         `INSERT INTO booking_items
-          (id, category, description, booking_date, location, booked_by, amount, currency, notes, status)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          (id, trip_id, category, description, booking_date, location, booked_by, amount, currency, notes, status)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           booking.id,
+          activeTripId,
           booking.category,
           booking.title,
           booking.date,
@@ -1018,18 +1086,22 @@ async function seedTables() {
     }
   }
 
-  const [itineraryRows] = await pool.execute<DbRow[]>("SELECT COUNT(*) AS count FROM itinerary_items");
+  const [itineraryRows] = await pool.execute<DbRow[]>(
+    "SELECT COUNT(*) AS count FROM itinerary_items WHERE trip_id = ?",
+    [activeTripId]
+  );
   const itineraryCount = Number(itineraryRows[0]?.count ?? 0);
 
   if (itineraryCount === 0) {
     for (const day of itinerary) {
       await pool.execute(
         `INSERT INTO itinerary_items
-          (id, travel_date, city, title, location, details, transport, meal,
+          (id, trip_id, travel_date, city, title, location, details, transport, meal,
            cost_amount, currency, notes, map_query, sort_order)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           `seed-itinerary-day-${day.day}`,
+          activeTripId,
           day.date,
           day.city,
           day.title,
@@ -1047,7 +1119,9 @@ async function seedTables() {
     }
   }
 
-  const [expenseRows] = await pool.execute<DbRow[]>("SELECT COUNT(*) AS count FROM expenses");
+  const [expenseRows] = await pool.execute<DbRow[]>("SELECT COUNT(*) AS count FROM expenses WHERE trip_id = ?", [
+    activeTripId
+  ]);
   const expenseCount = Number(expenseRows[0]?.count ?? 0);
 
   if (expenseCount === 0) {
@@ -1055,11 +1129,12 @@ async function seedTables() {
       const paidByTravelerId = requireTravelerIdFromName(expense.paidBy);
       await pool.execute(
         `INSERT INTO expenses
-          (id, source_type, source_id, title, category, amount, currency,
+          (id, trip_id, source_type, source_id, title, category, amount, currency,
            paid_by_traveler_id, settled, expense_date, notes)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           expense.id,
+          activeTripId,
           "misc",
           null,
           expense.item,
@@ -1076,15 +1151,18 @@ async function seedTables() {
       for (const splitName of expense.splitAmong) {
         await pool.execute(
           `INSERT INTO expense_splits
-            (id, expense_id, traveler_id)
-           VALUES (?, ?, ?)`,
-          [randomUUID(), expense.id, requireTravelerIdFromName(splitName)]
+            (id, trip_id, expense_id, traveler_id)
+           VALUES (?, ?, ?, ?)`,
+          [randomUUID(), activeTripId, expense.id, requireTravelerIdFromName(splitName)]
         );
       }
     }
   }
 
-  const [packingRows] = await pool.execute<DbRow[]>("SELECT COUNT(*) AS count FROM packing_items");
+  const [packingRows] = await pool.execute<DbRow[]>(
+    "SELECT COUNT(*) AS count FROM packing_items WHERE trip_id = ?",
+    [activeTripId]
+  );
   const packingCount = Number(packingRows[0]?.count ?? 0);
 
   if (packingCount === 0) {
@@ -1092,10 +1170,11 @@ async function seedTables() {
       const id = `seed-packing-item-${index + 1}`;
       await pool.execute(
         `INSERT INTO packing_items
-          (id, name, category, priority, notes, quantity, sort_order)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+          (id, trip_id, name, category, priority, notes, quantity, sort_order)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           id,
+          activeTripId,
           item.item,
           item.category,
           item.required ? "High" : "Medium",
@@ -1108,15 +1187,18 @@ async function seedTables() {
       for (const status of seedPackingStatuses(item)) {
         await pool.execute(
           `INSERT INTO packing_item_traveler_statuses
-            (id, item_id, traveler_id, status)
-           VALUES (?, ?, ?, ?)`,
-          [randomUUID(), id, status.travelerId, status.status]
+            (id, trip_id, item_id, traveler_id, status)
+           VALUES (?, ?, ?, ?, ?)`,
+          [randomUUID(), activeTripId, id, status.travelerId, status.status]
         );
       }
     }
   }
 
-  const [documentRows] = await pool.execute<DbRow[]>("SELECT COUNT(*) AS count FROM document_items");
+  const [documentRows] = await pool.execute<DbRow[]>(
+    "SELECT COUNT(*) AS count FROM document_items WHERE trip_id = ?",
+    [activeTripId]
+  );
   const documentCount = Number(documentRows[0]?.count ?? 0);
 
   if (documentCount === 0) {
@@ -1124,11 +1206,12 @@ async function seedTables() {
       const id = `seed-document-item-${index + 1}`;
       await pool.execute(
         `INSERT INTO document_items
-          (id, title, category, priority, status, external_url, requires_passcode,
+          (id, trip_id, title, category, priority, status, external_url, requires_passcode,
            passcode_salt, passcode_hash, notes, sort_order)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           id,
+          activeTripId,
           document.title,
           seedDocumentCategory(document.category),
           document.sensitive ? "High" : "Medium",
@@ -1145,9 +1228,9 @@ async function seedTables() {
       for (const traveler of travelers) {
         await pool.execute(
           `INSERT INTO document_item_traveler_statuses
-            (id, item_id, traveler_id, status)
-           VALUES (?, ?, ?, ?)`,
-          [randomUUID(), id, traveler.id, "required"]
+            (id, trip_id, item_id, traveler_id, status)
+           VALUES (?, ?, ?, ?, ?)`,
+          [randomUUID(), activeTripId, id, traveler.id, "required"]
         );
       }
     }
@@ -1155,7 +1238,10 @@ async function seedTables() {
 }
 
 export async function ensureSharedDataStore() {
-  if (sharedDataStoreState.initialized) {
+  if (
+    sharedDataStoreState.initialized &&
+    sharedDataStoreState.compatibilityVersion === sharedDataStoreCompatibilityVersion
+  ) {
     return;
   }
 
@@ -1171,10 +1257,12 @@ export async function ensureSharedDataStore() {
       await createTables();
       await ensureTripSetupCompletedColumn();
       await updateCurrencyEnums();
+      await ensureBusinessTableTripScope();
       await seedTables();
     }
 
     sharedDataStoreState.initialized = true;
+    sharedDataStoreState.compatibilityVersion = sharedDataStoreCompatibilityVersion;
   })();
 
   try {
@@ -1256,29 +1344,33 @@ async function insertMissingChecklistStatuses(executor: MysqlConnection, travele
     return;
   }
 
-  const [packingRows] = await executor.execute<DbRow[]>("SELECT id, category FROM packing_items");
+  const [packingRows] = await executor.execute<DbRow[]>("SELECT id, category FROM packing_items WHERE trip_id = ?", [
+    activeTripId
+  ]);
   for (const row of packingRows) {
     const itemId = asString(row.id);
     const status = defaultPackingStatusForCategory(asString(row.category) as PackingCategory);
     for (const travelerId of travelerIds) {
       await executor.execute(
         `INSERT IGNORE INTO packing_item_traveler_statuses
-          (id, item_id, traveler_id, status)
-         VALUES (?, ?, ?, ?)`,
-        [randomUUID(), itemId, travelerId, status]
+          (id, trip_id, item_id, traveler_id, status)
+         VALUES (?, ?, ?, ?, ?)`,
+        [randomUUID(), activeTripId, itemId, travelerId, status]
       );
     }
   }
 
-  const [documentRows] = await executor.execute<DbRow[]>("SELECT id FROM document_items");
+  const [documentRows] = await executor.execute<DbRow[]>("SELECT id FROM document_items WHERE trip_id = ?", [
+    activeTripId
+  ]);
   for (const row of documentRows) {
     const itemId = asString(row.id);
     for (const travelerId of travelerIds) {
       await executor.execute(
         `INSERT IGNORE INTO document_item_traveler_statuses
-          (id, item_id, traveler_id, status)
-         VALUES (?, ?, ?, 'required')`,
-        [randomUUID(), itemId, travelerId]
+          (id, trip_id, item_id, traveler_id, status)
+         VALUES (?, ?, ?, ?, 'required')`,
+        [randomUUID(), activeTripId, itemId, travelerId]
       );
     }
   }
@@ -1417,15 +1509,15 @@ export async function generateStarterWorkspace(
 }
 
 async function resetStarterWorkspaceTables(connection: MysqlConnection) {
-  await connection.execute("DELETE FROM expense_splits");
-  await connection.execute("DELETE FROM expenses");
-  await connection.execute("DELETE FROM reminders");
-  await connection.execute("DELETE FROM booking_items");
-  await connection.execute("DELETE FROM itinerary_items");
-  await connection.execute("DELETE FROM packing_item_traveler_statuses");
-  await connection.execute("DELETE FROM packing_items");
-  await connection.execute("DELETE FROM document_item_traveler_statuses");
-  await connection.execute("DELETE FROM document_items");
+  await connection.execute("DELETE FROM expense_splits WHERE trip_id = ?", [activeTripId]);
+  await connection.execute("DELETE FROM expenses WHERE trip_id = ?", [activeTripId]);
+  await connection.execute("DELETE FROM reminders WHERE trip_id = ?", [activeTripId]);
+  await connection.execute("DELETE FROM booking_items WHERE trip_id = ?", [activeTripId]);
+  await connection.execute("DELETE FROM itinerary_items WHERE trip_id = ?", [activeTripId]);
+  await connection.execute("DELETE FROM packing_item_traveler_statuses WHERE trip_id = ?", [activeTripId]);
+  await connection.execute("DELETE FROM packing_items WHERE trip_id = ?", [activeTripId]);
+  await connection.execute("DELETE FROM document_item_traveler_statuses WHERE trip_id = ?", [activeTripId]);
+  await connection.execute("DELETE FROM document_items WHERE trip_id = ?", [activeTripId]);
   await connection.execute("DELETE FROM trip_route_stops WHERE trip_id = ?", [activeTripId]);
   await connection.execute("DELETE FROM trip_travelers WHERE trip_id = ?", [activeTripId]);
 }
@@ -1496,22 +1588,23 @@ async function insertGeneratedTripSettings(connection: MysqlConnection, generate
 }
 
 async function insertGeneratedReminders(connection: MysqlConnection, generated: GeneratedWorkspace) {
-  for (const [index, reminder] of generated.reminders.entries()) {
+  for (const reminder of generated.reminders) {
     await connection.execute(
-      "INSERT INTO reminders (id, text, priority, created_by) VALUES (?, ?, ?, ?)",
-      [`setup-reminder-${index + 1}`, reminder.text, reminder.priority, reminder.createdBy]
+      "INSERT INTO reminders (id, trip_id, text, priority, created_by) VALUES (?, ?, ?, ?, ?)",
+      [randomUUID(), activeTripId, reminder.text, reminder.priority, reminder.createdBy]
     );
   }
 }
 
 async function insertGeneratedBookings(connection: MysqlConnection, generated: GeneratedWorkspace) {
-  for (const [index, booking] of generated.bookings.entries()) {
+  for (const booking of generated.bookings) {
     await connection.execute(
       `INSERT INTO booking_items
-        (id, category, description, booking_date, location, booked_by, amount, currency, notes, status)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        (id, trip_id, category, description, booking_date, location, booked_by, amount, currency, notes, status)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
-        `setup-booking-${index + 1}`,
+        randomUUID(),
+        activeTripId,
         booking.category,
         booking.description,
         booking.date,
@@ -1530,11 +1623,12 @@ async function insertGeneratedItinerary(connection: MysqlConnection, generated: 
   for (const [index, item] of generated.itineraryItems.entries()) {
     await connection.execute(
       `INSERT INTO itinerary_items
-        (id, travel_date, city, start_time, end_time, title, location, details,
+        (id, trip_id, travel_date, city, start_time, end_time, title, location, details,
          transport, meal, cost_amount, currency, notes, map_query, sort_order)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
-        `setup-itinerary-${index + 1}`,
+        randomUUID(),
+        activeTripId,
         item.travelDate,
         item.city,
         item.startTime || null,
@@ -1556,13 +1650,14 @@ async function insertGeneratedItinerary(connection: MysqlConnection, generated: 
 
 async function insertGeneratedPacking(connection: MysqlConnection, generated: GeneratedWorkspace) {
   for (const [index, item] of generated.packingItems.entries()) {
-    const itemId = `setup-packing-${index + 1}`;
+    const itemId = randomUUID();
     await connection.execute(
       `INSERT INTO packing_items
-        (id, name, category, priority, notes, quantity, sort_order)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        (id, trip_id, name, category, priority, notes, quantity, sort_order)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         itemId,
+        activeTripId,
         item.name,
         item.category,
         item.priority,
@@ -1577,14 +1672,15 @@ async function insertGeneratedPacking(connection: MysqlConnection, generated: Ge
 
 async function insertGeneratedDocuments(connection: MysqlConnection, generated: GeneratedWorkspace) {
   for (const [index, document] of generated.documents.entries()) {
-    const documentId = `setup-document-${index + 1}`;
+    const documentId = randomUUID();
     await connection.execute(
       `INSERT INTO document_items
-        (id, title, category, priority, status, external_url, requires_passcode,
+        (id, trip_id, title, category, priority, status, external_url, requires_passcode,
          passcode_salt, passcode_hash, notes, sort_order)
-       VALUES (?, ?, ?, ?, ?, ?, 0, NULL, NULL, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, 0, NULL, NULL, ?, ?)`,
       [
         documentId,
+        activeTripId,
         document.title,
         document.category,
         document.priority,
@@ -2312,7 +2408,9 @@ export async function validateDocumentInput(input: Partial<DocumentInput>) {
 
 export async function listReminders() {
   await ensureSharedDataStore();
-  const [rows] = await getAppPool().execute<DbRow[]>("SELECT * FROM reminders");
+  const [rows] = await getAppPool().execute<DbRow[]>("SELECT * FROM reminders WHERE trip_id = ?", [
+    activeTripId
+  ]);
   return sortReminders(rows.map(mapReminder));
 }
 
@@ -2320,8 +2418,8 @@ export async function createReminder(input: ReminderInput) {
   await ensureSharedDataStore();
   const id = randomUUID();
   await getAppPool().execute(
-    "INSERT INTO reminders (id, text, priority, created_by) VALUES (?, ?, ?, ?)",
-    [id, input.text, input.priority, input.createdBy]
+    "INSERT INTO reminders (id, trip_id, text, priority, created_by) VALUES (?, ?, ?, ?, ?)",
+    [id, activeTripId, input.text, input.priority, input.createdBy]
   );
   return id;
 }
@@ -2329,20 +2427,21 @@ export async function createReminder(input: ReminderInput) {
 export async function updateReminder(id: string, input: ReminderInput) {
   await ensureSharedDataStore();
   await getAppPool().execute(
-    "UPDATE reminders SET text = ?, priority = ?, created_by = ? WHERE id = ?",
-    [input.text, input.priority, input.createdBy, id]
+    "UPDATE reminders SET text = ?, priority = ?, created_by = ? WHERE id = ? AND trip_id = ?",
+    [input.text, input.priority, input.createdBy, id, activeTripId]
   );
 }
 
 export async function deleteReminder(id: string) {
   await ensureSharedDataStore();
-  await getAppPool().execute("DELETE FROM reminders WHERE id = ?", [id]);
+  await getAppPool().execute("DELETE FROM reminders WHERE id = ? AND trip_id = ?", [id, activeTripId]);
 }
 
 export async function listBookings() {
   await ensureSharedDataStore();
   const [rows] = await getAppPool().execute<DbRow[]>(
-    "SELECT * FROM booking_items ORDER BY booking_date ASC, created_at DESC"
+    "SELECT * FROM booking_items WHERE trip_id = ? ORDER BY booking_date ASC, created_at DESC",
+    [activeTripId]
   );
   return rows.map(mapBooking);
 }
@@ -2377,8 +2476,10 @@ function findTravelerByDisplayName(bookedBy: string, travelers: TripTraveler[]) 
 
 async function getExpenseSplitTravelerIds(executor: MysqlConnection | MysqlPool, expenseId: string) {
   const [splitRows] = await executor.execute<DbRow[]>(
-    "SELECT traveler_id FROM expense_splits WHERE expense_id = ? ORDER BY created_at ASC, traveler_id ASC",
-    [expenseId]
+    `SELECT traveler_id FROM expense_splits
+     WHERE expense_id = ? AND trip_id = ?
+     ORDER BY created_at ASC, traveler_id ASC`,
+    [expenseId, activeTripId]
   );
 
   return splitRows.map((row) => asString(row.traveler_id));
@@ -2391,13 +2492,18 @@ async function syncBookingBudgetExpense(
   options: { preserveExistingBudgetFields?: boolean } = {}
 ) {
   const [existingExpenseRows] = await executor.execute<DbRow[]>(
-    "SELECT * FROM expenses WHERE source_type = 'booking' AND source_id = ? ORDER BY created_at ASC, id ASC",
-    [bookingId]
+    `SELECT * FROM expenses
+     WHERE trip_id = ? AND source_type = 'booking' AND source_id = ?
+     ORDER BY created_at ASC, id ASC`,
+    [activeTripId, bookingId]
   );
   const primaryExpense = existingExpenseRows[0];
 
   if (!input.amount || input.amount <= 0 || !input.currency) {
-    await executor.execute("DELETE FROM expenses WHERE source_type = 'booking' AND source_id = ?", [bookingId]);
+    await executor.execute("DELETE FROM expenses WHERE trip_id = ? AND source_type = 'booking' AND source_id = ?", [
+      activeTripId,
+      bookingId
+    ]);
     return;
   }
 
@@ -2449,7 +2555,7 @@ async function syncBookingBudgetExpense(
       `UPDATE expenses
        SET title = ?, category = ?, amount = ?, currency = ?,
            paid_by_traveler_id = ?, settled = ?, expense_date = ?, notes = ?
-       WHERE id = ?`,
+       WHERE id = ? AND trip_id = ?`,
       [
         input.description,
         bookingCategoryToExpenseCategory(input.category),
@@ -2459,22 +2565,27 @@ async function syncBookingBudgetExpense(
         settled ? 1 : 0,
         input.date,
         input.notes || null,
-        expenseId
+        expenseId,
+        activeTripId
       ]
     );
-    await executor.execute("DELETE FROM expenses WHERE source_type = 'booking' AND source_id = ? AND id <> ?", [
-      bookingId,
-      expenseId
+    await executor.execute(
+      "DELETE FROM expenses WHERE trip_id = ? AND source_type = 'booking' AND source_id = ? AND id <> ?",
+      [activeTripId, bookingId, expenseId]
+    );
+    await executor.execute("DELETE FROM expense_splits WHERE expense_id = ? AND trip_id = ?", [
+      expenseId,
+      activeTripId
     ]);
-    await executor.execute("DELETE FROM expense_splits WHERE expense_id = ?", [expenseId]);
   } else {
     await executor.execute(
       `INSERT INTO expenses
-        (id, source_type, source_id, title, category, amount, currency,
+        (id, trip_id, source_type, source_id, title, category, amount, currency,
          paid_by_traveler_id, settled, expense_date, notes)
-       VALUES (?, 'booking', ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       VALUES (?, ?, 'booking', ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         expenseId,
+        activeTripId,
         bookingId,
         input.description,
         bookingCategoryToExpenseCategory(input.category),
@@ -2500,10 +2611,11 @@ export async function createBooking(input: BookingInput) {
     await connection.beginTransaction();
     await connection.execute(
       `INSERT INTO booking_items
-        (id, category, description, booking_date, location, booked_by, amount, currency, notes, status)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        (id, trip_id, category, description, booking_date, location, booked_by, amount, currency, notes, status)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id,
+        activeTripId,
         input.category,
         input.description,
         input.date,
@@ -2536,7 +2648,7 @@ export async function updateBooking(id: string, input: BookingInput) {
       `UPDATE booking_items
        SET category = ?, description = ?, booking_date = ?, location = ?, booked_by = ?,
            amount = ?, currency = ?, notes = ?, status = ?
-       WHERE id = ?`,
+       WHERE id = ? AND trip_id = ?`,
       [
         input.category,
         input.description,
@@ -2547,7 +2659,8 @@ export async function updateBooking(id: string, input: BookingInput) {
         input.currency ?? null,
         input.notes || null,
         input.status,
-        id
+        id,
+        activeTripId
       ]
     );
     await syncBookingBudgetExpense(connection, id, input);
@@ -2566,8 +2679,11 @@ export async function deleteBooking(id: string) {
 
   try {
     await connection.beginTransaction();
-    await connection.execute("DELETE FROM expenses WHERE source_type = 'booking' AND source_id = ?", [id]);
-    await connection.execute("DELETE FROM booking_items WHERE id = ?", [id]);
+    await connection.execute("DELETE FROM expenses WHERE trip_id = ? AND source_type = 'booking' AND source_id = ?", [
+      activeTripId,
+      id
+    ]);
+    await connection.execute("DELETE FROM booking_items WHERE id = ? AND trip_id = ?", [id, activeTripId]);
     await connection.commit();
   } catch (error) {
     await connection.rollback();
@@ -2581,7 +2697,9 @@ export async function listItineraryItems() {
   await ensureSharedDataStore();
   const [rows] = await getAppPool().execute<DbRow[]>(
     `SELECT * FROM itinerary_items
-     ORDER BY travel_date ASC, start_time IS NULL ASC, start_time ASC, sort_order ASC, id ASC`
+     WHERE trip_id = ?
+     ORDER BY travel_date ASC, start_time IS NULL ASC, start_time ASC, sort_order ASC, id ASC`,
+    [activeTripId]
   );
   return rows.map(mapItineraryItem);
 }
@@ -2591,11 +2709,12 @@ export async function createItineraryItem(input: ItineraryInput) {
   const id = randomUUID();
   await getAppPool().execute(
     `INSERT INTO itinerary_items
-      (id, travel_date, city, start_time, end_time, title, location, details,
+      (id, trip_id, travel_date, city, start_time, end_time, title, location, details,
        transport, meal, cost_amount, currency, notes, map_query, sort_order)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       id,
+      activeTripId,
       input.travelDate,
       input.city,
       input.startTime || null,
@@ -2622,7 +2741,7 @@ export async function updateItineraryItem(id: string, input: ItineraryInput) {
      SET travel_date = ?, city = ?, start_time = ?, end_time = ?, title = ?,
          location = ?, details = ?, transport = ?, meal = ?, cost_amount = ?,
          currency = ?, notes = ?, map_query = ?, sort_order = ?
-     WHERE id = ?`,
+     WHERE id = ? AND trip_id = ?`,
     [
       input.travelDate,
       input.city,
@@ -2638,14 +2757,15 @@ export async function updateItineraryItem(id: string, input: ItineraryInput) {
       input.notes || null,
       input.mapQuery || null,
       input.sortOrder ?? 0,
-      id
+      id,
+      activeTripId
     ]
   );
 }
 
 export async function deleteItineraryItem(id: string) {
   await ensureSharedDataStore();
-  await getAppPool().execute("DELETE FROM itinerary_items WHERE id = ?", [id]);
+  await getAppPool().execute("DELETE FROM itinerary_items WHERE id = ? AND trip_id = ?", [id, activeTripId]);
 }
 
 function sortTravelerIds(travelerIds: string[], tripTravelers: TripTraveler[]) {
@@ -2661,10 +2781,12 @@ export async function listExpenses() {
   await ensureSharedDataStore();
   const tripTravelers = await listTripTravelersForBusinessData();
   const [expenseRows] = await getAppPool().execute<DbRow[]>(
-    "SELECT * FROM expenses ORDER BY expense_date DESC, created_at DESC, id ASC"
+    "SELECT * FROM expenses WHERE trip_id = ? ORDER BY expense_date DESC, created_at DESC, id ASC",
+    [activeTripId]
   );
   const [splitRows] = await getAppPool().execute<DbRow[]>(
-    "SELECT * FROM expense_splits ORDER BY created_at ASC, traveler_id ASC"
+    "SELECT * FROM expense_splits WHERE trip_id = ? ORDER BY created_at ASC, traveler_id ASC",
+    [activeTripId]
   );
   const splitsByExpense = new Map<string, string[]>();
 
@@ -2688,9 +2810,9 @@ async function insertExpenseSplits(
   for (const travelerId of splitTravelerIds) {
     await executor.execute(
       `INSERT INTO expense_splits
-        (id, expense_id, traveler_id)
-       VALUES (?, ?, ?)`,
-      [randomUUID(), expenseId, travelerId]
+        (id, trip_id, expense_id, traveler_id)
+       VALUES (?, ?, ?, ?)`,
+      [randomUUID(), activeTripId, expenseId, travelerId]
     );
   }
 }
@@ -2704,11 +2826,12 @@ export async function createExpense(input: ExpenseInput) {
     await connection.beginTransaction();
     await connection.execute(
       `INSERT INTO expenses
-        (id, source_type, source_id, title, category, amount, currency,
+        (id, trip_id, source_type, source_id, title, category, amount, currency,
          paid_by_traveler_id, settled, expense_date, notes)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id,
+        activeTripId,
         input.sourceType,
         input.sourceId || null,
         input.title,
@@ -2742,7 +2865,7 @@ export async function updateExpense(id: string, input: ExpenseInput) {
       `UPDATE expenses
        SET source_type = ?, source_id = ?, title = ?, category = ?, amount = ?,
            currency = ?, paid_by_traveler_id = ?, settled = ?, expense_date = ?, notes = ?
-       WHERE id = ?`,
+       WHERE id = ? AND trip_id = ?`,
       [
         input.sourceType,
         input.sourceId || null,
@@ -2754,10 +2877,14 @@ export async function updateExpense(id: string, input: ExpenseInput) {
         input.settled ? 1 : 0,
         input.expenseDate,
         input.notes || null,
-        id
+        id,
+        activeTripId
       ]
     );
-    await connection.execute("DELETE FROM expense_splits WHERE expense_id = ?", [id]);
+    await connection.execute("DELETE FROM expense_splits WHERE expense_id = ? AND trip_id = ?", [
+      id,
+      activeTripId
+    ]);
     await insertExpenseSplits(connection, id, input.splitTravelerIds);
     await connection.commit();
   } catch (error) {
@@ -2770,17 +2897,19 @@ export async function updateExpense(id: string, input: ExpenseInput) {
 
 export async function deleteExpense(id: string) {
   await ensureSharedDataStore();
-  await getAppPool().execute("DELETE FROM expenses WHERE id = ?", [id]);
+  await getAppPool().execute("DELETE FROM expenses WHERE id = ? AND trip_id = ?", [id, activeTripId]);
 }
 
 export async function listPackingItems() {
   await ensureSharedDataStore();
   const tripTravelers = await listTripTravelersForBusinessData();
   const [itemRows] = await getAppPool().execute<DbRow[]>(
-    "SELECT * FROM packing_items ORDER BY sort_order ASC, category ASC, name ASC, id ASC"
+    "SELECT * FROM packing_items WHERE trip_id = ? ORDER BY sort_order ASC, category ASC, name ASC, id ASC",
+    [activeTripId]
   );
   const [statusRows] = await getAppPool().execute<DbRow[]>(
-    "SELECT * FROM packing_item_traveler_statuses ORDER BY traveler_id ASC"
+    "SELECT * FROM packing_item_traveler_statuses WHERE trip_id = ? ORDER BY traveler_id ASC",
+    [activeTripId]
   );
   const statusesByItem = new Map<string, SharedPackingItem["statuses"]>();
 
@@ -2816,9 +2945,9 @@ async function insertPackingStatuses(
   for (const status of statuses) {
     await executor.execute(
       `INSERT INTO packing_item_traveler_statuses
-        (id, item_id, traveler_id, status)
-       VALUES (?, ?, ?, ?)`,
-      [randomUUID(), itemId, status.travelerId, status.status]
+        (id, trip_id, item_id, traveler_id, status)
+       VALUES (?, ?, ?, ?, ?)`,
+      [randomUUID(), activeTripId, itemId, status.travelerId, status.status]
     );
   }
 }
@@ -2832,10 +2961,11 @@ export async function createPackingItem(input: PackingInput) {
     await connection.beginTransaction();
     await connection.execute(
       `INSERT INTO packing_items
-        (id, name, category, priority, notes, quantity, sort_order)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        (id, trip_id, name, category, priority, notes, quantity, sort_order)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id,
+        activeTripId,
         input.name,
         input.category,
         input.priority,
@@ -2864,7 +2994,7 @@ export async function updatePackingItem(id: string, input: PackingInput) {
     await connection.execute(
       `UPDATE packing_items
        SET name = ?, category = ?, priority = ?, notes = ?, quantity = ?, sort_order = ?
-       WHERE id = ?`,
+       WHERE id = ? AND trip_id = ?`,
       [
         input.name,
         input.category,
@@ -2872,10 +3002,14 @@ export async function updatePackingItem(id: string, input: PackingInput) {
         input.notes || null,
         input.quantity ?? null,
         input.sortOrder ?? 0,
-        id
+        id,
+        activeTripId
       ]
     );
-    await connection.execute("DELETE FROM packing_item_traveler_statuses WHERE item_id = ?", [id]);
+    await connection.execute("DELETE FROM packing_item_traveler_statuses WHERE item_id = ? AND trip_id = ?", [
+      id,
+      activeTripId
+    ]);
     await insertPackingStatuses(connection, id, input.statuses);
     await connection.commit();
   } catch (error) {
@@ -2888,7 +3022,7 @@ export async function updatePackingItem(id: string, input: PackingInput) {
 
 export async function deletePackingItem(id: string) {
   await ensureSharedDataStore();
-  await getAppPool().execute("DELETE FROM packing_items WHERE id = ?", [id]);
+  await getAppPool().execute("DELETE FROM packing_items WHERE id = ? AND trip_id = ?", [id, activeTripId]);
 }
 
 export async function updatePackingTravelerStatus(
@@ -2909,7 +3043,10 @@ export async function updatePackingTravelerStatus(
     throw new Error("Traveler identity is invalid.");
   }
 
-  const [itemRows] = await getAppPool().execute<DbRow[]>("SELECT id FROM packing_items WHERE id = ?", [itemId]);
+  const [itemRows] = await getAppPool().execute<DbRow[]>(
+    "SELECT id FROM packing_items WHERE id = ? AND trip_id = ?",
+    [itemId, activeTripId]
+  );
 
   if (!itemRows[0]) {
     throw new Error("Packing item was not found.");
@@ -2917,10 +3054,10 @@ export async function updatePackingTravelerStatus(
 
   await getAppPool().execute(
     `INSERT INTO packing_item_traveler_statuses
-      (id, item_id, traveler_id, status)
-     VALUES (?, ?, ?, ?)
+      (id, trip_id, item_id, traveler_id, status)
+     VALUES (?, ?, ?, ?, ?)
      ON DUPLICATE KEY UPDATE status = VALUES(status), updated_at = CURRENT_TIMESTAMP`,
-    [randomUUID(), itemId, travelerId, status]
+    [randomUUID(), activeTripId, itemId, travelerId, status]
   );
 }
 
@@ -2928,10 +3065,12 @@ export async function listDocumentItems() {
   await ensureSharedDataStore();
   const tripTravelers = await listTripTravelersForBusinessData();
   const [itemRows] = await getAppPool().execute<DbRow[]>(
-    "SELECT * FROM document_items ORDER BY sort_order ASC, category ASC, title ASC, id ASC"
+    "SELECT * FROM document_items WHERE trip_id = ? ORDER BY sort_order ASC, category ASC, title ASC, id ASC",
+    [activeTripId]
   );
   const [statusRows] = await getAppPool().execute<DbRow[]>(
-    "SELECT * FROM document_item_traveler_statuses ORDER BY traveler_id ASC"
+    "SELECT * FROM document_item_traveler_statuses WHERE trip_id = ? ORDER BY traveler_id ASC",
+    [activeTripId]
   );
   const statusesByItem = new Map<string, SharedDocumentItem["statuses"]>();
 
@@ -2967,9 +3106,9 @@ async function insertDocumentStatuses(
   for (const status of statuses) {
     await executor.execute(
       `INSERT INTO document_item_traveler_statuses
-        (id, item_id, traveler_id, status)
-       VALUES (?, ?, ?, ?)`,
-      [randomUUID(), itemId, status.travelerId, status.status]
+        (id, trip_id, item_id, traveler_id, status)
+       VALUES (?, ?, ?, ?, ?)`,
+      [randomUUID(), activeTripId, itemId, status.travelerId, status.status]
     );
   }
 }
@@ -2993,11 +3132,12 @@ export async function createDocumentItem(input: DocumentInput) {
     await connection.beginTransaction();
     await connection.execute(
       `INSERT INTO document_items
-        (id, title, category, priority, status, external_url, requires_passcode,
+        (id, trip_id, title, category, priority, status, external_url, requires_passcode,
          passcode_salt, passcode_hash, notes, sort_order)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id,
+        activeTripId,
         input.title,
         input.category,
         input.priority,
@@ -3024,8 +3164,8 @@ export async function createDocumentItem(input: DocumentInput) {
 export async function updateDocumentItem(id: string, input: DocumentInput) {
   await ensureSharedDataStore();
   const [rows] = await getAppPool().execute<DbRow[]>(
-    "SELECT external_url, passcode_salt, passcode_hash FROM document_items WHERE id = ?",
-    [id]
+    "SELECT external_url, passcode_salt, passcode_hash FROM document_items WHERE id = ? AND trip_id = ?",
+    [id, activeTripId]
   );
   const existing = rows[0];
 
@@ -3062,7 +3202,7 @@ export async function updateDocumentItem(id: string, input: DocumentInput) {
        SET title = ?, category = ?, priority = ?, status = ?, external_url = ?,
            requires_passcode = ?, passcode_salt = ?, passcode_hash = ?,
            notes = ?, sort_order = ?
-       WHERE id = ?`,
+       WHERE id = ? AND trip_id = ?`,
       [
         input.title,
         input.category,
@@ -3074,10 +3214,14 @@ export async function updateDocumentItem(id: string, input: DocumentInput) {
         passcodeHash,
         input.notes || null,
         input.sortOrder ?? 0,
-        id
+        id,
+        activeTripId
       ]
     );
-    await connection.execute("DELETE FROM document_item_traveler_statuses WHERE item_id = ?", [id]);
+    await connection.execute("DELETE FROM document_item_traveler_statuses WHERE item_id = ? AND trip_id = ?", [
+      id,
+      activeTripId
+    ]);
     await insertDocumentStatuses(connection, id, input.statuses);
     await connection.commit();
   } catch (error) {
@@ -3090,7 +3234,7 @@ export async function updateDocumentItem(id: string, input: DocumentInput) {
 
 export async function deleteDocumentItem(id: string) {
   await ensureSharedDataStore();
-  await getAppPool().execute("DELETE FROM document_items WHERE id = ?", [id]);
+  await getAppPool().execute("DELETE FROM document_items WHERE id = ? AND trip_id = ?", [id, activeTripId]);
 }
 
 export async function updateDocumentTravelerStatus(
@@ -3111,7 +3255,10 @@ export async function updateDocumentTravelerStatus(
     throw new Error("Traveler identity is invalid.");
   }
 
-  const [itemRows] = await getAppPool().execute<DbRow[]>("SELECT id FROM document_items WHERE id = ?", [itemId]);
+  const [itemRows] = await getAppPool().execute<DbRow[]>(
+    "SELECT id FROM document_items WHERE id = ? AND trip_id = ?",
+    [itemId, activeTripId]
+  );
 
   if (!itemRows[0]) {
     throw new Error("Document item was not found.");
@@ -3119,10 +3266,10 @@ export async function updateDocumentTravelerStatus(
 
   await getAppPool().execute(
     `INSERT INTO document_item_traveler_statuses
-      (id, item_id, traveler_id, status)
-     VALUES (?, ?, ?, ?)
+      (id, trip_id, item_id, traveler_id, status)
+     VALUES (?, ?, ?, ?, ?)
      ON DUPLICATE KEY UPDATE status = VALUES(status), updated_at = CURRENT_TIMESTAMP`,
-    [randomUUID(), itemId, travelerId, status]
+    [randomUUID(), activeTripId, itemId, travelerId, status]
   );
 }
 
@@ -3137,8 +3284,8 @@ export async function unlockDocumentItem(id: string, passcode: string) {
   const [rows] = await getAppPool().execute<DbRow[]>(
     `SELECT external_url, requires_passcode, passcode_salt, passcode_hash
      FROM document_items
-     WHERE id = ?`,
-    [id]
+     WHERE id = ? AND trip_id = ?`,
+    [id, activeTripId]
   );
   const row = rows[0];
 

@@ -679,7 +679,7 @@ function destinationReminderItems(templateId: SetupTemplateId, context: SetupGen
       ];
     case "japan-general":
       return [
-        "Check passport validity and official visa / entry requirement sources for every traveler; this app is not legal advice.",
+        "Check passport validity and official visa / entry requirement sources for every traveler before relying on the plan.",
         "Buy or confirm travel insurance and save safe provider contact details.",
         `Confirm accommodation names, dates, check-in windows, and safe address notes for ${context.overnightCities.join(", ")}.`,
         "Prepare eSIM or pocket WiFi activation, pickup, and return details before departure.",
