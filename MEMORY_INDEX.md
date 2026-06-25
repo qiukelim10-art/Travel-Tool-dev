@@ -43,17 +43,16 @@
 - The latest Shell + Today browser-comment pass refines the route map into a vintage postcard illustration: muted parchment card, real local SVG country assets for Japan/Korea/Italy, small circular destination dots, dashed route support, reusable `TripPostmark`, non-stretched SOS rail, and matching top-nav/access/content width.
 - The destination-derived visual/SOS coverage now includes local static route-map silhouettes and emergency-contact data for Japan, Korea, China, United Kingdom, France, Italy, Switzerland, Spain, Austria, Czechia, and Hungary. This remains static/local data with no paid map API, no AI map generation, and graceful fallback for unsupported destinations.
 - The route-stop-driven Today visual pass now supports multi-country SOS groups and corrected multi-country map dot positioning: a route such as London -> Barcelona -> Paris resolves to GB/ES/FR, shows route dots inside each country panel, and surfaces United Kingdom, Spain, and France emergency-number groups from the same route-derived country list.
-- The user accepted the current uncommitted Shell + Today branch work on `codex/ui-shell-today-journal-cockpit`. Final pre-commit validation passed with lint, build, local/LAN page checks, health API check, and route/SOS smoke; the branch is ready for staging, commit, and merge once the user confirms what to do with local `Image Reference/` design-reference files.
+- The Shell + Today UI refresh is committed and merged to `master`; local `master` now tracks GitHub `origin/main` at `https://github.com/qiukelim10-art/Travel-Tool-dev` after the initial push.
 
 ## Highest Priority Task
 
-- Commit and merge the accepted local branch `codex/ui-shell-today-journal-cockpit` when the user explicitly asks; do not push or deploy unless separately requested.
-- Decide whether to include the untracked `Image Reference/` files in the UI branch commit or keep them local-only as design references.
+- Continue the UI refresh page-by-page: Itinerary, Bookings, Budget, and More/Prep, while keeping APIs, schemas, access control, setup generation, payment, and deployment unchanged unless explicitly requested.
 - Review the production access-controlled controlled pilot after workspace-boundary deployment using the private link saved outside the repo at `C:\Users\qiuke\Documents\Italy Trip 2026 Controlled Pilot Access 2026-06-22.txt`.
 - Pause deeper feature work while the UI design refresh is underway.
 - Do not run setup generation against the current production `active-trip` without explicit destructive approval; current production private-link counts are reminders 11, bookings 14, itinerary 11, expenses 0, packing 16, and documents 11.
 - Review the polished local `/pilot` bilingual manual pilot sales page; keep the page framed around the whole group's travel experience rather than planner-only pain. Do not deploy or push until the user explicitly asks.
-- Git push from this checkout needs a remote configured first; the Vercel production deployment has already been completed through the linked Vercel project.
+- GitHub remote `origin` is configured to `qiukelim10-art/Travel-Tool-dev`; local `master` tracks remote `main`.
 - Review `codex/setup-template-generation` locally with the first-entry setup gate only if that old branch is explicitly resumed; do not push or deploy until explicitly requested.
 - Keep the approved access-control foundation on `master` after merge, but do not deploy production until the user asks for the final batch deployment.
 - Before the future production deployment, apply the updated managed schema so `trip_access_controls` exists; after deploy, run first-time access setup, save the private link and one-time owner recovery token outside the app, and share the private link with travelers.

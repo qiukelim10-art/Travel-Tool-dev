@@ -2,13 +2,12 @@
 
 ## Current Priority
 
-- The user accepted the local Shell + Today UI branch work on `codex/ui-shell-today-journal-cockpit`; next action is to commit and merge when explicitly requested. Do not push or deploy unless the user asks.
-- Before staging the accepted branch, decide whether the untracked `Image Reference/` design-reference screenshots should be committed or kept local-only.
-- After this branch is committed and merged, continue the UI refresh page-by-page: Itinerary, Bookings, Budget, and More/Prep, while keeping APIs, schemas, access control, setup generation, payment, and deployment unchanged unless explicitly requested.
+- The Shell + Today UI branch work is committed, merged to `master`, and pushed to GitHub `origin/main` at `qiukelim10-art/Travel-Tool-dev`.
+- Continue the UI refresh page-by-page: Itinerary, Bookings, Budget, and More/Prep, while keeping APIs, schemas, access control, setup generation, payment, and deployment unchanged unless explicitly requested.
 - Keep destination visuals generated from current workspace settings. Maps, postmarks, route pins, and visual tone must derive from `trip.destination`, `routeCities`, and `routeLabel`; do not hardcode Italy, Japan, or any other destination into shared UI components.
 - Pause deeper feature work while the UI design refresh is underway. The approved direction is Travel Journal skin plus Cockpit interaction.
 - Review the production access-controlled workspace after deployment `dpl_4XGZ3zk2jB839zLgicMBthR13oDu` using the private link saved outside the repo at `C:\Users\qiuke\Documents\Italy Trip 2026 Controlled Pilot Access 2026-06-22.txt`.
-- `codex/workspace-boundary-foundation` is merged to `master` and deployed to production. Git push still needs a remote configured before it can be completed from this checkout.
+- `codex/workspace-boundary-foundation` is merged to `master` and deployed to production. GitHub remote `origin` is now configured and local `master` tracks remote `main`.
 - Production preflight and post-deploy smoke confirmed the managed-schema compatibility path is additive, and the protected production workspace currently has reminders 11, bookings 14, itinerary 11, expenses 0, packing 16, and documents 11.
 - Do not run production setup generation against the current `active-trip` unless the user explicitly approves resetting the existing production workspace. The merged branch scopes reset by `trip_id`, but generation still replaces active-trip content.
 - All Templates Context-Aware Engine v1 and the Japan general template quality sprint are now committed, merged to `master`, and deployed to production.
@@ -44,7 +43,7 @@
 - If the expanded map/SOS coverage is accepted, generate quick smoke workspaces or temporary settings for each supported country to visually confirm map scale, route dot placement, and emergency modal content on desktop and 390px mobile.
 - After the corrected Shell + Today UI refresh is accepted, continue the UI refresh page-by-page, starting with the pages exposed through the main nav: Itinerary, Bookings, Budget, and More/Prep, while keeping APIs, schemas, access control, and setup generation unchanged.
 - If the user wants more supported countries later, add real local SVG assets and visual city coordinates behind `src/components/TripRouteMap.tsx` while keeping the same workspace-derived `countryCode`, `countryName`, and destination-coordinate data boundary.
-- Configure a git remote if this project should be pushed to GitHub or another remote repository from this checkout.
+- Keep `origin` pointed at `https://github.com/qiukelim10-art/Travel-Tool-dev.git` unless the user explicitly asks to move the project to a different remote.
 - Later v2 product quality can add editable persisted budget categories, an editable emergency-card model, or deeper per-destination content tuning after workspace boundary risk is reduced.
 - If Guided Setup v1 is accepted, consider adding a non-destructive preview-only mode or setup-history note before adding more templates.
 - Later mobile bug batch can focus on setup form density and native date input ergonomics if real phone review finds them awkward; no major mobile layout refactor was done in this polish task.

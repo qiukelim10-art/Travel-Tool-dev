@@ -1,5 +1,11 @@
 # Progress
 
+## 2026-06-25
+
+- Configured GitHub remote `origin` as `https://github.com/qiukelim10-art/Travel-Tool-dev.git`, merged the remote `main` initialization README without force-pushing, and pushed local `master` to remote `main`.
+- Confirmed local `.gitignore` excludes `.env*`, `.next`, `node_modules`, `.vercel`, CodeGraph runtime files, logs, and build artifacts before pushing. The pushed project keeps `.env.example` only and does not include local `.env.local`.
+- No business code, API route, database schema, access-control behavior, UI behavior, or production deployment was changed for the GitHub push.
+
 ## 2026-06-24
 
 - User accepted the current uncommitted Shell + Today UI branch work on `codex/ui-shell-today-journal-cockpit`. Final pre-commit validation passed with `npm run lint`, `npm run build`, desktop `http://localhost:3107/` page 200, LAN `http://192.168.0.7:3107/` page 200, `/api/health` 200 with `database: ready`, and a local route/SOS smoke confirming London -> Barcelona -> Paris resolves to GB/ES/FR with UK, Spain, and France emergency-number groups. `package.json` still has no `test` script.
