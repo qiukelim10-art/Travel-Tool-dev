@@ -3,7 +3,8 @@
 ## Current Priority
 
 - The Shell + Today UI branch work is committed, merged to `master`, and pushed to GitHub `origin/main` at `qiukelim10-art/Travel-Tool-dev`.
-- Continue the UI refresh page-by-page: Itinerary, Bookings, Budget, and More/Prep, while keeping APIs, schemas, access control, setup generation, payment, and deployment unchanged unless explicitly requested.
+- The Itinerary UI refresh is accepted locally on `codex/ui-itinerary-journal-cockpit` and is ready for the user-requested commit/merge step when approved.
+- Continue the UI refresh page-by-page after the Itinerary branch is committed and merged: Bookings next, then Budget and More/Prep, while keeping APIs, schemas, access control, setup generation, payment, and deployment unchanged unless explicitly requested.
 - Keep destination visuals generated from current workspace settings. Maps, postmarks, route pins, and visual tone must derive from `trip.destination`, `routeCities`, and `routeLabel`; do not hardcode Italy, Japan, or any other destination into shared UI components.
 - Pause deeper feature work while the UI design refresh is underway. The approved direction is Travel Journal skin plus Cockpit interaction.
 - Review the production access-controlled workspace after deployment `dpl_4XGZ3zk2jB839zLgicMBthR13oDu` using the private link saved outside the repo at `C:\Users\qiuke\Documents\Italy Trip 2026 Controlled Pilot Access 2026-06-22.txt`.
@@ -39,9 +40,9 @@
 
 ## Suggested Next Feature
 
+- After the accepted Itinerary UI branch is committed and merged, start the Bookings page UI refresh using the same Travel Journal + Cockpit direction and preserve all booking CRUD, owner, amount, status, filter, i18n, and access-control behavior.
 - If the route-stop-driven Today visuals are accepted, consider adding a small route-map smoke script for supported city fixtures so country detection, multi-country rendering, and SOS country selection can be regression-checked without manual browser setup.
 - If the expanded map/SOS coverage is accepted, generate quick smoke workspaces or temporary settings for each supported country to visually confirm map scale, route dot placement, and emergency modal content on desktop and 390px mobile.
-- After the corrected Shell + Today UI refresh is accepted, continue the UI refresh page-by-page, starting with the pages exposed through the main nav: Itinerary, Bookings, Budget, and More/Prep, while keeping APIs, schemas, access control, and setup generation unchanged.
 - If the user wants more supported countries later, add real local SVG assets and visual city coordinates behind `src/components/TripRouteMap.tsx` while keeping the same workspace-derived `countryCode`, `countryName`, and destination-coordinate data boundary.
 - Keep `origin` pointed at `https://github.com/qiukelim10-art/Travel-Tool-dev.git` unless the user explicitly asks to move the project to a different remote.
 - Later v2 product quality can add editable persisted budget categories, an editable emergency-card model, or deeper per-destination content tuning after workspace boundary risk is reduced.

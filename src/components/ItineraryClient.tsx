@@ -160,7 +160,6 @@ export function ItineraryClient({ defaultCurrencies }: ItineraryClientProps) {
 
     return groups;
   }, [allowedCurrencySet, expenses]);
-
   async function loadItems() {
     setLoading(true);
     setError(null);
@@ -466,66 +465,62 @@ export function ItineraryClient({ defaultCurrencies }: ItineraryClientProps) {
   }
 
   return (
-    <div className="w-full max-w-full min-w-0 space-y-5">
-      <div className="travel-panel flex w-full max-w-full min-w-0 flex-col gap-3 p-3 md:flex-row md:items-center md:justify-between">
-        <div className="scroll-fade-x -mx-1 flex max-w-full min-w-0 gap-2 overflow-x-auto px-1 pb-1 md:mx-0 md:pb-0">
-          {cityFilters.map((city) => (
-            <button
-              key={city}
-              type="button"
-              onClick={() => setSelectedCity(city)}
-              className={`shrink-0 rounded-md border px-3 py-2 text-sm font-semibold ${
-                selectedCity === city
-                  ? "border-moss bg-moss text-white"
-                  : "border-zinc-200 bg-white text-zinc-700"
-              }`}
-            >
-              {city === "All" ? translateOption(language, city) : city}
-            </button>
-          ))}
-        </div>
-        <button
-          type="button"
-          onClick={formOpen ? resetForm : openAddForm}
-          disabled={!canEdit}
-          className="w-full max-w-full rounded-md bg-moss px-3 py-2 text-sm font-semibold text-white sm:w-auto"
-        >
-          {formOpen ? t("itinerary.closeForm") : t("itinerary.addItem")}
-        </button>
-      </div>
-
-      <div className="scroll-fade-x -mx-1 flex max-w-full min-w-0 gap-2 overflow-x-auto px-1 pb-1">
-        <button
-          type="button"
-          onClick={() => setSelectedDate("All")}
-          className={`shrink-0 rounded-md border px-3 py-2 text-sm font-semibold ${
-            selectedDate === "All"
-              ? "border-moss bg-moss text-white"
-              : "border-zinc-200 bg-white text-zinc-700"
-          }`}
-        >
-          {t("itinerary.allDates")}
-        </button>
-        {dateOptions.map((date) => (
+    <div className="itinerary-workspace">
+      <section className="itinerary-control-card" aria-label={t("itinerary.controlsLabel")}>
+        <div className="itinerary-control-card__header">
           <button
-            key={date}
             type="button"
-            onClick={() => setSelectedDate(date)}
-            className={`shrink-0 rounded-md border px-3 py-2 text-sm font-semibold ${
-              selectedDate === date
-                ? "border-moss bg-moss text-white"
-                : "border-zinc-200 bg-white text-zinc-700"
-            }`}
+            onClick={formOpen ? resetForm : openAddForm}
+            className="itinerary-action-button itinerary-action-button--primary"
           >
-            {formatDateLabel(date)}
+            {formOpen ? t("itinerary.closeForm") : t("itinerary.addItem")}
           </button>
-        ))}
-      </div>
+        </div>
+
+        <div className="itinerary-filter-group">
+          <div className="itinerary-filter-group__label">{t("itinerary.cityFilter")}</div>
+          <div className="scroll-fade-x itinerary-chip-row" role="list" aria-label={t("itinerary.cityFilter")}>
+            {cityFilters.map((city) => (
+              <button
+                key={city}
+                type="button"
+                onClick={() => setSelectedCity(city)}
+                className={`itinerary-chip ${selectedCity === city ? "itinerary-chip--active" : ""}`}
+              >
+                {city === "All" ? translateOption(language, city) : city}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="itinerary-filter-group">
+          <div className="itinerary-filter-group__label">{t("itinerary.dateFilter")}</div>
+          <div className="scroll-fade-x itinerary-chip-row" role="list" aria-label={t("itinerary.dateFilter")}>
+            <button
+              type="button"
+              onClick={() => setSelectedDate("All")}
+              className={`itinerary-chip ${selectedDate === "All" ? "itinerary-chip--active" : ""}`}
+            >
+              {t("itinerary.allDates")}
+            </button>
+            {dateOptions.map((date) => (
+              <button
+                key={date}
+                type="button"
+                onClick={() => setSelectedDate(date)}
+                className={`itinerary-chip ${selectedDate === date ? "itinerary-chip--active" : ""}`}
+              >
+                {formatDateLabel(date)}
+              </button>
+            ))}
+          </div>
+        </div>
+      </section>
 
       {formOpen ? (
         <form
           onSubmit={submitItem}
-          className="itinerary-form box-border w-full max-w-full min-w-0 overflow-hidden rounded-lg border border-zinc-200 bg-white p-4 shadow-soft"
+          className="itinerary-form itinerary-editor-card mobile-safe-form box-border w-full max-w-full min-w-0 overflow-hidden"
         >
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="min-w-0">
@@ -540,7 +535,7 @@ export function ItineraryClient({ defaultCurrencies }: ItineraryClientProps) {
               <button
                 type="button"
                 onClick={resetForm}
-                className="max-w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold text-ink"
+                className="itinerary-action-button itinerary-action-button--ghost max-w-full"
               >
                 {t("itinerary.cancelEdit")}
               </button>
@@ -644,7 +639,7 @@ export function ItineraryClient({ defaultCurrencies }: ItineraryClientProps) {
             <button
               type="submit"
               disabled={submitting}
-              className="box-border w-full max-w-full rounded-md bg-moss px-3 py-2 text-base font-semibold text-white disabled:opacity-60 sm:w-auto sm:text-sm"
+              className="itinerary-action-button itinerary-action-button--primary box-border w-full max-w-full disabled:opacity-60 sm:w-auto"
             >
               {submitting ? t("common.saving") : editingId ? t("bookings.saveChanges") : t("itinerary.addButton")}
             </button>
@@ -652,7 +647,7 @@ export function ItineraryClient({ defaultCurrencies }: ItineraryClientProps) {
               type="button"
               onClick={resetForm}
               disabled={submitting}
-              className="box-border w-full max-w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-base font-semibold text-ink disabled:opacity-60 sm:w-auto sm:text-sm"
+              className="itinerary-action-button itinerary-action-button--ghost box-border w-full max-w-full disabled:opacity-60 sm:w-auto"
             >
               {editingId ? t("itinerary.cancelEdit") : t("itinerary.closeForm")}
             </button>
@@ -664,7 +659,7 @@ export function ItineraryClient({ defaultCurrencies }: ItineraryClientProps) {
         <p
           role="status"
           aria-live="polite"
-          className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800"
+          className="itinerary-inline-status itinerary-inline-status--success"
         >
           {notice}
         </p>
@@ -673,14 +668,14 @@ export function ItineraryClient({ defaultCurrencies }: ItineraryClientProps) {
       {error ? (
         <div
           role="alert"
-          className="flex flex-col gap-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 sm:flex-row sm:items-center sm:justify-between"
+          className="itinerary-inline-status itinerary-inline-status--error flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
         >
           <p>{error}</p>
           <button
             type="button"
             onClick={() => void loadItems()}
             disabled={loading}
-            className="rounded-md border border-red-200 bg-white px-3 py-2 text-sm font-semibold text-red-700 disabled:opacity-60"
+            className="itinerary-action-button itinerary-action-button--ghost disabled:opacity-60"
           >
             {loading ? t("common.retrying") : t("common.retry")}
           </button>
@@ -688,56 +683,61 @@ export function ItineraryClient({ defaultCurrencies }: ItineraryClientProps) {
       ) : null}
 
       {loading ? (
-        <p role="status" aria-live="polite" className="text-sm text-zinc-600">
+        <p role="status" aria-live="polite" className="itinerary-loading-card">
           {t("itinerary.loading")}
         </p>
       ) : null}
 
       {!loading && visibleItems.length === 0 ? (
-        <p className="rounded-lg border border-zinc-200 bg-white px-4 py-8 text-sm text-zinc-600 shadow-soft">
+        <p className="itinerary-empty-card">
           {t("itinerary.empty")}
         </p>
       ) : null}
 
-      <div className="space-y-5">
-        {groupedItems.map((group) => (
-          <section key={group.date} className="route-line space-y-3 pl-9">
-            <div className="relative flex items-center gap-3">
-              <span className="route-dot absolute -left-9 top-0" />
-              <h2 className="text-lg font-semibold text-ink">{group.date}</h2>
-              <span className="h-px flex-1 bg-route/20" />
-            </div>
-            <div className="grid gap-3">
-              {group.items.map((item) => (
-                <ItineraryCard
-                  key={item.id}
-                  item={item}
-                  expenses={linkedExpensesByItem.get(item.id) ?? []}
-                  travelers={expenseFormTravelers}
-                  travelerNameById={travelerNameById}
-                  expenseForm={expenseFormItemId === item.id ? expenseForm : null}
-                  currencyOptions={currencyOptions}
-                  editingExpenseId={expenseFormItemId === item.id ? editingExpenseId : null}
-                  expenseSubmitting={expenseSubmitting}
-                  deletingId={deletingId}
-                  deletingExpenseId={deletingExpenseId}
-                  canEdit={canEdit}
-                  onEdit={startEditing}
-                  onDelete={removeItem}
-                  onAddExpense={openExpenseForm}
-                  onEditExpense={startExpenseEditing}
-                  onDeleteExpense={removeExpense}
-                  onSubmitExpense={submitExpense}
-                  onCancelExpense={resetExpenseForm}
-                  onExpenseFormChange={(updater) =>
-                    setExpenseForm((current) => (current ? updater(current) : current))
-                  }
-                />
-              ))}
-            </div>
-          </section>
-        ))}
-      </div>
+      <section className="itinerary-journal-grid" aria-label={t("itinerary.timeline")}>
+        <div className="itinerary-timeline">
+          {groupedItems.map((group, groupIndex) => (
+            <section key={group.date} className="itinerary-day-section route-line">
+              <div className="itinerary-day-section__header">
+                <span className="route-dot" />
+                <div>
+                  <p>{t("dashboard.day", { day: groupIndex + 1 })}</p>
+                  <h2>{group.date}</h2>
+                </div>
+                <span>{group.items.length}</span>
+              </div>
+              <div className="itinerary-day-section__cards">
+                {group.items.map((item) => (
+                  <ItineraryCard
+                    key={item.id}
+                    item={item}
+                    expenses={linkedExpensesByItem.get(item.id) ?? []}
+                    travelers={expenseFormTravelers}
+                    travelerNameById={travelerNameById}
+                    expenseForm={expenseFormItemId === item.id ? expenseForm : null}
+                    currencyOptions={currencyOptions}
+                    editingExpenseId={expenseFormItemId === item.id ? editingExpenseId : null}
+                    expenseSubmitting={expenseSubmitting}
+                    deletingId={deletingId}
+                    deletingExpenseId={deletingExpenseId}
+                    canEdit={canEdit}
+                    onEdit={startEditing}
+                    onDelete={removeItem}
+                    onAddExpense={openExpenseForm}
+                    onEditExpense={startExpenseEditing}
+                    onDeleteExpense={removeExpense}
+                    onSubmitExpense={submitExpense}
+                    onCancelExpense={resetExpenseForm}
+                    onExpenseFormChange={(updater) =>
+                      setExpenseForm((current) => (current ? updater(current) : current))
+                    }
+                  />
+                ))}
+              </div>
+            </section>
+          ))}
+        </div>
+      </section>
     </div>
   );
 }
@@ -920,36 +920,65 @@ function ItineraryCard({
   }
 
   return (
-    <article className="travel-panel p-3">
-      <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0 flex-1">
-          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-stamp">
+    <article className="itinerary-item-card">
+      <div className="itinerary-item-card__header">
+        <div className="itinerary-item-card__time">
+          <p>
             {formatTimeRange(item, t("itinerary.flexibleTime"))}
           </p>
-          <h3 className="mt-1 text-lg font-semibold text-ink sm:text-xl">{item.title}</h3>
-          <div className="mt-1 flex flex-wrap gap-1.5 text-sm text-zinc-600">
+          <span>{item.travelDate}</span>
+        </div>
+        <div className="itinerary-item-card__title">
+          <h3>{item.title}</h3>
+          <div>
             <span>{item.city}</span>
             {item.location ? <span>- {item.location}</span> : null}
           </div>
         </div>
-        <div className="flex max-w-[52%] shrink-0 flex-wrap justify-end gap-1.5 sm:max-w-none sm:gap-2">
-          {mapsQuery ? (
-            <a
-              href={googleMapsSearchUrl(mapsQuery)}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="rounded-md bg-moss px-2 py-1.5 text-xs font-semibold text-white sm:px-3 sm:py-2 sm:text-sm"
+        <div className="itinerary-item-card__side" aria-label={t("linkedExpenses.title")}>
+          <section className="itinerary-card-summary">
+            <span className="itinerary-card-summary__stat itinerary-card-summary__stat--expenses">
+              {t("linkedExpenses.expensesCount", { count: expenses.length })}
+            </span>
+            {mapsQuery ? (
+              <a
+                href={googleMapsSearchUrl(mapsQuery)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="itinerary-action-button itinerary-action-button--primary itinerary-card-summary__action itinerary-card-summary__action--map"
+              >
+                <span className="sm:hidden">{t("common.map")}</span>
+                <span className="hidden sm:inline">{t("itinerary.openMaps")}</span>
+              </a>
+            ) : null}
+            <span className="itinerary-card-summary__stat itinerary-card-summary__stat--outstanding">
+              {t("linkedExpenses.outstanding", { amount: outstandingSummary })}
+            </span>
+            <button
+              type="button"
+              onClick={() => setExpenseDetailsOpen((current) => !current)}
+              className="itinerary-action-button itinerary-action-button--ghost itinerary-card-summary__action itinerary-card-summary__action--details"
             >
-              <span className="sm:hidden">{t("common.map")}</span>
-              <span className="hidden sm:inline">{t("itinerary.openMaps")}</span>
-            </a>
-          ) : null}
+              <span className="sm:hidden">{t("linkedExpenses.detailsShort")}</span>
+              <span className="hidden sm:inline">
+                {expenseDetailsVisible ? t("linkedExpenses.hideDetails") : t("linkedExpenses.showDetails")}
+              </span>
+            </button>
+          </section>
           {canEdit ? (
-            <>
+            <div className="itinerary-card-actions itinerary-card-actions--editor">
+              <button
+                type="button"
+                onClick={handleAddExpense}
+                className="itinerary-action-button itinerary-action-button--primary"
+              >
+                <span className="sm:hidden">{t("linkedExpenses.addShort")}</span>
+                <span className="hidden sm:inline">{t("linkedExpenses.add")}</span>
+              </button>
               <button
                 type="button"
                 onClick={() => onEdit(item)}
-                className="rounded-md border border-zinc-200 bg-white px-2 py-1.5 text-xs font-semibold text-ink sm:px-3 sm:py-2 sm:text-sm"
+                className="itinerary-action-button itinerary-action-button--ghost"
               >
                 {t("common.edit")}
               </button>
@@ -957,98 +986,58 @@ function ItineraryCard({
                 type="button"
                 onClick={() => void onDelete(item)}
                 disabled={deletingId === item.id}
-                className="rounded-md border border-red-200 bg-white px-2 py-1.5 text-xs font-semibold text-red-700 disabled:opacity-60 sm:px-3 sm:py-2 sm:text-sm"
+                className="itinerary-action-button itinerary-action-button--danger disabled:opacity-60"
               >
                 {deletingId === item.id ? t("common.deleting") : t("common.delete")}
               </button>
-            </>
+            </div>
           ) : null}
         </div>
       </div>
 
-      <div className="mt-3 grid gap-3 md:grid-cols-2">
+      <div className="itinerary-card-details">
         <RichTextBlock title={t("itinerary.details")} value={item.details} />
         <RichTextBlock title={t("itinerary.transport")} value={item.transport} />
         <RichTextBlock title={t("itinerary.meal")} value={item.meal} />
         <RichTextBlock title={t("common.notes")} value={item.notes} />
       </div>
 
-      <section className="mt-3 border-t border-route/10 pt-2">
-        <div className="flex items-center justify-between gap-2">
-          <div className="min-w-0 flex-1">
-            <p className="text-xs font-semibold uppercase tracking-[0.08em] text-terracotta">
-              {t("linkedExpenses.title")}
-            </p>
-            <div className="mt-1 flex flex-wrap gap-1.5 text-xs text-zinc-700 sm:text-sm">
-              <span className="rounded-md bg-zinc-50 px-2 py-1">
-                {t("linkedExpenses.expensesCount", { count: expenses.length })}
-              </span>
-              <span className="rounded-md bg-zinc-50 px-2 py-1">
-                {t("linkedExpenses.outstanding", { amount: outstandingSummary })}
-              </span>
-            </div>
-          </div>
-          <div className="flex shrink-0 gap-1.5 sm:gap-2">
-            <button
-              type="button"
-              onClick={() => setExpenseDetailsOpen((current) => !current)}
-              className="rounded-md border border-zinc-200 bg-white px-2 py-1.5 text-xs font-semibold text-ink sm:px-3 sm:py-2 sm:text-sm"
-            >
-              <span className="sm:hidden">{t("linkedExpenses.detailsShort")}</span>
-              <span className="hidden sm:inline">
-                {expenseDetailsVisible ? t("linkedExpenses.hideDetails") : t("linkedExpenses.showDetails")}
-              </span>
-            </button>
-            {canEdit ? (
-              <button
-                type="button"
-                onClick={handleAddExpense}
-                className="rounded-md bg-moss px-2 py-1.5 text-xs font-semibold text-white sm:px-3 sm:py-2 sm:text-sm"
-              >
-                <span className="sm:hidden">{t("linkedExpenses.addShort")}</span>
-                <span className="hidden sm:inline">{t("linkedExpenses.add")}</span>
-              </button>
-            ) : null}
-          </div>
-        </div>
+      {expenseDetailsVisible ? (
+        <section className="itinerary-expense-details" aria-label={t("linkedExpenses.title")}>
+          {expenseForm ? (
+            <ItineraryExpenseForm
+              item={item}
+              form={expenseForm}
+              travelers={travelers}
+              currencies={currencyOptions}
+              editingExpenseId={editingExpenseId}
+              submitting={expenseSubmitting}
+              onSubmit={onSubmitExpense}
+              onCancel={onCancelExpense}
+              onChange={onExpenseFormChange}
+            />
+          ) : null}
 
-        {expenseDetailsVisible ? (
-          <>
-            {expenseForm ? (
-              <ItineraryExpenseForm
-                item={item}
-                form={expenseForm}
-                travelers={travelers}
-                currencies={currencyOptions}
-                editingExpenseId={editingExpenseId}
-                submitting={expenseSubmitting}
-                onSubmit={onSubmitExpense}
-                onCancel={onCancelExpense}
-                onChange={onExpenseFormChange}
+          <div className="itinerary-expense-list">
+            {expenses.length === 0 ? (
+              <p className="itinerary-expense-empty">
+                {t("linkedExpenses.empty")}
+              </p>
+            ) : null}
+            {expenses.map((expense) => (
+              <ItineraryExpenseCard
+                key={expense.id}
+                expense={expense}
+                travelerNameById={travelerNameById}
+                deletingExpenseId={deletingExpenseId}
+                canEdit={canEdit}
+                onEdit={onEditExpense}
+                onDelete={onDeleteExpense}
               />
-            ) : null}
-
-            <div className="mt-3 grid gap-3">
-              {expenses.length === 0 ? (
-                <p className="rounded-lg bg-zinc-50 px-3 py-4 text-sm text-zinc-600">
-                  {t("linkedExpenses.empty")}
-                </p>
-              ) : null}
-              {expenses.map((expense) => (
-                <ItineraryExpenseCard
-                  key={expense.id}
-                  expense={expense}
-                  travelerNameById={travelerNameById}
-                  deletingExpenseId={deletingExpenseId}
-                  canEdit={canEdit}
-                  onEdit={onEditExpense}
-                  onDelete={onDeleteExpense}
-                />
-              ))}
-            </div>
-          </>
-        ) : null}
-      </section>
+            ))}
+          </div>
+        </section>
+      ) : null}
     </article>
   );
 }
@@ -1100,7 +1089,7 @@ function ItineraryExpenseForm({
   return (
     <form
       onSubmit={(event) => void onSubmit(item, event)}
-      className="mobile-safe-form mt-3 box-border w-full max-w-full min-w-0 overflow-hidden rounded-lg border border-zinc-200 bg-zinc-50 p-3"
+      className="itinerary-expense-form mobile-safe-form mt-3 box-border w-full max-w-full min-w-0 overflow-hidden"
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
@@ -1161,7 +1150,7 @@ function ItineraryExpenseForm({
         />
       </div>
 
-      <fieldset className="mt-3 min-w-0 rounded-lg border border-zinc-200 bg-white p-3">
+      <fieldset className="itinerary-expense-split mt-3 min-w-0">
         <legend className="px-1 text-sm font-semibold text-ink">{t("budget.form.splitAmong")}</legend>
         <div className="mt-2 grid gap-2 sm:grid-cols-2">
           {travelers.map((traveler) => (
@@ -1213,7 +1202,7 @@ function ItineraryExpenseForm({
         <button
           type="submit"
           disabled={submitting}
-          className="w-full max-w-full rounded-md bg-moss px-3 py-2 text-base font-semibold text-white disabled:opacity-60 sm:w-auto sm:text-sm"
+          className="itinerary-action-button itinerary-action-button--primary w-full max-w-full disabled:opacity-60 sm:w-auto"
         >
           {submitting ? t("common.saving") : editingExpenseId ? t("linkedExpenses.saveExpense") : t("linkedExpenses.addExpense")}
         </button>
@@ -1221,7 +1210,7 @@ function ItineraryExpenseForm({
           type="button"
           onClick={onCancel}
           disabled={submitting}
-          className="w-full max-w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-base font-semibold text-ink disabled:opacity-60 sm:w-auto sm:text-sm"
+          className="itinerary-action-button itinerary-action-button--ghost w-full max-w-full disabled:opacity-60 sm:w-auto"
         >
           {t("common.cancel")}
         </button>
@@ -1248,7 +1237,7 @@ function ItineraryExpenseCard({
   const { language, t } = useLanguage();
 
   return (
-    <article className="rounded-lg border border-zinc-200 bg-zinc-50 p-3">
+    <article className="itinerary-expense-card">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
@@ -1281,7 +1270,7 @@ function ItineraryExpenseCard({
           <button
             type="button"
             onClick={() => onEdit(expense)}
-            className="rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold text-ink"
+            className="itinerary-action-button itinerary-action-button--ghost"
           >
             {t("common.edit")}
           </button>
@@ -1289,7 +1278,7 @@ function ItineraryExpenseCard({
             type="button"
             onClick={() => void onDelete(expense)}
             disabled={deletingExpenseId === expense.id}
-            className="rounded-md border border-red-200 bg-white px-3 py-2 text-sm font-semibold text-red-700 disabled:opacity-60"
+            className="itinerary-action-button itinerary-action-button--danger disabled:opacity-60"
           >
             {deletingExpenseId === expense.id ? t("common.deleting") : t("common.delete")}
           </button>
