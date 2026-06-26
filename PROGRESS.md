@@ -2,6 +2,10 @@
 
 ## 2026-06-25
 
+- User accepted the Itinerary page UI refresh on `codex/ui-itinerary-journal-cockpit`; no commit, merge, push, deploy, API change, schema change, access-control change, or setup-generation change has been performed yet.
+- Refreshed `/itinerary` to match the accepted Travel Journal + Cockpit visual direction from Today: journal masthead with route postcard map, simplified filter card, horizontally scrollable city/date chips, compact daily itinerary cards, and a cleaner four-corner card summary/actions layout for Expenses, Outstanding, Map, and Details.
+- Preserved existing itinerary behavior while changing the visual layer only: itinerary add/edit/delete flow, map links, linked expenses display, filters, private-link access, editor/viewer mode, and English/Chinese switching remain on the existing routes and data contracts.
+- Final local validation for the accepted Itinerary UI branch passed with `codegraph status .`, `npm run build`, `npm run lint`, `git diff --check` with CRLF warnings only, desktop `http://localhost:3107/itinerary` 200, current LAN `http://192.168.0.6:3107/itinerary` 200, and `/api/health` 200 with `database: ready`. `package.json` has no `test` script.
 - Configured GitHub remote `origin` as `https://github.com/qiukelim10-art/Travel-Tool-dev.git`, merged the remote `main` initialization README without force-pushing, and pushed local `master` to remote `main`.
 - Confirmed local `.gitignore` excludes `.env*`, `.next`, `node_modules`, `.vercel`, CodeGraph runtime files, logs, and build artifacts before pushing. The pushed project keeps `.env.example` only and does not include local `.env.local`.
 - No business code, API route, database schema, access-control behavior, UI behavior, or production deployment was changed for the GitHub push.
