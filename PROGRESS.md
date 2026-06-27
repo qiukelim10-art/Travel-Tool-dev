@@ -1,5 +1,15 @@
 # Progress
 
+## 2026-06-27
+
+- Prepared the current uncommitted Travel Journal + Cockpit UI refresh batch on `codex/ui-bookings-journal-cockpit`; no commit, merge, push, deploy, API contract change, database schema change, access-control change, setup-generation change, or payment change has been performed yet.
+- Refreshed the Bookings, Budget, More, Packing, Documents, and Settings surfaces toward the accepted Today/Itinerary journal style while preserving existing route, CRUD, filter, i18n, editor/viewer, and private-link access behavior.
+- Addressed follow-up browser review items in the same UI batch: booking cards now keep Edit/Delete near status, booking filter chips are horizontally scrollable on mobile, redundant booking list headings were removed, itinerary card actions are grouped into expense actions plus Map/More, Budget has a lighter summary and local edit form placement, Documents no longer shows the per-traveler status card, and Packing traveler status pills open a visible status menu without card clipping.
+- Added supporting design/reference artifacts under `Image Reference/` and `output/` for the current UI review batch; these are untracked review assets and should be intentionally included or omitted before committing.
+- Verification for the current uncommitted batch passed with `npm run lint`, `npm run build`, and `git diff --check` with CRLF warnings only. Local dev smoke on port `3108` returned 200 for `/`, `/itinerary`, `/bookings`, `/budget`, `/packing`, `/documents`, `/more`, `/settings`, and `/api/health`; current LAN `http://192.168.0.4:3108` returned 200 for `/`, `/bookings`, `/budget`, `/packing`, `/documents`, `/more`, `/settings`, and `/api/health`.
+- Unauthenticated workspace APIs on local dev returned 401 for `/api/bookings`, `/api/expenses`, `/api/itinerary`, `/api/packing`, `/api/documents`, `/api/reminders`, and `/api/trip-settings`, matching the current private-link access-control boundary.
+- Handoff for this uncommitted UI batch was generated outside the repo at `C:\Users\qiuke\AppData\Local\Temp\italy-trip-ui-handoff-2026-06-27.md`.
+
 ## 2026-06-25
 
 - User accepted the Itinerary page UI refresh on `codex/ui-itinerary-journal-cockpit`; no commit, merge, push, deploy, API change, schema change, access-control change, or setup-generation change has been performed yet.

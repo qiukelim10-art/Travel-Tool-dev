@@ -2,9 +2,11 @@
 
 ## Current Priority
 
+- The current uncommitted UI batch on `codex/ui-bookings-journal-cockpit` is verified and ready for user review, staging, and commit decision. It covers Bookings, Budget, More, Packing, Documents, Settings, itinerary card action grouping, reminder/card polish, supporting i18n labels, and review screenshots/reference assets.
+- Before committing, decide whether to include the untracked `Image Reference/` and `output/` review assets or leave them out of the source commit.
+- If the user approves the batch, stage the intended files, commit with the generated UI batch commit message, then decide separately whether to merge/push/deploy.
+- Keep this UI batch scoped to presentation and interaction polish. Do not change APIs, schemas, access control, setup generation, payment, or production data unless explicitly requested.
 - The Shell + Today UI branch work is committed, merged to `master`, and pushed to GitHub `origin/main` at `qiukelim10-art/Travel-Tool-dev`.
-- The Itinerary UI refresh is accepted locally on `codex/ui-itinerary-journal-cockpit` and is ready for the user-requested commit/merge step when approved.
-- Continue the UI refresh page-by-page after the Itinerary branch is committed and merged: Bookings next, then Budget and More/Prep, while keeping APIs, schemas, access control, setup generation, payment, and deployment unchanged unless explicitly requested.
 - Keep destination visuals generated from current workspace settings. Maps, postmarks, route pins, and visual tone must derive from `trip.destination`, `routeCities`, and `routeLabel`; do not hardcode Italy, Japan, or any other destination into shared UI components.
 - Pause deeper feature work while the UI design refresh is underway. The approved direction is Travel Journal skin plus Cockpit interaction.
 - Review the production access-controlled workspace after deployment `dpl_4XGZ3zk2jB839zLgicMBthR13oDu` using the private link saved outside the repo at `C:\Users\qiuke\Documents\Italy Trip 2026 Controlled Pilot Access 2026-06-22.txt`.

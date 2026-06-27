@@ -276,39 +276,74 @@ export function BookingsClient({ participants, defaultCurrencies }: BookingsClie
   }
 
   return (
-    <div className="w-full max-w-full min-w-0 space-y-5">
-      <div className="status-strip grid grid-cols-3 gap-2 p-2">
-        <SummaryPill label={t("bookings.summary.total")} value={String(bookings.length)} />
-        <SummaryPill label={t("bookings.summary.needAction")} value={String(incompleteCount)} />
-        <SummaryPill label={t("common.visible")} value={String(visibleBookings.length)} />
-      </div>
-
-      {!formOpen ? (
-        <section className="travel-panel p-3">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="min-w-0">
-              <p className="text-xs font-semibold uppercase tracking-[0.08em] text-stamp">
-                {t("bookings.editor.eyebrow")}
-              </p>
-              <p className="mt-1 text-sm text-zinc-600">
-                {t("bookings.editor.description")}
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={openAddForm}
-              disabled={!canEdit}
-              className="w-full max-w-full rounded-md bg-moss px-3 py-2 text-sm font-semibold text-white sm:w-auto"
-            >
-              {t("bookings.addItem")}
-            </button>
+    <div className="bookings-workspace">
+      <section className="bookings-control-card" aria-label={t("page.bookings.title")}>
+        <div className="bookings-control-card__header">
+          <div className="bookings-stats-strip">
+            <SummaryPill label={t("bookings.summary.total")} value={String(bookings.length)} />
+            <SummaryPill label={t("bookings.summary.needAction")} value={String(incompleteCount)} />
+            <SummaryPill label={t("common.visible")} value={String(visibleBookings.length)} />
           </div>
-        </section>
-      ) : (
+          <button
+            type="button"
+            onClick={formOpen ? resetForm : openAddForm}
+            data-edit-required={!canEdit ? "true" : undefined}
+            title={!canEdit ? "Editor mode is required to add bookings." : undefined}
+            className="bookings-add-button itinerary-action-button itinerary-action-button--primary"
+          >
+            {formOpen ? t("bookings.closeForm") : t("bookings.addItem")}
+          </button>
+        </div>
+
+        <div className="bookings-filter-group">
+          <div className="bookings-filter-group__label">{t("common.category")}</div>
+          <div className="scroll-fade-x bookings-chip-row" role="list" aria-label={t("common.category")}>
+            {(["All", ...bookingCategories] as const).map((category) => (
+              <FilterChip
+                key={category}
+                active={categoryFilter === category}
+                label={translateOption(language, category)}
+                onClick={() => setCategoryFilter(category as typeof categoryFilter)}
+              />
+            ))}
+          </div>
+        </div>
+
+        <div className="bookings-filter-row">
+          <div className="bookings-filter-group">
+            <div className="bookings-filter-group__label">{t("common.status")}</div>
+            <div className="scroll-fade-x bookings-chip-row" role="list" aria-label={t("common.status")}>
+              {(["All", ...bookingStatuses] as const).map((status) => (
+                <FilterChip
+                  key={status}
+                  active={statusFilter === status}
+                  label={translateOption(language, status)}
+                  onClick={() => setStatusFilter(status as typeof statusFilter)}
+                />
+              ))}
+            </div>
+          </div>
+          <div className="bookings-filter-group">
+            <div className="bookings-filter-group__label">{t("bookings.form.bookedBy")}</div>
+            <div className="scroll-fade-x bookings-chip-row" role="list" aria-label={t("bookings.form.bookedBy")}>
+              {(["All", ...bookingOwnerOptions] as const).map((owner) => (
+                <FilterChip
+                  key={owner}
+                  active={bookedByFilter === owner}
+                  label={owner === "All" ? translateOption(language, owner) : owner}
+                  onClick={() => setBookedByFilter(owner)}
+                />
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {formOpen ? (
         <form
           ref={bookingFormRef}
           onSubmit={submitBooking}
-          className="mobile-safe-form box-border w-full max-w-full min-w-0 rounded-lg border border-zinc-200 bg-white p-4 shadow-soft"
+          className="bookings-form bookings-editor-card mobile-safe-form box-border w-full max-w-full min-w-0 overflow-hidden"
         >
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="min-w-0">
@@ -319,13 +354,15 @@ export function BookingsClient({ participants, defaultCurrencies }: BookingsClie
                 {editingId ? t("bookings.editTitle") : t("bookings.addTitle")}
               </h2>
             </div>
-            <button
-              type="button"
-              onClick={resetForm}
-              className="rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold text-ink"
-            >
-              {editingId ? t("bookings.cancelEdit") : t("bookings.closeForm")}
-            </button>
+            {editingId ? (
+              <button
+                type="button"
+                onClick={resetForm}
+                className="itinerary-action-button itinerary-action-button--ghost max-w-full"
+              >
+                {t("bookings.cancelEdit")}
+              </button>
+            ) : null}
           </div>
 
           <div className="mt-4 grid min-w-0 grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
@@ -415,7 +452,7 @@ export function BookingsClient({ participants, defaultCurrencies }: BookingsClie
               onChange={(updater) => setForm((current) => updater(current))}
             />
           ) : (
-            <p className="mt-3 rounded-md bg-zinc-50 px-3 py-2 text-sm text-zinc-600">
+            <p className="bookings-budget-empty">
               {t("bookings.budget.noAmount")}
             </p>
           )}
@@ -427,53 +464,36 @@ export function BookingsClient({ participants, defaultCurrencies }: BookingsClie
               autoComplete="off"
               value={form.notes ?? ""}
               onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))}
-              className="mt-2 block box-border min-h-24 w-full max-w-full min-w-0 rounded-md border border-zinc-200 bg-white px-3 py-2 text-base text-zinc-700 sm:text-sm"
+              className="bookings-textarea"
               placeholder={t("bookings.form.notesPlaceholder")}
             />
           </label>
 
-          <button
-            type="submit"
-            disabled={submitting}
-            className="mt-4 w-full max-w-full rounded-md bg-moss px-3 py-2 text-base font-semibold text-white disabled:opacity-60 sm:w-auto sm:text-sm"
-          >
-            {submitting ? t("common.saving") : editingId ? t("bookings.saveChanges") : t("bookings.addBookingButton")}
-          </button>
+          <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+            <button
+              type="submit"
+              disabled={submitting}
+              className="itinerary-action-button itinerary-action-button--primary box-border w-full max-w-full disabled:opacity-60 sm:w-auto"
+            >
+              {submitting ? t("common.saving") : editingId ? t("bookings.saveChanges") : t("bookings.addBookingButton")}
+            </button>
+            <button
+              type="button"
+              onClick={resetForm}
+              disabled={submitting}
+              className="itinerary-action-button itinerary-action-button--ghost box-border w-full max-w-full disabled:opacity-60 sm:w-auto"
+            >
+              {editingId ? t("bookings.cancelEdit") : t("bookings.closeForm")}
+            </button>
+          </div>
         </form>
-      )}
-
-      <div className="travel-panel grid gap-3 p-3 sm:grid-cols-3">
-        <SelectField
-          name="booking-filter-category"
-          label={t("common.category")}
-          value={categoryFilter}
-          options={["All", ...bookingCategories]}
-          formatOption={(option) => translateOption(language, option)}
-          onChange={(value) => setCategoryFilter(value as typeof categoryFilter)}
-        />
-        <SelectField
-          name="booking-filter-status"
-          label={t("common.status")}
-          value={statusFilter}
-          options={["All", ...bookingStatuses]}
-          formatOption={(option) => translateOption(language, option)}
-          onChange={(value) => setStatusFilter(value as typeof statusFilter)}
-        />
-        <SelectField
-          name="booking-filter-booked-by"
-          label={t("bookings.form.bookedBy")}
-          value={bookedByFilter}
-          options={["All", ...bookingOwnerOptions]}
-          formatOption={(option) => (option === "All" ? translateOption(language, option) : option)}
-          onChange={(value) => setBookedByFilter(value)}
-        />
-      </div>
+      ) : null}
 
       {notice ? (
         <p
           role="status"
           aria-live="polite"
-          className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800"
+          className="bookings-inline-status bookings-inline-status--success"
         >
           {notice}
         </p>
@@ -482,14 +502,14 @@ export function BookingsClient({ participants, defaultCurrencies }: BookingsClie
       {error ? (
         <div
           role="alert"
-          className="flex flex-col gap-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 sm:flex-row sm:items-center sm:justify-between"
+          className="bookings-inline-status bookings-inline-status--error flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
         >
           <p>{error}</p>
           <button
             type="button"
             onClick={() => void loadBookings()}
             disabled={loading}
-            className="rounded-md border border-red-200 bg-white px-3 py-2 text-sm font-semibold text-red-700 disabled:opacity-60"
+            className="itinerary-action-button itinerary-action-button--ghost disabled:opacity-60"
           >
             {loading ? t("common.retrying") : t("common.retry")}
           </button>
@@ -497,78 +517,34 @@ export function BookingsClient({ participants, defaultCurrencies }: BookingsClie
       ) : null}
 
       {loading ? (
-        <p role="status" aria-live="polite" className="text-sm text-zinc-600">
+        <p role="status" aria-live="polite" className="bookings-loading-card">
           {t("bookings.loading")}
         </p>
       ) : null}
 
       {!loading && visibleBookings.length === 0 ? (
-        <p className="rounded-lg border border-zinc-200 bg-white px-4 py-8 text-sm text-zinc-600 shadow-soft">
+        <p className="bookings-empty-card">
           {t("bookings.empty")}
         </p>
       ) : null}
 
-      <div className="hidden overflow-hidden rounded-lg border border-route/15 bg-white shadow-soft lg:block">
-        <table className="w-full text-left text-sm">
-          <thead className="bg-sky/35 text-xs uppercase tracking-[0.08em] text-zinc-500">
-            <tr>
-              <th className="px-4 py-3">{t("common.category")}</th>
-              <th className="px-4 py-3">{t("common.description")}</th>
-              <th className="px-4 py-3">{t("common.date")}</th>
-              <th className="px-4 py-3">{t("common.owner")}</th>
-              <th className="px-4 py-3">{t("common.amount")}</th>
-              <th className="px-4 py-3">{t("common.status")}</th>
-              <th className="px-4 py-3">{t("common.actions")}</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-zinc-200">
-            {visibleBookings.map((booking) => {
-              const budgetExpense = budgetExpenseByBooking.get(booking.id);
-
-              return (
-                <tr key={booking.id}>
-                  <td className="px-4 py-4 font-medium text-ink">{translateOption(language, booking.category)}</td>
-                  <td className="px-4 py-4">
-                    <p className="font-medium text-ink">{booking.description}</p>
-                    <p className="mt-1 text-zinc-500">{booking.location ?? booking.notes ?? t("common.tbc")}</p>
-                  </td>
-                  <td className="px-4 py-4 text-zinc-600">{booking.date}</td>
-                  <td className="px-4 py-4 text-zinc-600">{booking.bookedBy}</td>
-                  <td className="px-4 py-4 text-zinc-600">
-                    <BookingAmount booking={booking} budgetExpense={budgetExpense} />
-                  </td>
-                  <td className="px-4 py-4">
-                    <StatusBadge status={booking.status} />
-                  </td>
-                  <td className="px-4 py-4">
-                    <ActionButtons
-                      booking={booking}
-                      deletingId={deletingId}
-                      canEdit={canEdit}
-                      onEdit={startEditing}
-                      onDelete={removeBooking}
-                    />
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-
-      <div className="grid gap-3 lg:hidden">
-        {visibleBookings.map((booking) => (
-          <BookingCard
-            key={booking.id}
-            booking={booking}
-            budgetExpense={budgetExpenseByBooking.get(booking.id)}
-            deletingId={deletingId}
-            canEdit={canEdit}
-            onEdit={startEditing}
-            onDelete={removeBooking}
-          />
-        ))}
-      </div>
+      {!loading && visibleBookings.length > 0 ? (
+        <section className="bookings-list-card" aria-label={t("page.bookings.title")}>
+          <div className="bookings-card-grid">
+            {visibleBookings.map((booking) => (
+              <BookingCard
+                key={booking.id}
+                booking={booking}
+                budgetExpense={budgetExpenseByBooking.get(booking.id)}
+                deletingId={deletingId}
+                canEdit={canEdit}
+                onEdit={startEditing}
+                onDelete={removeBooking}
+              />
+            ))}
+          </div>
+        </section>
+      ) : null}
     </div>
   );
 }
@@ -591,15 +567,19 @@ function BookingCard({
   const { language, t } = useLanguage();
 
   return (
-    <article className="travel-panel p-3 sm:p-4">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-stamp">
+    <article className="bookings-item-card">
+      <div className="bookings-item-card__header">
+        <div className="bookings-item-card__title">
+          <p>
             {translateOption(language, booking.category)}
           </p>
-          <h2 className="mt-1 break-words text-lg font-semibold text-ink">{booking.description}</h2>
+          <h3>{booking.description}</h3>
+          <div>
+            <span>{booking.date}</span>
+            <span>{booking.location ?? t("common.tbc")}</span>
+          </div>
         </div>
-        <div className="flex shrink-0 flex-col items-end gap-2">
+        <div className="bookings-item-card__side">
           <StatusBadge status={booking.status} />
           <ActionButtons
             booking={booking}
@@ -610,18 +590,16 @@ function BookingCard({
           />
         </div>
       </div>
-      <dl className="mt-3 grid grid-cols-2 gap-3 text-sm">
-        <Field label={t("common.date")} value={booking.date} />
-        <Field label={t("common.location")} value={booking.location ?? t("common.tbc")} />
+      <dl className="bookings-item-card__details">
         <Field label={t("bookings.form.bookedBy")} value={booking.bookedBy} />
-        <div className="min-w-0">
-          <dt className="text-xs font-semibold uppercase tracking-[0.08em] text-zinc-500">{t("common.amount")}</dt>
+        <div>
+          <dt>{t("common.amount")}</dt>
           <dd className="mt-1">
             <BookingAmount booking={booking} budgetExpense={budgetExpense} />
           </dd>
         </div>
       </dl>
-      {booking.notes ? <p className="mt-2 break-words text-sm leading-6 text-zinc-600">{booking.notes}</p> : null}
+      {booking.notes ? <p className="bookings-item-card__notes">{booking.notes}</p> : null}
     </article>
   );
 }
@@ -636,16 +614,16 @@ function BookingAmount({
   const { t } = useLanguage();
 
   if (!booking.amount || !booking.currency) {
-    return <span className="text-zinc-600">{t("common.tbc")}</span>;
+    return <span className="bookings-amount bookings-amount--empty">{t("common.tbc")}</span>;
   }
 
   return (
-    <div className="flex flex-col items-start gap-1">
-      <span className="font-medium text-zinc-700">{formatMoney(booking.amount, booking.currency)}</span>
+    <div className="bookings-amount">
+      <span>{formatMoney(booking.amount, booking.currency)}</span>
       {budgetExpense ? (
         <a
           href="/budget"
-          className="inline-flex rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-800 ring-1 ring-emerald-200"
+          className="bookings-budget-link"
         >
           {t("bookings.budget.inBudget")}
         </a>
@@ -668,7 +646,7 @@ function BookingBudgetSplitSection({
   const travelerLabels = new Map(travelers.map((traveler) => [traveler.id, traveler.name]));
 
   return (
-    <section className="mt-3 rounded-lg border border-route/15 bg-zinc-50 p-3">
+    <section className="bookings-budget-split">
       <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
           <p className="text-xs font-semibold uppercase tracking-[0.08em] text-terracotta">
@@ -687,7 +665,7 @@ function BookingBudgetSplitSection({
           optionLabels={travelerLabels}
           onChange={(value) => onChange((current) => ({ ...current, budgetPaidByTravelerId: value }))}
         />
-        <label className="flex min-w-0 items-center gap-2 self-end rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold text-ink">
+        <label className="bookings-checkbox-card self-end">
           <input
             type="checkbox"
             name="booking-budget-settled"
@@ -699,11 +677,11 @@ function BookingBudgetSplitSection({
         </label>
       </div>
 
-      <fieldset className="mt-3 min-w-0 rounded-lg border border-zinc-200 bg-white p-3">
+      <fieldset className="bookings-split-fieldset">
         <legend className="px-1 text-sm font-semibold text-ink">{t("budget.form.splitAmong")}</legend>
         <div className="mt-2 grid gap-2 sm:grid-cols-2">
           {travelers.map((traveler) => (
-            <label key={traveler.id} className="flex min-w-0 items-center gap-2 text-sm text-zinc-700">
+            <label key={traveler.id} className="bookings-checkbox-row">
               <input
                 type="checkbox"
                 name="booking-budget-split-traveler"
@@ -729,12 +707,22 @@ function BookingBudgetSplitSection({
 
 function SummaryPill({ label, value }: { label: string; value: string }) {
   return (
-    <div className="compact-stat">
-      <p className="min-h-8 break-words text-[0.65rem] font-semibold uppercase leading-4 tracking-[0.08em] text-zinc-500 sm:min-h-0 sm:text-xs">
-        {label}
-      </p>
-      <p className="mt-1 text-xl font-semibold text-ink sm:text-2xl">{value}</p>
+    <div className="bookings-stat-pill">
+      <small>{label}</small>
+      <strong>{value}</strong>
     </div>
+  );
+}
+
+function FilterChip({ active, label, onClick }: { active: boolean; label: string; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`bookings-chip ${active ? "bookings-chip--active" : ""}`}
+    >
+      {label}
+    </button>
   );
 }
 
@@ -756,13 +744,13 @@ function SelectField({
   onChange: (value: string) => void;
 }) {
   return (
-    <label className="block w-full max-w-full min-w-0 text-sm font-semibold text-ink">
+    <label className="bookings-field">
       {label}
       <select
         name={name}
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="mt-2 block box-border w-full max-w-full min-w-0 rounded-md border border-zinc-200 bg-white px-3 py-2 text-base text-zinc-700 sm:text-sm"
+        className="bookings-input"
       >
         {options.map((option) => (
           <option key={option} value={option}>
@@ -790,7 +778,7 @@ function TextField({
   type?: "date" | "number" | "text";
 }) {
   return (
-    <label className="block w-full max-w-full min-w-0 text-sm font-semibold text-ink">
+    <label className="bookings-field">
       {label}
       <input
         name={name}
@@ -802,7 +790,7 @@ function TextField({
         placeholder={placeholder}
         min={type === "number" ? "0.01" : undefined}
         step={type === "number" ? "0.01" : undefined}
-        className="mt-2 block box-border w-full max-w-full min-w-0 rounded-md border border-zinc-200 bg-white px-3 py-2 text-base text-zinc-700 sm:text-sm"
+        className="bookings-input"
       />
     </label>
   );
@@ -810,9 +798,9 @@ function TextField({
 
 function Field({ label, value }: { label: string; value: string }) {
   return (
-    <div className="min-w-0">
-      <dt className="text-xs font-semibold uppercase tracking-[0.08em] text-zinc-500">{label}</dt>
-      <dd className="mt-1 break-words text-zinc-700">{value}</dd>
+    <div>
+      <dt>{label}</dt>
+      <dd>{value}</dd>
     </div>
   );
 }
@@ -832,27 +820,27 @@ function ActionButtons({
 }) {
   const { t } = useLanguage();
 
-  if (!canEdit) {
-    return null;
-  }
-
   return (
-    <div className="flex flex-wrap justify-end gap-1.5">
+    <div className="bookings-card-actions">
       <button
         type="button"
         onClick={() => onEdit(booking)}
-        className="rounded-md border border-zinc-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-ink sm:px-3 sm:py-2 sm:text-sm"
+        data-edit-required={!canEdit ? "true" : undefined}
+        title={!canEdit ? "Editor mode is required to edit bookings." : undefined}
+        className="itinerary-action-button itinerary-action-button--ghost"
       >
         {t("common.edit")}
       </button>
-      <button
-        type="button"
-        onClick={() => void onDelete(booking)}
-        disabled={deletingId === booking.id}
-        className="rounded-md border border-red-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-red-700 disabled:opacity-60 sm:px-3 sm:py-2 sm:text-sm"
-      >
-        {deletingId === booking.id ? t("common.deleting") : t("common.delete")}
-      </button>
+      {canEdit ? (
+        <button
+          type="button"
+          onClick={() => void onDelete(booking)}
+          disabled={deletingId === booking.id}
+          className="itinerary-action-button itinerary-action-button--danger disabled:opacity-60"
+        >
+          {deletingId === booking.id ? t("common.deleting") : t("common.delete")}
+        </button>
+      ) : null}
     </div>
   );
 }

@@ -1,0 +1,214 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1100" viewBox="0 0 1600 1100">
+  <defs>
+    <linearGradient id="paper" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fffaf2"/>
+      <stop offset="1" stop-color="#f6ead8"/>
+    </linearGradient>
+    <linearGradient id="panel" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fffdf8"/>
+      <stop offset="1" stop-color="#fff4e6"/>
+    </linearGradient>
+    <linearGradient id="terracotta" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#d46b48"/>
+      <stop offset="1" stop-color="#bd5a3d"/>
+    </linearGradient>
+    <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="22" stdDeviation="22" flood-color="#493523" flood-opacity=".12"/>
+    </filter>
+    <filter id="smallShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="10" stdDeviation="12" flood-color="#493523" flood-opacity=".10"/>
+    </filter>
+    <style>
+      .bg { fill: #f7efe3; }
+      .caption { fill: rgba(33,30,26,.52); font: 700 14px Arial, sans-serif; letter-spacing: .08em; text-transform: uppercase; }
+      .shell { fill: url(#paper); stroke: rgba(88,68,50,.1); stroke-width: 1; filter: url(#softShadow); }
+      .nav { fill: rgba(255,252,246,.86); stroke: rgba(88,68,50,.1); }
+      .brand { fill: #211e1a; font: 700 24px Georgia, serif; }
+      .navText { fill: rgba(33,30,26,.64); font: 750 13px Arial, sans-serif; }
+      .activeNav { fill: #3f6746; font: 850 13px Arial, sans-serif; }
+      .eyebrow { fill: #9c5a45; font: 850 13px Arial, sans-serif; letter-spacing: .10em; text-transform: uppercase; }
+      .h1 { fill: #211e1a; font: 650 64px Georgia, serif; letter-spacing: 0; }
+      .h2 { fill: #211e1a; font: 650 30px Georgia, serif; letter-spacing: 0; }
+      .h3 { fill: #211e1a; font: 850 22px Arial, sans-serif; }
+      .body { fill: rgba(33,30,26,.64); font: 500 16px Arial, sans-serif; }
+      .bodySmall { fill: rgba(33,30,26,.58); font: 650 13px Arial, sans-serif; }
+      .label { fill: rgba(156,90,69,.88); font: 850 11px Arial, sans-serif; letter-spacing: .08em; text-transform: uppercase; }
+      .value { fill: #211e1a; font: 850 20px Arial, sans-serif; }
+      .card { fill: url(#panel); stroke: rgba(88,68,50,.1); stroke-width: 1; filter: url(#smallShadow); }
+      .subcard { fill: rgba(255,252,246,.72); stroke: rgba(88,68,50,.08); stroke-width: 1; }
+      .chip { fill: rgba(255,252,246,.82); stroke: rgba(88,68,50,.1); stroke-width: 1; }
+      .chipText { fill: rgba(33,30,26,.70); font: 800 13px Arial, sans-serif; }
+      .chipActive { fill: #3f6746; stroke: rgba(62,102,84,.22); }
+      .chipActiveText { fill: #fffaf2; font: 850 13px Arial, sans-serif; }
+      .btnText { fill: #fffaf2; font: 850 14px Arial, sans-serif; }
+      .ghostText { fill: rgba(33,30,26,.78); font: 850 12px Arial, sans-serif; }
+      .dangerText { fill: #b42318; font: 850 12px Arial, sans-serif; }
+      .statusOk { fill: #ecfdf5; stroke: #bbf7d0; }
+      .statusPending { fill: #fff7ed; stroke: #fed7aa; }
+      .statusNeed { fill: #fff1f2; stroke: #fecdd3; }
+      .statusTextOk { fill: #065f46; font: 850 11px Arial, sans-serif; }
+      .statusTextPending { fill: #9a3412; font: 850 11px Arial, sans-serif; }
+      .statusTextNeed { fill: #9f1239; font: 850 11px Arial, sans-serif; }
+      .mono { fill: rgba(33,30,26,.58); font: 700 13px Arial, sans-serif; }
+      .phoneText { fill: #211e1a; font: 850 15px Arial, sans-serif; }
+      .phoneSmall { fill: rgba(33,30,26,.58); font: 700 11px Arial, sans-serif; }
+      .railLine { stroke: rgba(182,91,66,.28); stroke-width: 2; stroke-dasharray: 6 8; fill: none; }
+      .mapShape { fill: rgba(63,103,70,.18); stroke: rgba(63,103,70,.32); stroke-width: 2; }
+      .routeDot { fill: #bd5a3d; stroke: #fffaf2; stroke-width: 3; }
+    </style>
+  </defs>
+
+  <rect class="bg" width="1600" height="1100"/>
+  <text x="80" y="56" class="caption">Bookings page UI render · Travel Journal + Cockpit direction</text>
+
+  <!-- Desktop frame -->
+  <text x="80" y="95" class="caption">Desktop</text>
+  <rect x="80" y="118" width="1030" height="900" rx="36" class="shell"/>
+
+  <rect x="112" y="145" width="966" height="64" rx="24" class="nav"/>
+  <text x="142" y="184" class="brand">Italy Trip 2026</text>
+  <text x="398" y="183" class="navText">Today</text>
+  <text x="466" y="183" class="navText">Itinerary</text>
+  <text x="560" y="183" class="activeNav">Bookings</text>
+  <text x="658" y="183" class="navText">Budget</text>
+  <text x="740" y="183" class="navText">More</text>
+  <rect x="904" y="160" width="132" height="34" rx="17" class="chip"/>
+  <text x="928" y="182" class="chipText">Editor mode</text>
+
+  <!-- Desktop masthead -->
+  <rect x="112" y="236" width="966" height="230" rx="28" class="card"/>
+  <text x="148" y="287" class="eyebrow">Booking desk</text>
+  <text x="148" y="352" class="h1">Bookings</text>
+  <text x="148" y="386" class="body">Keep flights, stays, trains, and activities scan-ready without changing booking CRUD.</text>
+  <rect x="148" y="412" width="96" height="32" rx="16" class="chip"/><text x="168" y="433" class="chipText">14 total</text>
+  <rect x="258" y="412" width="142" height="32" rx="16" class="chip"/><text x="278" y="433" class="chipText">5 need action</text>
+  <rect x="414" y="412" width="130" height="32" rx="16" class="chip"/><text x="434" y="433" class="chipText">10 visible</text>
+  <rect x="772" y="268" width="240" height="154" rx="22" fill="#fff8eb" stroke="rgba(88,68,50,.1)" transform="rotate(-2 892 345)"/>
+  <path d="M835 362 C860 315, 928 296, 966 334 C939 346, 943 389, 894 397 C858 402, 850 380, 835 362Z" class="mapShape"/>
+  <path d="M858 372 C886 341, 924 345, 952 335" class="railLine"/>
+  <circle cx="858" cy="372" r="7" class="routeDot"/>
+  <circle cx="952" cy="335" r="7" class="routeDot"/>
+  <text x="806" y="302" class="label">Route map</text>
+  <text x="808" y="405" class="mono">Rome · Florence · Venice</text>
+  <circle cx="1002" cy="277" r="42" fill="none" stroke="#bd5a3d" stroke-width="3" opacity=".5"/>
+  <circle cx="1002" cy="277" r="34" fill="none" stroke="#bd5a3d" stroke-width="1.5" opacity=".45"/>
+  <text x="976" y="273" class="label" fill="#bd5a3d">ITALY</text>
+  <text x="980" y="291" class="phoneSmall">OCT 2026</text>
+
+  <!-- Desktop controls -->
+  <rect x="112" y="490" width="966" height="180" rx="24" class="card"/>
+  <rect x="904" y="518" width="140" height="40" rx="20" fill="url(#terracotta)"/>
+  <text x="927" y="543" class="btnText">Add booking</text>
+  <text x="146" y="532" class="label">Category</text>
+  <rect x="146" y="548" width="64" height="34" rx="17" class="chipActive"/><text x="167" y="570" class="chipActiveText">All</text>
+  <rect x="220" y="548" width="78" height="34" rx="17" class="chip"/><text x="244" y="570" class="chipText">Hotel</text>
+  <rect x="308" y="548" width="78" height="34" rx="17" class="chip"/><text x="330" y="570" class="chipText">Flight</text>
+  <rect x="396" y="548" width="76" height="34" rx="17" class="chip"/><text x="419" y="570" class="chipText">Train</text>
+  <rect x="482" y="548" width="104" height="34" rx="17" class="chip"/><text x="504" y="570" class="chipText">Activity</text>
+
+  <text x="146" y="620" class="label">Status</text>
+  <rect x="146" y="636" width="64" height="34" rx="17" class="chipActive"/><text x="167" y="658" class="chipActiveText">All</text>
+  <rect x="220" y="636" width="108" height="34" rx="17" class="chip"/><text x="240" y="658" class="chipText">Confirmed</text>
+  <rect x="338" y="636" width="90" height="34" rx="17" class="chip"/><text x="360" y="658" class="chipText">Pending</text>
+  <rect x="438" y="636" width="150" height="34" rx="17" class="chip"/><text x="458" y="658" class="chipText">Need confirmation</text>
+
+  <text x="650" y="620" class="label">Booked by</text>
+  <rect x="650" y="636" width="64" height="34" rx="17" class="chipActive"/><text x="671" y="658" class="chipActiveText">All</text>
+  <rect x="724" y="636" width="78" height="34" rx="17" class="chip"/><text x="744" y="658" class="chipText">Qiu Ke</text>
+  <rect x="812" y="636" width="76" height="34" rx="17" class="chip"/><text x="832" y="658" class="chipText">Mum</text>
+
+  <!-- Desktop cards -->
+  <rect x="112" y="696" width="966" height="292" rx="28" class="card"/>
+  <text x="146" y="742" class="h2">Ready for review</text>
+  <text x="146" y="768" class="bodySmall">Same edit, delete, retry, and budget-link behavior. Cards replace the dense table.</text>
+
+  <rect x="146" y="796" width="278" height="156" rx="22" class="subcard"/>
+  <text x="170" y="826" class="label">Hotel</text>
+  <text x="170" y="858" class="h3">Rome apartment</text>
+  <text x="170" y="885" class="bodySmall">Oct 8 · Trastevere</text>
+  <text x="170" y="912" class="value">EUR 780</text>
+  <rect x="302" y="900" width="84" height="26" rx="13" class="statusOk"/><text x="318" y="917" class="statusTextOk">In budget</text>
+  <rect x="170" y="928" width="52" height="24" rx="12" class="chip"/><text x="185" y="945" class="ghostText">Edit</text>
+  <rect x="230" y="928" width="66" height="24" rx="12" fill="#fff5f2" stroke="rgba(198,82,82,.22)"/><text x="244" y="945" class="dangerText">Delete</text>
+  <rect x="312" y="804" width="84" height="26" rx="13" class="statusOk"/><text x="328" y="821" class="statusTextOk">Confirmed</text>
+
+  <rect x="444" y="796" width="278" height="156" rx="22" class="subcard"/>
+  <text x="468" y="826" class="label">Flight</text>
+  <text x="468" y="858" class="h3">SIN to Rome</text>
+  <text x="468" y="885" class="bodySmall">Oct 7 · Singapore Airlines</text>
+  <text x="468" y="912" class="value">TBC</text>
+  <rect x="614" y="804" width="82" height="26" rx="13" class="statusPending"/><text x="633" y="821" class="statusTextPending">Pending</text>
+  <rect x="468" y="928" width="52" height="24" rx="12" class="chip"/><text x="483" y="945" class="ghostText">Edit</text>
+  <rect x="528" y="928" width="66" height="24" rx="12" fill="#fff5f2" stroke="rgba(198,82,82,.22)"/><text x="542" y="945" class="dangerText">Delete</text>
+
+  <rect x="742" y="796" width="278" height="156" rx="22" class="subcard"/>
+  <text x="766" y="826" class="label">Train</text>
+  <text x="766" y="858" class="h3">Florence to Venice</text>
+  <text x="766" y="885" class="bodySmall">Oct 12 · Santa Lucia</text>
+  <text x="766" y="912" class="value">EUR 168</text>
+  <rect x="904" y="804" width="96" height="26" rx="13" class="statusNeed"/><text x="918" y="821" class="statusTextNeed">Need check</text>
+  <rect x="766" y="928" width="52" height="24" rx="12" class="chip"/><text x="781" y="945" class="ghostText">Edit</text>
+  <rect x="826" y="928" width="66" height="24" rx="12" fill="#fff5f2" stroke="rgba(198,82,82,.22)"/><text x="840" y="945" class="dangerText">Delete</text>
+
+  <!-- Mobile frame -->
+  <text x="1180" y="95" class="caption">Mobile</text>
+  <rect x="1180" y="118" width="340" height="760" rx="42" fill="#211e1a" filter="url(#softShadow)"/>
+  <rect x="1196" y="138" width="308" height="720" rx="32" fill="#f7efe3"/>
+  <rect x="1216" y="158" width="268" height="92" rx="0" fill="transparent"/>
+  <text x="1220" y="190" class="eyebrow">Booking desk</text>
+  <text x="1220" y="226" fill="#211e1a" font-family="Georgia, 'Times New Roman', serif" font-size="34" font-weight="650">Bookings</text>
+  <rect x="1406" y="170" width="62" height="54" rx="14" fill="#fff8eb" stroke="rgba(88,68,50,.1)" transform="rotate(-4 1437 197)"/>
+  <path d="M1423 203 C1432 184, 1451 183, 1458 196 C1445 199, 1442 211, 1423 203Z" class="mapShape"/>
+  <circle cx="1456" cy="173" r="18" fill="none" stroke="#bd5a3d" stroke-width="2" opacity=".45"/>
+
+  <rect x="1216" y="268" width="268" height="96" rx="22" class="card"/>
+  <rect x="1232" y="284" width="68" height="46" rx="14" class="subcard"/>
+  <text x="1244" y="301" class="label">Total</text><text x="1244" y="323" class="value">14</text>
+  <rect x="1308" y="284" width="74" height="46" rx="14" class="subcard"/>
+  <text x="1320" y="301" class="label">Action</text><text x="1320" y="323" class="value">5</text>
+  <rect x="1390" y="284" width="78" height="46" rx="14" class="subcard"/>
+  <text x="1402" y="301" class="label">Visible</text><text x="1402" y="323" class="value">10</text>
+  <rect x="1232" y="338" width="118" height="28" rx="14" fill="url(#terracotta)"/>
+  <text x="1250" y="356" class="btnText" font-size="11.5">Add booking</text>
+  <rect x="1362" y="338" width="70" height="28" rx="14" class="chipActive"/><text x="1386" y="356" class="chipActiveText" font-size="12">All</text>
+
+  <rect x="1216" y="382" width="268" height="46" rx="20" class="card"/>
+  <rect x="1232" y="392" width="50" height="26" rx="13" class="chipActive"/><text x="1248" y="409" class="chipActiveText" font-size="11">All</text>
+  <rect x="1290" y="392" width="64" height="26" rx="13" class="chip"/><text x="1308" y="409" class="chipText" font-size="11">Hotel</text>
+  <rect x="1362" y="392" width="62" height="26" rx="13" class="chip"/><text x="1380" y="409" class="chipText" font-size="11">Train</text>
+  <rect x="1432" y="392" width="64" height="26" rx="13" class="chip"/><text x="1446" y="409" class="chipText" font-size="11">Flight</text>
+
+  <rect x="1216" y="446" width="268" height="122" rx="22" class="card"/>
+  <text x="1236" y="474" class="label">Hotel</text>
+  <text x="1236" y="502" class="phoneText">Rome apartment</text>
+  <text x="1236" y="525" class="phoneSmall">Oct 8 · Trastevere · Qiu Ke</text>
+  <text x="1236" y="552" class="value" font-size="18">EUR 780</text>
+  <rect x="1394" y="462" width="74" height="24" rx="12" class="statusOk"/><text x="1408" y="478" class="statusTextOk" font-size="10">Confirmed</text>
+  <rect x="1340" y="534" width="56" height="24" rx="12" class="chip"/><text x="1356" y="550" class="ghostText" font-size="10">Edit</text>
+  <rect x="1404" y="534" width="60" height="24" rx="12" fill="#fff5f2" stroke="rgba(198,82,82,.22)"/><text x="1416" y="550" class="dangerText" font-size="10">Delete</text>
+
+  <rect x="1216" y="584" width="268" height="122" rx="22" class="card"/>
+  <text x="1236" y="612" class="label">Flight</text>
+  <text x="1236" y="640" class="phoneText">SIN to Rome</text>
+  <text x="1236" y="663" class="phoneSmall">Oct 7 · Singapore Airlines</text>
+  <text x="1236" y="690" class="value" font-size="18">TBC</text>
+  <rect x="1400" y="600" width="68" height="24" rx="12" class="statusPending"/><text x="1416" y="616" class="statusTextPending" font-size="10">Pending</text>
+  <rect x="1340" y="672" width="56" height="24" rx="12" class="chip"/><text x="1356" y="688" class="ghostText" font-size="10">Edit</text>
+  <rect x="1404" y="672" width="60" height="24" rx="12" fill="#fff5f2" stroke="rgba(198,82,82,.22)"/><text x="1416" y="688" class="dangerText" font-size="10">Delete</text>
+
+  <rect x="1216" y="722" width="268" height="74" rx="22" class="card"/>
+  <text x="1236" y="750" class="label">Empty / error / loading</text>
+  <text x="1236" y="774" class="phoneSmall">States stay as journal cards with retry.</text>
+
+  <rect x="1216" y="812" width="268" height="34" rx="17" fill="rgba(255,252,246,.88)" stroke="rgba(88,68,50,.1)"/>
+  <text x="1242" y="834" class="phoneSmall">Today</text>
+  <text x="1294" y="834" class="phoneSmall">Itinerary</text>
+  <text x="1362" y="834" fill="#3f6746" font="850 11px Arial, sans-serif">Bookings</text>
+  <text x="1430" y="834" class="phoneSmall">Budget</text>
+
+  <!-- Design notes -->
+  <rect x="1180" y="912" width="340" height="106" rx="26" fill="rgba(255,252,246,.72)" stroke="rgba(88,68,50,.1)"/>
+  <text x="1208" y="950" class="label">Implementation boundary</text>
+  <text x="1208" y="976" class="bodySmall">Visual-only proposal. Preserve APIs, CRUD, filters,</text>
+  <text x="1208" y="997" class="bodySmall">Budget auto-sync, editor guard, and i18n keys.</text>
+</svg>

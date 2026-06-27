@@ -1,22 +1,33 @@
 "use client";
 
+import { useMemo } from "react";
 import { BudgetClient } from "@/components/BudgetClient";
-import { SectionHeader } from "@/components/SectionHeader";
-import { useLanguage } from "@/lib/i18n";
+import { getDestinationVisualIdentity } from "@/lib/destinationVisuals";
 import { useTripSettingsView } from "@/lib/useTripSettings";
 
 export default function BudgetPage() {
-  const { t } = useLanguage();
   const { trip } = useTripSettingsView();
+  const destinationVisual = useMemo(
+    () =>
+      getDestinationVisualIdentity({
+        destination: trip.destination,
+        routeCities: trip.routeCities,
+        routeLabel: trip.routeLabel,
+        routeStops: trip.routeStops,
+        tripName: trip.name
+      }),
+    [trip.destination, trip.name, trip.routeCities, trip.routeLabel, trip.routeStops]
+  );
 
   return (
-    <div>
-      <SectionHeader
-        eyebrow={t("page.budget.eyebrow")}
-        title={t("page.budget.title")}
-        description={t("page.budget.description")}
+    <div className="budget-shell today-shell">
+      <BudgetClient
+        destinationVisual={destinationVisual}
+        defaultCurrencies={trip.defaultCurrencies}
+        tripDateRangeLabel={trip.dateRangeLabel}
+        tripRouteLabel={trip.routeLabel}
+        tripTravelerCount={trip.travelerCount}
       />
-      <BudgetClient defaultCurrencies={trip.defaultCurrencies} />
     </div>
   );
 }

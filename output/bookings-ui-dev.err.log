@@ -1,0 +1,8 @@
+⨯ Another next dev server is already running.
+
+- Local:        http://localhost:3108
+- PID:          23748
+- Dir:          C:\Codex\Italy Trip 2026
+- Log:          .next\dev\logs\next-development.log
+
+Run taskkill /PID 23748 /F to stop it.

@@ -82,8 +82,8 @@ function emptyForm(travelers: Traveler[]): DocumentInput {
 }
 
 export function DocumentsClient({ travelers: initialTravelers }: DocumentsClientProps) {
-  const { t } = useLanguage();
-  const { mode, selectedTravelerId } = useTripAccess();
+  const { language, t } = useLanguage();
+  const { mode } = useTripAccess();
   const canEdit = mode === "editor";
   const [travelers, setTravelers] = useState<Traveler[]>(initialTravelers);
   const [documents, setDocuments] = useState<SharedDocumentItem[]>([]);
@@ -103,18 +103,12 @@ export function DocumentsClient({ travelers: initialTravelers }: DocumentsClient
   const [passcodeInputs, setPasscodeInputs] = useState<Record<string, string>>({});
   const [unlockedUrls, setUnlockedUrls] = useState<Record<string, string>>({});
   const [unlockingId, setUnlockingId] = useState<string | null>(null);
-  const [statusUpdatingId, setStatusUpdatingId] = useState<string | null>(null);
 
   const orderedTravelers = useMemo(() => orderTravelers(travelers), [travelers]);
   const activeTravelers = useMemo(
     () => orderedTravelers.filter((traveler) => traveler.isActive !== false),
     [orderedTravelers]
   );
-  const travelerNameById = useMemo(
-    () => new Map(orderedTravelers.map((traveler) => [traveler.id, traveler.name])),
-    [orderedTravelers]
-  );
-
   const readySavedCount = documents.filter((document) =>
     ["Saved", "Printed", "Ready"].includes(document.status)
   ).length;
@@ -364,165 +358,159 @@ export function DocumentsClient({ travelers: initialTravelers }: DocumentsClient
     }
   }
 
-  async function updateOwnStatus(document: SharedDocumentItem, status: DocumentTravelerStatus) {
-    if (!selectedTravelerId) {
-      setError("Select a traveler identity before updating document status.");
-      return;
-    }
-
-    setStatusUpdatingId(document.id);
-    setError(null);
-    setNotice(null);
-
-    try {
-      const response = await fetch(`/api/documents/${document.id}/status`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status })
-      });
-      const data = (await response.json()) as DocumentsApiResponse;
-
-      if (!response.ok) {
-        throw new Error(data.error ?? t("documents.errorUpdate"));
-      }
-
-      const validated = validateDocumentsResponse(data, t("documents.errorUpdate"));
-      setDocuments(validated.documents);
-      setTravelers(validated.travelers);
-      setNotice(t("documents.noticeUpdated"));
-    } catch (statusError) {
-      setError(statusError instanceof Error ? statusError.message : t("documents.errorUpdate"));
-    } finally {
-      setStatusUpdatingId(null);
-    }
-  }
-
   return (
-    <div className="w-full max-w-full min-w-0 overflow-x-hidden space-y-5">
-      <section className="checklist-band p-4 shadow-soft">
-        <h2 className="text-lg font-semibold text-ink">{t("documents.warningTitle")}</h2>
-        <p className="mt-2 text-sm leading-6 text-zinc-700">
-          {t("documents.warningDescription")}
-        </p>
+    <div className="documents-workspace">
+      <section className="documents-warning-card">
+        <span aria-hidden="true">!</span>
+        <div>
+          <h2>{t("documents.warningTitle")}</h2>
+          <p>{t("documents.warningDescription")}</p>
+        </div>
       </section>
 
-      <div className="status-strip grid grid-cols-2 gap-2 p-2 lg:grid-cols-4">
-        <CompactStat label={t("documents.summary.total")} value={String(documents.length)} />
-        <CompactStat label={t("documents.summary.highPriority")} value={String(highPriorityCount)} />
-        <CompactStat label={t("documents.summary.readySaved")} value={String(readySavedCount)} />
-        <CompactStat label={t("documents.summary.protectedLinks")} value={String(protectedCount)} warm={protectedCount > 0} />
-      </div>
+      <section className="documents-journal-grid">
+        <div className="documents-main-stack">
+          <section className="documents-control-card">
+            <div className="documents-control-card__header">
+              <div className="min-w-0">
+                <p className="cockpit-eyebrow">{t("documents.checklist")}</p>
+                <h2>
+                  {t("documents.visibleSummary", { visible: visibleDocuments.length, total: documents.length })}
+                </h2>
+                <p>{t("documents.warningDescription")}</p>
+              </div>
+              <button
+                type="button"
+                onClick={formOpen ? () => resetForm() : openAddForm}
+                disabled={loading || !canEdit}
+                className="documents-action-button documents-action-button--primary disabled:opacity-60"
+              >
+                {formOpen ? t("documents.closeForm") : t("documents.addItem")}
+              </button>
+            </div>
 
-      <div className="travel-panel flex flex-col gap-3 p-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="min-w-0">
-          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-stamp">{t("documents.checklist")}</p>
-          <p className="mt-1 text-sm text-zinc-600">
-            {t("documents.visibleSummary", { visible: visibleDocuments.length, total: documents.length })}
-          </p>
+            <div className="documents-stats-strip">
+              <CompactStat label={t("documents.summary.total")} value={String(documents.length)} />
+              <CompactStat label={t("documents.summary.highPriority")} value={String(highPriorityCount)} />
+              <CompactStat label={t("documents.summary.readySaved")} value={String(readySavedCount)} />
+              <CompactStat
+                label={t("documents.summary.protectedLinks")}
+                value={String(protectedCount)}
+                warm={protectedCount > 0}
+              />
+            </div>
+
+            <FilterSection
+              filtersOpen={filtersOpen}
+              categoryFilter={categoryFilter}
+              priorityFilter={priorityFilter}
+              statusFilter={statusFilter}
+              protectedFilter={protectedFilter}
+              onToggleFilters={() => setFiltersOpen((current) => !current)}
+              onCategoryChange={setCategoryFilter}
+              onPriorityChange={setPriorityFilter}
+              onStatusChange={setStatusFilter}
+              onProtectedChange={setProtectedFilter}
+            />
+          </section>
+
+          {formOpen ? (
+            <DocumentForm
+              form={form}
+              travelers={activeTravelers}
+              editingId={editingId}
+              submitting={submitting}
+              onSubmit={submitDocument}
+              onCancel={() => resetForm()}
+              onChange={setForm}
+              onTravelerStatusChange={changeTravelerStatus}
+            />
+          ) : null}
+
+          {error ? (
+            <div
+              role="alert"
+              className="documents-inline-status documents-inline-status--error"
+            >
+              <p>{error}</p>
+              <button
+                type="button"
+                onClick={() => void loadDocuments()}
+                disabled={loading}
+                className="documents-action-button documents-action-button--danger disabled:opacity-60"
+              >
+                {loading ? t("common.retrying") : t("common.retry")}
+              </button>
+            </div>
+          ) : null}
+
+          {notice ? (
+            <p
+              role="status"
+              aria-live="polite"
+              className="documents-inline-status documents-inline-status--success"
+            >
+              {notice}
+            </p>
+          ) : null}
+
+          {loading ? (
+            <p role="status" aria-live="polite" className="documents-loading-card">
+              {t("documents.loading")}
+            </p>
+          ) : null}
+
+          {!loading && documents.length === 0 ? (
+            <p className="documents-empty-card">
+              {t("documents.empty")}
+            </p>
+          ) : null}
+
+          {!loading && documents.length > 0 && visibleDocuments.length === 0 ? (
+            <p className="documents-empty-card">
+              {t("documents.emptyFiltered")}
+            </p>
+          ) : null}
+
+          <section className="documents-list">
+            {visibleDocuments.map((document) => (
+              <DocumentCard
+                key={document.id}
+                document={document}
+                deletingId={deletingId}
+                unlockingId={unlockingId}
+                canEdit={canEdit}
+                passcodeValue={passcodeInputs[document.id] ?? ""}
+                unlockedUrl={unlockedUrls[document.id]}
+                onPasscodeChange={(value) =>
+                  setPasscodeInputs((current) => ({ ...current, [document.id]: value }))
+                }
+                onUnlock={unlockDocument}
+                onEdit={startEditing}
+                onDelete={removeDocument}
+              />
+            ))}
+          </section>
         </div>
-        <button
-          type="button"
-          onClick={formOpen ? () => resetForm() : openAddForm}
-          disabled={loading || !canEdit}
-          className="w-full max-w-full rounded-md bg-moss px-3 py-2 text-base font-semibold text-white disabled:opacity-60 sm:w-auto sm:text-sm"
-        >
-          {formOpen ? t("documents.closeForm") : t("documents.addItem")}
-        </button>
-      </div>
 
-      {formOpen ? (
-        <DocumentForm
-          form={form}
-          travelers={activeTravelers}
-          editingId={editingId}
-          submitting={submitting}
-          onSubmit={submitDocument}
-          onCancel={() => resetForm()}
-          onChange={setForm}
-          onTravelerStatusChange={changeTravelerStatus}
-        />
-      ) : null}
-
-      <FilterSection
-        filtersOpen={filtersOpen}
-        categoryFilter={categoryFilter}
-        priorityFilter={priorityFilter}
-        statusFilter={statusFilter}
-        protectedFilter={protectedFilter}
-        onToggleFilters={() => setFiltersOpen((current) => !current)}
-        onCategoryChange={setCategoryFilter}
-        onPriorityChange={setPriorityFilter}
-        onStatusChange={setStatusFilter}
-        onProtectedChange={setProtectedFilter}
-      />
-
-      {error ? (
-        <div
-          role="alert"
-          className="flex flex-col gap-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 sm:flex-row sm:items-center sm:justify-between"
-        >
-          <p>{error}</p>
-          <button
-            type="button"
-            onClick={() => void loadDocuments()}
-            disabled={loading}
-            className="rounded-md border border-red-200 bg-white px-3 py-2 text-sm font-semibold text-red-700 disabled:opacity-60"
-          >
-            {loading ? t("common.retrying") : t("common.retry")}
-          </button>
-        </div>
-      ) : null}
-
-      {notice ? (
-        <p
-          role="status"
-          aria-live="polite"
-          className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800"
-        >
-          {notice}
-        </p>
-      ) : null}
-
-      {loading ? (
-        <p role="status" aria-live="polite" className="text-sm text-zinc-600">
-          {t("documents.loading")}
-        </p>
-      ) : null}
-
-      {!loading && documents.length === 0 ? (
-        <p className="rounded-lg border border-zinc-200 bg-white px-4 py-8 text-sm text-zinc-600 shadow-soft">
-          {t("documents.empty")}
-        </p>
-      ) : null}
-
-      {!loading && documents.length > 0 && visibleDocuments.length === 0 ? (
-        <p className="rounded-lg border border-zinc-200 bg-white px-4 py-8 text-sm text-zinc-600 shadow-soft">
-          {t("documents.emptyFiltered")}
-        </p>
-      ) : null}
-
-      <section className="grid gap-3 lg:grid-cols-2">
-        {visibleDocuments.map((document) => (
-          <DocumentCard
-            key={document.id}
-            document={document}
-            deletingId={deletingId}
-            unlockingId={unlockingId}
-            statusUpdatingId={statusUpdatingId}
-            canEdit={canEdit}
-            selectedTravelerId={selectedTravelerId}
-            passcodeValue={passcodeInputs[document.id] ?? ""}
-            unlockedUrl={unlockedUrls[document.id]}
-            travelerNameById={travelerNameById}
-            onPasscodeChange={(value) =>
-              setPasscodeInputs((current) => ({ ...current, [document.id]: value }))
-            }
-            onUnlock={unlockDocument}
-            onEdit={startEditing}
-            onDelete={removeDocument}
-            onStatusChange={updateOwnStatus}
-          />
-        ))}
+        <aside className="documents-side-rail" aria-label={t("documents.mastheadOverview")}>
+          <section className="documents-rail-card">
+            <p className="cockpit-eyebrow">{t("documents.filters.linkAccess")}</p>
+            <h3>{t("documents.protected")}</h3>
+            <p>{t("documents.warningDescription")}</p>
+          </section>
+          <section className="documents-rail-card">
+            <p className="cockpit-eyebrow">{t("documents.form.travelerStatuses")}</p>
+            <h3>{t("documents.checklist")}</h3>
+            <div className="documents-rail-statuses">
+              {documentTravelerStatuses.map((status) => (
+                <span key={status} className={travelerStatusClass[status]}>
+                  {translateOption(language, status)}
+                </span>
+              ))}
+            </div>
+          </section>
+        </aside>
       </section>
     </div>
   );
@@ -538,11 +526,11 @@ function CompactStat({
   warm?: boolean;
 }) {
   return (
-    <div className={`compact-stat ${warm ? "bg-amber-50" : ""}`}>
-      <p className="min-h-8 break-words text-[0.65rem] font-semibold uppercase leading-4 tracking-[0.08em] text-zinc-500 sm:min-h-0 sm:text-xs">
+    <div className={`documents-stat ${warm ? "documents-stat--warm" : ""}`}>
+      <p>
         {label}
       </p>
-      <p className={`mt-1 text-xl font-semibold ${warm ? "text-amber-800" : "text-ink"}`}>{value}</p>
+      <strong>{value}</strong>
     </div>
   );
 }
@@ -571,14 +559,14 @@ function DocumentForm({
   return (
     <form
       onSubmit={onSubmit}
-      className="mobile-safe-form box-border w-full max-w-full min-w-0 overflow-hidden rounded-lg border border-zinc-200 bg-white p-4 shadow-soft"
+      className="documents-form mobile-safe-form"
     >
-      <div className="flex flex-wrap items-start justify-between gap-3">
+      <div className="documents-form__header">
         <div className="min-w-0">
-          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-terracotta">
+          <p className="cockpit-eyebrow">
             {editingId ? t("documents.editItem") : t("documents.addItemEyebrow")}
           </p>
-          <h2 className="mt-1 text-xl font-semibold text-ink">
+          <h2>
             {editingId ? t("documents.editTitle") : t("documents.addTitle")}
           </h2>
         </div>
@@ -586,13 +574,13 @@ function DocumentForm({
           type="button"
           onClick={onCancel}
           disabled={submitting}
-          className="max-w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold text-ink disabled:opacity-60"
+          className="documents-action-button documents-action-button--ghost disabled:opacity-60"
         >
           {t("common.cancel")}
         </button>
       </div>
 
-      <div className="mt-4 grid w-full max-w-full min-w-0 grid-cols-1 gap-3 md:grid-cols-2">
+      <div className="documents-form__grid">
         <TextField
           name="document-title"
           label={t("common.title")}
@@ -642,7 +630,7 @@ function DocumentForm({
         />
       </div>
 
-      <label className="mt-3 flex w-full max-w-full min-w-0 items-start gap-3 text-sm font-semibold text-ink">
+      <label className="documents-form__checkbox">
         <input
           type="checkbox"
           name="document-requires-passcode"
@@ -652,7 +640,7 @@ function DocumentForm({
           }
           className="mt-0.5 h-4 w-4 shrink-0 rounded border-zinc-300"
         />
-        <span className="min-w-0 flex-1 break-words whitespace-normal leading-5">
+        <span>
           {t("documents.form.requiresCode")}
         </span>
       </label>
@@ -668,7 +656,7 @@ function DocumentForm({
         />
       ) : null}
 
-      <label className="mt-3 block w-full max-w-full min-w-0 text-sm font-semibold text-ink">
+      <label className="documents-textarea-field">
         {t("common.notes")}
         <textarea
           name="document-notes"
@@ -680,9 +668,9 @@ function DocumentForm({
         />
       </label>
 
-      <fieldset className="mt-4 w-full max-w-full min-w-0 overflow-hidden rounded-lg border border-zinc-200 p-3">
-        <legend className="px-1 text-sm font-semibold text-ink">{t("documents.form.travelerStatuses")}</legend>
-        <div className="mt-2 grid w-full max-w-full min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <fieldset className="documents-traveler-fieldset">
+        <legend>{t("documents.form.travelerStatuses")}</legend>
+        <div>
           {travelers.map((traveler) => (
             <SelectField
               key={traveler.id}
@@ -700,11 +688,11 @@ function DocumentForm({
         </div>
       </fieldset>
 
-      <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+      <div className="documents-form__actions">
         <button
           type="submit"
           disabled={submitting}
-          className="w-full max-w-full rounded-md bg-moss px-3 py-2 text-base font-semibold text-white disabled:opacity-60 sm:w-auto sm:text-sm"
+          className="documents-action-button documents-action-button--primary disabled:opacity-60"
         >
           {submitting ? t("common.saving") : editingId ? t("bookings.saveChanges") : t("documents.addButton")}
         </button>
@@ -712,7 +700,7 @@ function DocumentForm({
           type="button"
           onClick={onCancel}
           disabled={submitting}
-          className="w-full max-w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-base font-semibold text-ink disabled:opacity-60 sm:w-auto sm:text-sm"
+          className="documents-action-button documents-action-button--ghost disabled:opacity-60"
         >
           {t("common.cancel")}
         </button>
@@ -747,25 +735,25 @@ function FilterSection({
   const { language, t } = useLanguage();
 
   return (
-    <section className="travel-panel p-3">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+    <section className="documents-filter-card">
+      <div className="documents-filter-card__header">
         <div className="min-w-0">
-          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-stamp">{t("documents.filters.title")}</p>
-          <p className="mt-1 text-sm text-zinc-600">
+          <p className="documents-filter-card__label">{t("documents.filters.title")}</p>
+          <p>
             {translateOption(language, categoryFilter)} / {translateOption(language, priorityFilter)} / {translateOption(language, statusFilter)} / {translateOption(language, protectedFilter)}
           </p>
         </div>
         <button
           type="button"
           onClick={onToggleFilters}
-          className="w-full max-w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold text-ink sm:w-auto"
+          className="documents-action-button documents-action-button--ghost"
         >
           {filtersOpen ? t("documents.filters.hide") : t("documents.filters.title")}
         </button>
       </div>
 
       {filtersOpen ? (
-        <div className="mt-3 grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="documents-filter-card__fields">
           <SelectField
             name="documents-filter-category"
             label={t("common.category")}
@@ -808,128 +796,83 @@ function DocumentCard({
   document,
   deletingId,
   unlockingId,
-  statusUpdatingId,
   canEdit,
-  selectedTravelerId,
   passcodeValue,
   unlockedUrl,
-  travelerNameById,
   onPasscodeChange,
   onUnlock,
   onEdit,
-  onDelete,
-  onStatusChange
+  onDelete
 }: {
   document: SharedDocumentItem;
   deletingId: string | null;
   unlockingId: string | null;
-  statusUpdatingId: string | null;
   canEdit: boolean;
-  selectedTravelerId: string;
   passcodeValue: string;
   unlockedUrl?: string;
-  travelerNameById: Map<string, string>;
   onPasscodeChange: (value: string) => void;
   onUnlock: (document: SharedDocumentItem) => Promise<void>;
   onEdit: (document: SharedDocumentItem) => void;
   onDelete: (document: SharedDocumentItem) => Promise<void>;
-  onStatusChange: (document: SharedDocumentItem, status: DocumentTravelerStatus) => Promise<void>;
 }) {
   const { language, t } = useLanguage();
   const folderUrl = document.externalUrl ?? unlockedUrl ?? null;
 
   return (
-    <article className="checklist-band p-3 shadow-soft sm:p-4">
-      <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className={`rounded-full px-2 py-1 text-xs font-semibold ring-1 ${priorityClass[document.priority]}`}>
+    <article className="documents-item-card">
+      <div className="documents-item-card__header">
+        <div className="documents-item-card__copy">
+          <div className="documents-badge-row">
+            <span className={`documents-badge ${priorityClass[document.priority]}`}>
               {translateOption(language, document.priority)}
             </span>
-            <span className={`rounded-full px-2 py-1 text-xs font-semibold ring-1 ${statusClass[document.status]}`}>
+            <span className={`documents-badge ${statusClass[document.status]}`}>
               {translateOption(language, document.status)}
             </span>
             {document.requiresPasscode ? (
-              <span className="rounded-full bg-red-100 px-2 py-1 text-xs font-semibold text-red-800 ring-1 ring-red-200">
+              <span className="documents-badge bg-red-100 text-red-800 ring-1 ring-red-200">
                 {t("documents.protected")}
               </span>
             ) : null}
           </div>
-          <h3 className="mt-1.5 break-words text-base font-semibold text-ink sm:text-lg">{document.title}</h3>
-          <p className="mt-1 text-sm text-zinc-500">{translateOption(language, document.category)}</p>
+          <h3>{document.title}</h3>
+          <p>{translateOption(language, document.category)}</p>
         </div>
         {canEdit ? (
-        <div className="flex shrink-0 gap-1.5 sm:gap-2">
-          <button
-            type="button"
-            onClick={() => onEdit(document)}
-            className="rounded-md border border-zinc-200 bg-white px-2 py-1.5 text-xs font-semibold text-ink sm:px-3 sm:py-2 sm:text-sm"
-          >
-            {t("common.edit")}
-          </button>
-          <button
-            type="button"
-            onClick={() => void onDelete(document)}
-            disabled={deletingId === document.id}
-            className="rounded-md border border-red-200 bg-white px-2 py-1.5 text-xs font-semibold text-red-700 disabled:opacity-60 sm:px-3 sm:py-2 sm:text-sm"
-          >
-            {deletingId === document.id ? t("common.deleting") : t("common.delete")}
-          </button>
-        </div>
+          <div className="documents-card-actions">
+            <button
+              type="button"
+              onClick={() => onEdit(document)}
+              className="documents-action-button documents-action-button--ghost"
+            >
+              {t("common.edit")}
+            </button>
+            <button
+              type="button"
+              onClick={() => void onDelete(document)}
+              disabled={deletingId === document.id}
+              className="documents-action-button documents-action-button--danger disabled:opacity-60"
+            >
+              {deletingId === document.id ? t("common.deleting") : t("common.delete")}
+            </button>
+          </div>
         ) : null}
       </div>
 
-      {document.notes ? <p className="mt-2 break-words text-sm leading-5 text-zinc-600">{document.notes}</p> : null}
+      {document.notes ? <p className="documents-item-card__notes">{document.notes}</p> : null}
 
-      <div className="mt-3 flex flex-wrap gap-1.5">
-        {document.statuses.map((status) => (
-          <span
-            key={status.travelerId}
-            className="inline-flex max-w-full items-center gap-1 rounded-md bg-white/75 px-2 py-1 text-xs font-semibold text-ink"
-          >
-            <span className="max-w-[8rem] truncate">{travelerNameById.get(status.travelerId) ?? status.travelerId}</span>
-            <span className={`shrink-0 rounded-full px-1.5 py-0.5 text-[0.65rem] font-semibold ring-1 ${travelerStatusClass[status.status]}`}>
-              {translateOption(language, status.status)}
-            </span>
-          </span>
-        ))}
-      </div>
-
-      <div className="mt-3 rounded-md border border-zinc-200 bg-white/75 p-2">
-        {selectedTravelerId ? (
-          <SelectField
-            name={`document-${document.id}-own-status`}
-            label={`${travelerNameById.get(selectedTravelerId) ?? selectedTravelerId} status`}
-            value={
-              document.statuses.find((status) => status.travelerId === selectedTravelerId)?.status ??
-              "required"
-            }
-            options={documentTravelerStatuses}
-            formatOption={(option) => translateOption(language, option)}
-            onChange={(value) => void onStatusChange(document, value as DocumentTravelerStatus)}
-          />
-        ) : (
-          <p className="text-sm text-zinc-600">
-            Select a traveler identity above to update your own document status.
-          </p>
-        )}
-        {statusUpdatingId === document.id ? (
-          <p className="mt-2 text-xs font-semibold text-zinc-500">{t("common.saving")}</p>
-        ) : null}
-      </div>
-
-      <div className="mt-3 border-t border-route/10 pt-2">
+      <div className="documents-folder-access">
         {folderUrl ? (
           <a
             href={folderUrl}
             target="_blank"
             rel="noreferrer"
-            className="inline-flex max-w-full justify-center rounded-md bg-moss px-2.5 py-1.5 text-xs font-semibold text-white sm:px-3 sm:py-2 sm:text-sm"
+            className="documents-action-button documents-action-button--primary"
           >
             {t("documents.openFolder")}
           </a>
         ) : document.requiresPasscode && document.hasExternalUrl ? (
-          <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
+          <div className="documents-unlock-grid">
             <input
               type="password"
               name={`document-${document.id}-unlock-code`}
@@ -937,19 +880,19 @@ function DocumentCard({
               value={passcodeValue}
               onChange={(event) => onPasscodeChange(event.target.value)}
               placeholder={t("documents.form.accessCode")}
-              className="block box-border w-full max-w-full min-w-0 rounded-md border border-zinc-200 bg-white px-3 py-2 text-base text-zinc-700 sm:text-sm"
+              className="documents-unlock-input"
             />
             <button
               type="button"
               onClick={() => void onUnlock(document)}
               disabled={unlockingId === document.id}
-              className="w-full max-w-full rounded-md border border-zinc-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-ink disabled:opacity-60 sm:w-auto sm:px-3 sm:py-2 sm:text-sm"
+              className="documents-action-button documents-action-button--ghost disabled:opacity-60"
             >
               {unlockingId === document.id ? t("documents.unlocking") : t("documents.unlockFolder")}
             </button>
           </div>
         ) : (
-          <p className="text-xs text-zinc-600 sm:text-sm">{t("documents.noFolder")}</p>
+          <p>{t("documents.noFolder")}</p>
         )}
       </div>
     </article>
@@ -972,7 +915,7 @@ function TextField({
   type?: "number" | "password" | "text" | "url";
 }) {
   return (
-    <label className="block w-full max-w-full min-w-0 text-sm font-semibold text-ink">
+    <label className="documents-field">
       {label}
       <input
         name={name}
@@ -984,7 +927,7 @@ function TextField({
         placeholder={placeholder}
         min={type === "number" ? "0" : undefined}
         step={type === "number" ? "1" : undefined}
-        className="mt-2 block box-border w-full max-w-full min-w-0 rounded-md border border-zinc-200 bg-white px-3 py-2 text-base text-zinc-700 sm:text-sm"
+        className="documents-input"
       />
     </label>
   );
@@ -1008,13 +951,13 @@ function SelectField({
   onChange: (value: string) => void;
 }) {
   return (
-    <label className="block w-full max-w-full min-w-0 text-sm font-semibold text-ink">
+    <label className="documents-field">
       {label}
       <select
         name={name}
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="mt-2 block box-border w-full max-w-full min-w-0 rounded-md border border-zinc-200 bg-white px-3 py-2 text-base text-zinc-700 sm:text-sm"
+        className="documents-input"
       >
         {options.map((option) => (
           <option key={option} value={option}>
