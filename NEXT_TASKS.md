@@ -3,7 +3,7 @@
 ## Current Priority
 
 - Production UI hotfix for the deployed Travel Journal + Cockpit batch is complete: malformed legacy pseudo-icon CSS content caused the browser to stop parsing before the later page styles, making maps/cards/nav appear broken on the live workspace. Production CSSOM, private-link API checks, and desktop browser layout have been rechecked; next work should come from fresh user review only.
-- Review `codex/remove-editor-viewer-modes` locally: every private-link user should be able to edit workspace data without entering a separate edit passcode, while unauthenticated API requests should still return 401.
+- Private-link full-editing access is committed, merged to `master`, pushed to GitHub `origin/main`, and deployed to production. Every private-link user should be able to edit workspace data without entering a separate edit passcode, while unauthenticated API requests should still return 401.
 - The UI batch on `codex/ui-bookings-journal-cockpit` has been committed, merged into `master`, pushed to GitHub `origin/main`, and deployed to `https://italy-trip-2026-cyan.vercel.app`.
 - The committed UI batch includes the review/reference assets under `Image Reference/` and `output/`, per the user's request to commit everything.
 - Next active work should be based on fresh user review of the production UI rather than continuing to broaden this batch automatically.
@@ -20,7 +20,7 @@
 - During Guided Setup review, check whether the new starter questions are enough for real pilot users: route/cities, dates, traveler names, currencies, expense splitting, style, transport, accommodation, and luggage.
 - Review the Guided Setup polish on phone and desktop: ISO date summaries, days/nights duration, invalid date messaging, disabled generate button before confirmation, and destination country/region label.
 - Review the polished local `/pilot` bilingual manual pilot sales page on `codex/pilot-offer-page`; the current copy should be workspace-led, useful to the whole trip group, and avoid first-person service framing. Do not deploy production or push until the user explicitly asks.
-- The access-control foundation is deployed to production, but the current branch changes the model to private-link full editing. After deployment, share only the private trip link with travelers; no normal edit passcode should be required.
+- The access-control model is now private-link full editing in production. Share only the private trip link with travelers; no normal edit passcode should be required.
 - The website is stable for now; the user plans to enter safe real trip data directly through the live UI.
 - The user has shared the live site link with the 4 travelers for collaborative editing.
 - Keep `Italy Trip 2026 Quick User Guide.docx` available as the short traveler quick-start guide.

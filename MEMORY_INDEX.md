@@ -28,7 +28,7 @@
 - Real-data preparation docs now exist: `REAL_DATA_ENTRY_GUIDE.md` and `REAL_DATA_CHECKLIST.md`.
 - A concise bilingual traveler-facing quick-start guide now exists at `USER_GUIDE.md` and `Italy Trip 2026 Quick User Guide.docx`.
 - Phase 1 reusable trip dashboard foundation now exists on `codex/trip-settings-foundation`: active trip settings use `trips`, `trip_travelers`, and `trip_route_stops`; `/api/trip-settings` supports read/write for the single active trip, and `/settings` edits trip basics, currencies, timezone, notes, travelers, and route stops.
-- Access control direction has changed on the current branch: first-time private link setup remains, but anyone who enters through the private link or token can edit all workspace data; there is no normal viewer/editor split or edit passcode flow.
+- Private-link full-editing access is merged, pushed, and deployed: first-time private link setup remains, but anyone who enters through the private link or token can edit all workspace data; there is no normal viewer/editor split or edit passcode flow.
 - Guided Setup + Rule-Based Template Generation v1 uses the private-link workspace boundary: `/settings` has a private-link-gated generation entry, `/api/setup-generation` requires private-link access plus explicit confirmation, and rule templates cover China city general, China multi-city, Japan general, Korea general, and Generic international.
 - Guided setup generation is now the first-entry workspace gate, not a Dashboard section: when `setup_completed_at` is empty, the private workspace shows only template/style/transport/accommodation/luggage questions; after generation completes, the user enters the Dashboard. `/settings` keeps the same options for later regeneration.
 - Guided Setup v1 now asks for route/cities, dates, traveler count/names, main/additional currencies, expense splitting, trip style, transport, accommodation, and luggage, then shows a preview summary before the destructive confirmation.
@@ -50,7 +50,7 @@
 ## Highest Priority Task
 
 - Review the hotfixed deployed Travel Journal + Cockpit UI refresh on the production workspace, then handle only user-identified follow-up issues; do not broaden the UI batch automatically.
-- Review the current `codex/remove-editor-viewer-modes` branch locally before deployment: private-link users should be able to edit bookings, itinerary, expenses, reminders, packing, documents, settings, and setup generation without entering an edit passcode.
+- Review the deployed private-link full-editing release on production: private-link users should be able to edit bookings, itinerary, expenses, reminders, packing, documents, settings, and setup generation without entering an edit passcode.
 - Review the production access-controlled controlled pilot after workspace-boundary deployment using the private link saved outside the repo at `C:\Users\qiuke\Documents\Italy Trip 2026 Controlled Pilot Access 2026-06-22.txt`.
 - Pause deeper feature work while the UI design refresh is underway.
 - Do not run setup generation against the current production `active-trip` without explicit destructive approval; current production private-link counts are reminders 11, bookings 14, itinerary 11, expenses 0, packing 16, and documents 11.
@@ -58,7 +58,7 @@
 - GitHub remote `origin` is configured to `qiukelim10-art/Travel-Tool-dev`; local `master` tracks remote `main`.
 - Review `codex/setup-template-generation` locally with the first-entry setup gate only if that old branch is explicitly resumed; do not push or deploy until explicitly requested.
 - Keep the approved access-control foundation on `master` after merge, but do not deploy production until the user asks for the final batch deployment.
-- Before the future production deployment, keep `trip_access_controls` compatibility in place, then share only the private link with travelers; no normal edit passcode or owner recovery token should be required for editing.
+- Keep `trip_access_controls` compatibility in place, but share only the private link with travelers; no normal edit passcode or owner recovery token is required for editing.
 - The live site is stable for now; the user and travel group will enter safe real trip data through the UI.
 - Keep `Italy Trip 2026 Quick User Guide.docx` as the traveler quick-start guide.
 - Keep memory files focused on current active work; branch-specific review, commit, and merge tasks should only be reintroduced when the user explicitly resumes that branch.
