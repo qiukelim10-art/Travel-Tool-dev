@@ -96,7 +96,7 @@ const defaultTripRouteStops = ["Rome", "Florence", "Venice", "Milan"] as const;
 const editorSessionDurationMs = 12 * 60 * 60 * 1000;
 const currencyEnumValues = bookingCurrencies.map((currency) => `'${currency}'`).join(", ");
 
-export type TripAccessMode = "viewer" | "editor";
+export type TripAccessMode = "editor";
 
 export type TripAccessStatus = {
   configured: boolean;
@@ -2172,7 +2172,7 @@ async function createEditorSessionForActiveTrip(
 
 export async function getActiveTripAccessStatus(
   shareToken = "",
-  editorToken = ""
+  _editorToken = ""
 ): Promise<TripAccessStatus> {
   await ensureSharedDataStore();
 
@@ -2193,13 +2193,12 @@ export async function getActiveTripAccessStatus(
   }
 
   const authorized = rowHasValidShareToken(row, shareToken);
-  const editorAuthorized = authorized && rowHasValidEditorSession(row, editorToken);
 
   return {
     configured: true,
     authorized,
-    mode: authorized ? (editorAuthorized ? "editor" : "viewer") : null,
-    editorExpiresAt: editorAuthorized ? mapEditorExpiresAt(row.editor_session_expires_at) : null,
+    mode: authorized ? "editor" : null,
+    editorExpiresAt: null,
     recoveryTokenAvailable: !row.owner_recovery_token_used_at,
     travelers
   };
@@ -2207,7 +2206,10 @@ export async function getActiveTripAccessStatus(
 
 export async function setupActiveTripAccess(rawEditPasscode: unknown): Promise<TripAccessSetupResult> {
   await ensureSharedDataStore();
-  const editPasscode = normalizeSecret(rawEditPasscode, "Edit passcode", 6);
+  const editPasscode =
+    typeof rawEditPasscode === "string" && rawEditPasscode.trim()
+      ? normalizeSecret(rawEditPasscode, "Edit passcode", 6)
+      : generateAccessToken();
   const shareToken = generateAccessToken();
   const ownerRecoveryToken = generateAccessToken();
   const shareParts = hashPasscode(shareToken);

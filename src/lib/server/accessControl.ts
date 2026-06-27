@@ -1,8 +1,5 @@
 import { NextResponse } from "next/server";
-import {
-  verifyActiveTripEditorToken,
-  verifyActiveTripShareToken
-} from "@/lib/server/sharedDataStore";
+import { verifyActiveTripShareToken } from "@/lib/server/sharedDataStore";
 
 export const tripShareTokenHeader = "x-trip-share-token";
 export const tripEditorTokenHeader = "x-trip-editor-token";
@@ -53,14 +50,8 @@ export async function requireTripViewer(request: Request) {
 }
 
 export async function requireTripEditor(request: Request) {
-  const shareToken = getTripShareToken(request);
-  const editorToken = getTripEditorToken(request);
-
-  if (!shareToken || !editorToken || !(await verifyActiveTripEditorToken(shareToken, editorToken))) {
-    throw new AccessError("Editor mode is required.", 403);
-  }
-
-  return { shareToken, editorToken };
+  const { shareToken } = await requireTripViewer(request);
+  return { shareToken, editorToken: "" };
 }
 
 export async function requireTravelerStatusAccess(request: Request) {

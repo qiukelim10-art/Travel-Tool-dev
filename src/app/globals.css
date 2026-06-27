@@ -86,9 +86,11 @@ textarea:focus-visible {
 }
 
 .mobile-language-row {
-  width: min(calc(100% - 2rem), 92rem);
-  margin: 0.55rem auto 0;
   display: flex;
+  width: auto;
+  margin: 0;
+  align-items: center;
+  gap: 0.55rem;
   justify-content: flex-end;
 }
 
@@ -1878,15 +1880,20 @@ body {
 
   .access-dock > div {
     gap: 0.5rem;
-    justify-content: flex-start;
+    justify-content: space-between;
   }
 
-  .access-dock > div > div:first-child,
-  .access-dock > div > div:last-child {
+  .access-dock > div > div:first-child {
+    flex: 0 1 auto;
+  }
+
+  .access-dock > div > .mobile-language-row {
+    flex: 0 0 auto;
+    margin-left: auto;
+  }
+
+  .access-dock > div > div:last-child:not(.mobile-language-row) {
     flex: 1 1 100%;
-  }
-
-  .access-dock > div > div:last-child {
     align-items: stretch;
   }
 
@@ -3508,6 +3515,8 @@ body {
 .mobile-language-row {
   align-items: center;
   gap: 0.55rem;
+  margin: 0;
+  width: auto;
 }
 
 .mobile-language-row .relative > button,
@@ -3706,8 +3715,8 @@ body {
 
 @media (max-width: 767px) {
   .mobile-language-row {
-    width: min(calc(100% - 2rem), 92rem);
-    margin-top: 0.45rem;
+    margin: 0;
+    width: auto;
   }
 
   .mobile-language-row .relative > button {

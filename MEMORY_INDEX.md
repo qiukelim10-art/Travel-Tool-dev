@@ -28,9 +28,9 @@
 - Real-data preparation docs now exist: `REAL_DATA_ENTRY_GUIDE.md` and `REAL_DATA_CHECKLIST.md`.
 - A concise bilingual traveler-facing quick-start guide now exists at `USER_GUIDE.md` and `Italy Trip 2026 Quick User Guide.docx`.
 - Phase 1 reusable trip dashboard foundation now exists on `codex/trip-settings-foundation`: active trip settings use `trips`, `trip_travelers`, and `trip_route_stops`; `/api/trip-settings` supports read/write for the single active trip, and `/settings` edits trip basics, currencies, timezone, notes, travelers, and route stops.
-- Access-control foundation is now deployed to production: first-time private link setup, viewer/editor mode, planner edit passcode, one-time owner recovery token, server-side API guards, and viewer-safe Packing/Documents traveler status updates are active on `https://italy-trip-2026-cyan.vercel.app`.
-- Guided Setup + Rule-Based Template Generation v1 now exists locally on `codex/setup-template-generation`: `/settings` has an editor-only generation entry, `/api/setup-generation` requires editor mode, and rule templates cover China city general, China multi-city, Japan general, Korea general, and Generic international.
-- Guided setup generation is now the first-entry workspace gate, not a Dashboard section: when `setup_completed_at` is empty, the private workspace shows only template/style/transport/accommodation/luggage questions; after editor generation completes, the user enters the Dashboard. `/settings` keeps the same options for later regeneration.
+- Access control direction has changed on the current branch: first-time private link setup remains, but anyone who enters through the private link or token can edit all workspace data; there is no normal viewer/editor split or edit passcode flow.
+- Guided Setup + Rule-Based Template Generation v1 uses the private-link workspace boundary: `/settings` has a private-link-gated generation entry, `/api/setup-generation` requires private-link access plus explicit confirmation, and rule templates cover China city general, China multi-city, Japan general, Korea general, and Generic international.
+- Guided setup generation is now the first-entry workspace gate, not a Dashboard section: when `setup_completed_at` is empty, the private workspace shows only template/style/transport/accommodation/luggage questions; after generation completes, the user enters the Dashboard. `/settings` keeps the same options for later regeneration.
 - Guided Setup v1 now asks for route/cities, dates, traveler count/names, main/additional currencies, expense splitting, trip style, transport, accommodation, and luggage, then shows a preview summary before the destructive confirmation.
 - Guided Setup v1 polish now uses unambiguous ISO date summaries, days/nights duration, explicit invalid date validation, user-facing replacement warning copy, disabled generate button until confirmation plus valid setup, and a backend `confirmReplaceStarterContent` guard.
 - Japan general template quality sprint is merged to `master` and deployed: generated Japan starter workspaces are substantially richer across packing, documents, bookings, reminders, itinerary shell, budget-category planning, and emergency placeholders.
@@ -50,6 +50,7 @@
 ## Highest Priority Task
 
 - Review the hotfixed deployed Travel Journal + Cockpit UI refresh on the production workspace, then handle only user-identified follow-up issues; do not broaden the UI batch automatically.
+- Review the current `codex/remove-editor-viewer-modes` branch locally before deployment: private-link users should be able to edit bookings, itinerary, expenses, reminders, packing, documents, settings, and setup generation without entering an edit passcode.
 - Review the production access-controlled controlled pilot after workspace-boundary deployment using the private link saved outside the repo at `C:\Users\qiuke\Documents\Italy Trip 2026 Controlled Pilot Access 2026-06-22.txt`.
 - Pause deeper feature work while the UI design refresh is underway.
 - Do not run setup generation against the current production `active-trip` without explicit destructive approval; current production private-link counts are reminders 11, bookings 14, itinerary 11, expenses 0, packing 16, and documents 11.
@@ -57,7 +58,7 @@
 - GitHub remote `origin` is configured to `qiukelim10-art/Travel-Tool-dev`; local `master` tracks remote `main`.
 - Review `codex/setup-template-generation` locally with the first-entry setup gate only if that old branch is explicitly resumed; do not push or deploy until explicitly requested.
 - Keep the approved access-control foundation on `master` after merge, but do not deploy production until the user asks for the final batch deployment.
-- Before the future production deployment, apply the updated managed schema so `trip_access_controls` exists; after deploy, run first-time access setup, save the private link and one-time owner recovery token outside the app, and share the private link with travelers.
+- Before the future production deployment, keep `trip_access_controls` compatibility in place, then share only the private link with travelers; no normal edit passcode or owner recovery token should be required for editing.
 - The live site is stable for now; the user and travel group will enter safe real trip data through the UI.
 - Keep `Italy Trip 2026 Quick User Guide.docx` as the traveler quick-start guide.
 - Keep memory files focused on current active work; branch-specific review, commit, and merge tasks should only be reintroduced when the user explicitly resumes that branch.
@@ -71,8 +72,8 @@
 - Real traveller and booking information has not been fully entered yet.
 - Some trip content still uses placeholder data only.
 - Shared reminders/bookings are verified locally, but there is still no password protection. Revisit security before storing real private trip details.
-- The public Vercel deployment is intentionally URL-accessible: anyone with the live link can view and edit shared trip data. Do not enter sensitive real trip details before approving an access-control approach.
-- Production access control is active after deployment `dpl_EPWzYqw25cJ3MJya5kHmUuxcTLx8`; unauthenticated workspace API reads now return 401 and private-link viewer reads return 200.
+- The workspace private link is intentionally a lightweight boundary: anyone with the private link can view and edit shared trip data. Do not enter sensitive real trip details that require account-level security or audit trails.
+- Production access control is active after deployment `dpl_EPWzYqw25cJ3MJya5kHmUuxcTLx8`; unauthenticated workspace API reads return 401. Until the current access branch is deployed, production may still expose older viewer/editor status wording.
 - Real passport numbers, payment card details, full confirmations, private document files, and personal contact details should still not be entered. Documents can store folder links, but real files must stay in permission-controlled cloud storage and passcodes must not be written in notes.
 - On local review servers, a desktop `Unknown column 'trip_id' in 'where clause'` error can mean the long-running Next dev process kept an old initialized shared-data-store global after a schema-compatibility code change. The workspace-boundary branch now uses a compatibility version guard so startup reruns the additive migration.
 
@@ -82,7 +83,7 @@
 - Product direction is one paid workspace per trip, but the first implementation should not jump to a full multi-trip SaaS dashboard. When adding or substantially changing business data structures, avoid deepening the single active-trip assumption and prefer workspace_id/trip_id-compatible design.
 - The private trip link is a convenience boundary, not high-security storage. Treat the workspace as lightweight coordination, not a secure vault, and keep sensitive personal documents, passport scans, payment details, private passcodes, and confidential identity information out of the product.
 - First-version workspace generation should be guided setup plus rule-based templates for China city general, China multi-city, Japan, Korea, and Generic international trip fallback. Do not add AI dependency or paid API dependency for workspace generation.
-- In the merged workspace-boundary branch, `/api/setup-generation` resets only `active-trip` scoped rows because reminders, bookings, itinerary, expenses, packing, and documents now have `trip_id`; keep the mutation editor-only and clearly confirmed in `/settings`, and still do not run it on production active-trip while existing production data should be preserved.
+- In the merged workspace-boundary branch, `/api/setup-generation` resets only `active-trip` scoped rows because reminders, bookings, itinerary, expenses, packing, and documents now have `trip_id`; keep the mutation private-link-gated and clearly confirmed in `/settings`, and still do not run it on production active-trip while existing production data should be preserved.
 - Setup generation should never create `Person A/B/C/D` display names for new starter workspaces. User-provided traveler names are kept, and blanks become neutral `Traveler N` labels.
 - Setup generation should default first-generation booking checklist `bookedBy` owners to the workspace generation owner, not rotate the work across travelers; users can change owners later in Bookings.
 - Japan general template quality sprint keeps the expense ledger empty and represents Japan budget-category planning through setup summary/trip notes, because there is still no separate persisted budget-category table.
@@ -96,7 +97,7 @@
 - Zero-cost Vercel/Aiven preparation files now include `DEPLOYMENT_PREVIEW_GUIDE.md`, `database/managed-schema.sql`, `database/preview-seed.sql`, and `/api/health` for deployment smoke checks.
 - Most trip pages still use static data, but reminders, bookings, itinerary, and packing now use local Next API + MySQL prototype paths.
 - Active trip settings are separate from business data: `trips`, `trip_travelers`, and `trip_route_stops` seed `active-trip` only when `trips` is empty. On `master`, existing business tables also have `trip_id` and active-trip scoped CRUD, while the app still does not expose a multi-trip dashboard.
-- Access control uses `trip_access_controls` keyed by `trip_id` for the current `active-trip`; no database-wide business-table `trip_id` migration has been done.
+- Access control uses `trip_access_controls` keyed by `trip_id` for the current `active-trip`; valid share tokens grant full workspace edit access, while legacy edit-passcode/editor-session columns remain compatibility data.
 - With `MYSQL_MANAGED_SCHEMA=true`, production now runs safe additive compatibility checks for `setup_completed_at`, `trip_access_controls`, and expanded currency enums before serving shared data requests; this does not seed or reset workspace data.
 - The workspace boundary branch extends safe compatibility checks to add/backfill/index `trip_id` on existing business tables; this still does not seed, reset, or create new business tables in managed-schema mode.
 - `/api/trip-settings` returns and updates the active trip, travelers, and route stops. Dashboard and Layout consume it for trip name, date range, destination/route, traveler count, and brand display; trip name, destination, city names, traveler display names, and notes remain untranslated user/data content.

@@ -173,7 +173,7 @@ export default function SettingsPage() {
     event.preventDefault();
 
     if (!canEdit) {
-      setError("Editor mode is required to save trip settings.");
+      setError("Private trip access is required to save trip settings.");
       return;
     }
 
@@ -254,7 +254,7 @@ export default function SettingsPage() {
         <form onSubmit={submitSettings} className="settings-form mobile-safe-form">
           {!canEdit ? (
             <p className="settings-inline-status settings-inline-status--warning">
-              Editor mode is required to modify trip settings.
+              Private trip access is required to modify trip settings.
             </p>
           ) : null}
           <section className="settings-card">

@@ -1,5 +1,10 @@
 # Decisions
 
+## 2026-06-27
+
+- Supersede the earlier viewer/editor/passcode access model for the active workspace: a valid private trip link or token is now the single collaboration boundary, and every authorized user can edit all workspace data. Keep legacy hashed editor-token fields/functions only for compatibility, not for normal user flow.
+- Remove normal traveler identity selection from the access dock. Private-link users should not need to choose an identity before editing shared workspace content.
+
 ## 2026-06-11
 
 - Keep Phase 2 static-data only with no new dependencies, backend, login, file upload, or cloud sync.
@@ -28,7 +33,7 @@
 - Treat Italy Trip 2026 as the first reference workspace/prototype for a mobile-first, ready-to-use, per-trip paid Group Trip Command Center, not only as a one-off private trip page.
 - First ICP: Singapore/Malaysia outbound small-group trip planners organizing 2-8 person, 5-14 day Europe/Japan/Korea trips; the planner is the buyer and travelers are link users.
 - First product version should use guided setup plus rule-based templates, not AI generation or manual custom service.
-- First access model should be private unguessable trip link, viewer mode by default, edit passcode for editor mode, and a one-time owner recovery link/token; no full login or traveler accounts yet. Viewer mode can only make low-risk status updates after selecting a traveler identity.
+- Superseded on 2026-06-27: the first access model had been private unguessable trip link plus viewer/editor/passcode split, but the current active workspace model is private-link access with edit rights for every authorized user.
 - Pilot commercial model should be SGD 4.90 early access per trip workspace, handled through Free Demo / Manual Pilot first; do not build payment or checkout yet.
 - Workspace lifecycle should be active until trip end date plus 60 days, then archived/read-only; do not promise permanent storage.
 - The private trip link is for convenience, not high-security storage. Documents and sensitive fields must stay metadata/checklist only with contextual safety hints; do not upload or store passport scans, passport numbers, payment card details, insurance certificates, full confirmation PDFs, private passcodes, or confidential identity information.
@@ -38,7 +43,7 @@
 - Implement access control as an app-level private link boundary plus server-side API guards, not full login or traveler accounts.
 - Store private link tokens, edit passcodes, owner recovery tokens, and editor session tokens only as salted hashes in `trip_access_controls`.
 - Keep the current single active trip behavior, but key access-control data by `trip_id` so it does not deepen the single-trip assumption.
-- Viewer mode can update only the selected traveler's Packing/Documents status through dedicated status endpoints; core trip data changes still require editor mode.
+- Superseded on 2026-06-27: viewer-mode-only Packing/Documents status updates are legacy behavior; current private-link users receive full edit access.
 - Do not add setup wizard, template generation, payment, checkout, multi-trip SaaS dashboard, AI, or database-wide business table migrations in this slice.
 
 ## 2026-06-21
@@ -49,10 +54,10 @@
 - Generated booking checklist items must not include amounts, so Booking-to-Budget auto-sync does not create fake expenses and the shared expense ledger stays empty after generation.
 - Keep currency expansion as a fixed supported-currency list for settings, bookings, budget, and setup generation; do not add exchange-rate conversion or live FX APIs in this slice.
 - Treat active trip `defaultCurrencies` as the visible/input currency scope for the workspace money UI; existing non-default-currency records are not deleted, but they are hidden from Budget/Dashboard money display and no longer offered in new/edit currency dropdowns.
-- Keep the setup generation UI reusable, but treat first workspace entry as a gate instead of a Dashboard section: if active trip `setup_completed_at` is empty, `/` shows only setup questions; successful editor generation stamps `setup_completed_at` and then opens the Dashboard. `/settings` keeps the same generation options for later changes, and the mutation remains editor-only.
+- Keep the setup generation UI reusable, but treat first workspace entry as a gate instead of a Dashboard section: if active trip `setup_completed_at` is empty, `/` shows only setup questions; successful generation stamps `setup_completed_at` and then opens the Dashboard. `/settings` keeps the same generation options for later changes; superseded on 2026-06-27, the mutation now requires private-link access instead of a separate editor mode.
 - Guided Setup v1 should collect enough starter information before generation to avoid generic demo data: route/cities, dates, traveler count/names, currencies, expense splitting, style, transport, accommodation, and luggage.
 - Blank traveler names should be filled with neutral `Traveler N` labels, not legacy `Person A/B/C/D` display labels.
-- Destructive setup generation must require both editor mode and an explicit confirmation flag in the API body; disabling the frontend button alone is not enough.
+- Destructive setup generation must require private-link access plus an explicit confirmation flag in the API body; disabling the frontend button alone is not enough.
 
 ## 2026-06-22
 
@@ -72,3 +77,10 @@
 - Scope the first UI implementation slice to Shell + Today only. Audit all private pages for consistency, but do not redesign every page in one branch.
 - Treat shadcn as a phased target component direction. If introduced, start with Shell + Today primitives and do not let component migration change routes, APIs, access control, setup generation, or business data behavior.
 - Destination-specific visuals such as maps, route marks, stamps, and visual tone must be derived from each workspace's `trip.destination`, `routeCities`, and `routeLabel`. Do not hardcode Italy, Japan, or any other destination into reusable Shell/Today UI, and do not auto-translate user-entered destination or city names.
+
+## 2026-06-27
+
+- Supersede the earlier viewer/editor access decision: anyone who enters through the private trip link or token can edit all workspace data.
+- Keep the private link as the lightweight workspace boundary; do not add traveler accounts, role permissions, or a separate edit passcode flow for the current version.
+- Keep existing `trip_access_controls` columns and legacy editor-token functions for compatibility with deployed data and old clients, but normal API writes should only require a valid private link.
+- Destructive setup generation must still require the private link and the explicit confirmation flag in the API body; the old editor-mode requirement no longer applies.

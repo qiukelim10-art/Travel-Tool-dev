@@ -232,7 +232,7 @@ export function PackingClient({ travelers }: PackingClientProps) {
 
   function openNewForm() {
     if (!canEdit) {
-      setError("Editor mode is required to add packing items.");
+      setError("Private trip access is required to add packing items.");
       return;
     }
 
@@ -243,7 +243,7 @@ export function PackingClient({ travelers }: PackingClientProps) {
 
   function startEditing(item: SharedPackingItem) {
     if (!canEdit) {
-      setError("Editor mode is required to edit packing items.");
+      setError("Private trip access is required to edit packing items.");
       return;
     }
 
@@ -300,7 +300,7 @@ export function PackingClient({ travelers }: PackingClientProps) {
     event.preventDefault();
 
     if (!canEdit) {
-      setError("Editor mode is required to save packing items.");
+      setError("Private trip access is required to save packing items.");
       return;
     }
 
@@ -335,7 +335,7 @@ export function PackingClient({ travelers }: PackingClientProps) {
 
   async function removeItem(item: SharedPackingItem) {
     if (!canEdit) {
-      setError("Editor mode is required to delete packing items.");
+      setError("Private trip access is required to delete packing items.");
       return;
     }
 
@@ -371,7 +371,7 @@ export function PackingClient({ travelers }: PackingClientProps) {
     status: PackingTravelerStatus
   ) {
     if (!canEdit && travelerId !== selectedTravelerId) {
-      setError("Select a traveler identity before updating packing status.");
+      setError("Private trip access is required to update packing status.");
       return;
     }
 

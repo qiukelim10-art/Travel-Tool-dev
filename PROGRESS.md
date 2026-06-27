@@ -2,6 +2,14 @@
 
 ## 2026-06-27
 
+- Started `codex/remove-editor-viewer-modes` from clean `master` to remove the current viewer/editor workflow.
+- Changed the local access model so a valid private link or token grants full workspace edit access for all users; normal UI no longer asks for planner edit passcode, enter-editor, exit-editor, or recovery-token actions.
+- Removed the remaining traveler identity selector from the access dock because private-link users no longer need to choose an identity before editing.
+- Removed the `Private workspace` badge from the access dock and moved the mobile SOS/language controls into the top access row on the right.
+- Reworded user-facing edit guard messages across workspace pages from `Editor mode is required` to private-link access language.
+- Kept `trip_access_controls` and legacy editor-token functions for compatibility, but server-side write guards now use the private-link boundary.
+- Verified the branch with `npm run lint`, `npm run build`, `git diff --check`, isolated smoke DB checks on port `3113` confirming unauthenticated `/api/bookings` returns 401 and share-token-only Booking POST reaches 400 business validation instead of 403, plus local/LAN page and `/api/health` 200 on existing dev server port `3108`.
+- Verified the browser-comment UI pass at 430x932: the access dock no longer shows traveler selection or `PRIVATE WORKSPACE`; `Copy private link`, SOS, and language controls are on the same top row; console had no warnings/errors; `GET /api/access/status` with the private trip token returned `authorized=true`, `mode=editor`, and 2 travelers.
 - Diagnosed the production UI breakage after the UI batch deploy: the generated CSS file contained the later Travel Journal styles, but Chrome CSSOM stopped before the `TripRouteMap`, booking, budget, packing, documents, and settings sections because `globals.css` still had malformed mojibake `content: "..."` rules from older pseudo-icon styling.
 - Fixed the CSS parse cutoff by replacing the malformed pseudo-icon `content` values with safe empty content and adding an explicit desktop fallback to hide `.mobile-bottom-nav`. No API, schema, access-control, setup-generation, or business logic was changed.
 - Verification for the production UI fix passed locally with `npm run lint`, `npm run build`, and a local production CSSOM check on port `3110` confirming the generated CSS now parses through `trip-route-map__canvas` and later budget rules.

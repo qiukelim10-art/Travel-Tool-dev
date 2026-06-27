@@ -234,7 +234,7 @@ export function ItineraryClient({ defaultCurrencies }: ItineraryClientProps) {
 
   function openAddForm() {
     if (!canEdit) {
-      setError("Editor mode is required to add itinerary items.");
+      setError("Private trip access is required to add itinerary items.");
       return;
     }
 
@@ -246,7 +246,7 @@ export function ItineraryClient({ defaultCurrencies }: ItineraryClientProps) {
 
   function startEditing(item: SharedItineraryItem) {
     if (!canEdit) {
-      setError("Editor mode is required to edit itinerary items.");
+      setError("Private trip access is required to edit itinerary items.");
       return;
     }
 
@@ -273,7 +273,7 @@ export function ItineraryClient({ defaultCurrencies }: ItineraryClientProps) {
 
   function openExpenseForm(item: SharedItineraryItem) {
     if (!canEdit) {
-      setError("Editor mode is required to add linked expenses.");
+      setError("Private trip access is required to add linked expenses.");
       return;
     }
 
@@ -286,7 +286,7 @@ export function ItineraryClient({ defaultCurrencies }: ItineraryClientProps) {
 
   function startExpenseEditing(expense: SharedExpense) {
     if (!canEdit) {
-      setError("Editor mode is required to edit linked expenses.");
+      setError("Private trip access is required to edit linked expenses.");
       return;
     }
 
@@ -315,7 +315,7 @@ export function ItineraryClient({ defaultCurrencies }: ItineraryClientProps) {
     event.preventDefault();
 
     if (!canEdit) {
-      setError("Editor mode is required to save itinerary items.");
+      setError("Private trip access is required to save itinerary items.");
       return;
     }
 
@@ -365,7 +365,7 @@ export function ItineraryClient({ defaultCurrencies }: ItineraryClientProps) {
 
   async function removeItem(item: SharedItineraryItem) {
     if (!canEdit) {
-      setError("Editor mode is required to delete itinerary items.");
+      setError("Private trip access is required to delete itinerary items.");
       return;
     }
 
@@ -398,7 +398,7 @@ export function ItineraryClient({ defaultCurrencies }: ItineraryClientProps) {
     event.preventDefault();
 
     if (!canEdit) {
-      setError("Editor mode is required to save linked expenses.");
+      setError("Private trip access is required to save linked expenses.");
       return;
     }
 
@@ -454,7 +454,7 @@ export function ItineraryClient({ defaultCurrencies }: ItineraryClientProps) {
 
   async function removeExpense(expense: SharedExpense) {
     if (!canEdit) {
-      setError("Editor mode is required to delete linked expenses.");
+      setError("Private trip access is required to delete linked expenses.");
       return;
     }
 

@@ -189,7 +189,7 @@ export function BudgetClient({
 
   function openAddForm() {
     if (!canEdit) {
-      setError("Editor mode is required to add expenses.");
+      setError("Private trip access is required to add expenses.");
       return;
     }
 
@@ -202,7 +202,7 @@ export function BudgetClient({
 
   function startEditing(expense: SharedExpense) {
     if (!canEdit) {
-      setError("Editor mode is required to edit expenses.");
+      setError("Private trip access is required to edit expenses.");
       return;
     }
 
@@ -232,7 +232,7 @@ export function BudgetClient({
     event.preventDefault();
 
     if (!canEdit) {
-      setError("Editor mode is required to save expenses.");
+      setError("Private trip access is required to save expenses.");
       return;
     }
 
@@ -290,7 +290,7 @@ export function BudgetClient({
 
   async function removeExpense(expense: SharedExpense) {
     if (!canEdit) {
-      setError("Editor mode is required to delete expenses.");
+      setError("Private trip access is required to delete expenses.");
       return;
     }
 

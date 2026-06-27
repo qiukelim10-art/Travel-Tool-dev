@@ -87,7 +87,7 @@ export function RemindersClient({ participants }: RemindersClientProps) {
 
   function startAdding() {
     if (!canEdit) {
-      setError("Editor mode is required to add reminders.");
+      setError("Private trip access is required to add reminders.");
       return;
     }
 
@@ -97,7 +97,7 @@ export function RemindersClient({ participants }: RemindersClientProps) {
 
   function startEditing(reminder: SharedReminder) {
     if (!canEdit) {
-      setError("Editor mode is required to edit reminders.");
+      setError("Private trip access is required to edit reminders.");
       return;
     }
 
@@ -114,7 +114,7 @@ export function RemindersClient({ participants }: RemindersClientProps) {
     event.preventDefault();
 
     if (!canEdit) {
-      setError("Editor mode is required to save reminders.");
+      setError("Private trip access is required to save reminders.");
       return;
     }
 
@@ -149,7 +149,7 @@ export function RemindersClient({ participants }: RemindersClientProps) {
 
   async function removeReminder(reminder: SharedReminder) {
     if (!canEdit) {
-      setError("Editor mode is required to delete reminders.");
+      setError("Private trip access is required to delete reminders.");
       return;
     }
 
@@ -190,7 +190,7 @@ export function RemindersClient({ participants }: RemindersClientProps) {
                 type="button"
                 onClick={startAdding}
                 data-edit-required={!canEdit ? "true" : undefined}
-                title={!canEdit ? "Editor mode is required to add reminders." : undefined}
+                title={!canEdit ? "Private trip access is required to add reminders." : undefined}
                 className="rounded-md bg-moss px-3 py-2 text-sm font-semibold text-white"
               >
                 {t("reminders.add")}
@@ -298,7 +298,7 @@ export function RemindersClient({ participants }: RemindersClientProps) {
             </form>
           ) : (
             <p className="mt-3 rounded-lg bg-zinc-50 px-3 py-4 text-sm text-zinc-600">
-              Editor mode is required to add, edit, or delete reminders.
+              Private trip access is required to add, edit, or delete reminders.
             </p>
           )}
         </>

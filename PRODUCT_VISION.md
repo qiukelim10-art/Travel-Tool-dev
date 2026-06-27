@@ -148,16 +148,11 @@ The first version should not require every traveler to create an account.
 Use:
 
 - Private unguessable trip link
-- Planner-set edit passcode
-- Viewer mode by default
-- Editor mode after entering the edit passcode
-- One-time owner recovery link or token shown when the workspace is created
+- Shared editing for anyone who opens the workspace through the private link or token
 
-The edit passcode must be stored only as a salted hash, never as plaintext.
+The private link is the workspace boundary. There is no separate viewer/editor mode and no normal edit passcode flow.
 
-Viewer mode may update low-risk checklist/status fields after selecting a traveler identity, such as packing status, document prepared status, and reminder done status.
-
-Editor mode is required for core data changes, such as bookings, amounts, itinerary items, document links, traveler settings, and workspace options.
+Anyone with the private link can edit core trip data, including bookings, amounts, itinerary items, document links, traveler settings, workspace options, and checklist/status fields.
 
 Do not build full login, traveler accounts, co-planner roles, or fine-grained permissions in the first version.
 
@@ -169,7 +164,7 @@ Users should treat the workspace as a lightweight travel coordination tool, not 
 
 The workspace should not store sensitive personal documents, passport scans, payment details, private passcodes, or confidential identity information.
 
-Viewer mode should only allow low-risk status updates after selecting a traveler identity. Core trip data changes require editor mode.
+Anyone with the private link can edit the workspace, so the link should only be shared with the trip group.
 
 ## Commercial Model
 
@@ -362,11 +357,8 @@ Known gaps against this product vision:
 
 - The project is still a single trip instance, not a repeatable workspace product.
 - Some business tables still assume the single active trip and do not have trip_id/workspace_id.
-- The live site is currently URL-accessible and editable without the future edit passcode boundary.
-- There is no guided setup wizard.
-- There is no rule-based template generation system.
+- The live workspace uses private-link access, but it still has no per-user accounts, roles, or audit trail.
 - There is no workspace lifecycle/archive model.
-- There is no pilot offer page.
 
 Near-term development should avoid making the single-trip assumption worse. New or substantially changed data structures should start moving toward workspace_id/trip_id compatibility, while avoiding a full multi-trip SaaS dashboard for now.
 
@@ -374,7 +366,7 @@ Near-term development should avoid making the single-trip assumption worse. New 
 
 Before building new features, choose the first implementation slice:
 
-1. Access control first: private link, edit passcode, viewer/editor mode
+1. Access control first: private link workspace boundary
 2. Setup/template first: guided setup and rule-based prefilled workspace
 3. Pilot offer first: lightweight public offer page and manual onboarding path
 

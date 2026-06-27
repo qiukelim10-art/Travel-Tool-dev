@@ -632,7 +632,7 @@ function buildReminders(
   const dayTripItems = context.dayTripCities.map((city) => `Add a same-day return plan, meeting point, and backup transport note for ${city}.`);
   return [
     {
-      text: "Store the private trip link, planner edit passcode, and recovery token outside this workspace.",
+      text: "Store the private trip link outside this workspace and share it only with the trip group.",
       priority: "High",
       createdBy: owner
     },

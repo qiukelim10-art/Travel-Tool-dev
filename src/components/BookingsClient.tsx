@@ -156,7 +156,7 @@ export function BookingsClient({ participants, defaultCurrencies }: BookingsClie
 
   function startEditing(booking: SharedBooking) {
     if (!canEdit) {
-      setError("Editor mode is required to edit bookings.");
+      setError("Private trip access is required to edit bookings.");
       return;
     }
 
@@ -172,7 +172,7 @@ export function BookingsClient({ participants, defaultCurrencies }: BookingsClie
 
   function openAddForm() {
     if (!canEdit) {
-      setError("Editor mode is required to add bookings.");
+      setError("Private trip access is required to add bookings.");
       return;
     }
 
@@ -187,7 +187,7 @@ export function BookingsClient({ participants, defaultCurrencies }: BookingsClie
     event.preventDefault();
 
     if (!canEdit) {
-      setError("Editor mode is required to save bookings.");
+      setError("Private trip access is required to save bookings.");
       return;
     }
 
@@ -241,7 +241,7 @@ export function BookingsClient({ participants, defaultCurrencies }: BookingsClie
 
   async function removeBooking(booking: SharedBooking) {
     if (!canEdit) {
-      setError("Editor mode is required to delete bookings.");
+      setError("Private trip access is required to delete bookings.");
       return;
     }
 
@@ -288,7 +288,7 @@ export function BookingsClient({ participants, defaultCurrencies }: BookingsClie
             type="button"
             onClick={formOpen ? resetForm : openAddForm}
             data-edit-required={!canEdit ? "true" : undefined}
-            title={!canEdit ? "Editor mode is required to add bookings." : undefined}
+            title={!canEdit ? "Private trip access is required to add bookings." : undefined}
             className="bookings-add-button itinerary-action-button itinerary-action-button--primary"
           >
             {formOpen ? t("bookings.closeForm") : t("bookings.addItem")}
@@ -826,7 +826,7 @@ function ActionButtons({
         type="button"
         onClick={() => onEdit(booking)}
         data-edit-required={!canEdit ? "true" : undefined}
-        title={!canEdit ? "Editor mode is required to edit bookings." : undefined}
+        title={!canEdit ? "Private trip access is required to edit bookings." : undefined}
         className="itinerary-action-button itinerary-action-button--ghost"
       >
         {t("common.edit")}

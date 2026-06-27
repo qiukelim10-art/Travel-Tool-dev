@@ -187,8 +187,7 @@ export function Layout({ children }: { children: ReactNode }) {
         Skip to main content
       </a>
       <Navigation />
-      <TripAccessToolbar />
-      <MobileUtilityRow />
+      <TripAccessToolbar mobileActions={<MobileUtilityRow />} />
       <main
         id="main-content"
         className="mobile-main-shell mx-auto max-w-[92rem] px-4 pt-6 sm:px-6 md:pb-12 md:pt-8"

@@ -13,7 +13,7 @@ import {
 } from "react";
 import type { TripTraveler } from "@/lib/sharedDataTypes";
 
-type TripAccessMode = "viewer" | "editor";
+type TripAccessMode = "editor";
 
 type TripAccessStatusResponse = {
   configured?: boolean;
@@ -56,7 +56,7 @@ type TripAccessContextValue = {
   recoveryTokenAvailable: boolean;
   setPrivateToken: (token: string) => Promise<void>;
   setSelectedTravelerId: (travelerId: string) => void;
-  initializeAccess: (editPasscode: string) => Promise<TripAccessSetupResult>;
+  initializeAccess: () => Promise<TripAccessSetupResult>;
   enterEditorMode: (passcode: string) => Promise<void>;
   exitEditorMode: () => void;
   recoverEditorMode: (ownerRecoveryToken: string, newEditPasscode: string) => Promise<void>;
@@ -66,7 +66,6 @@ type TripAccessContextValue = {
 type TripAccessSetupResult = {
   privateLink: string;
   shareToken: string;
-  ownerRecoveryToken: string;
 };
 
 const TripAccessContext = createContext<TripAccessContextValue | null>(null);
@@ -120,7 +119,7 @@ export function TripAccessProvider({ children }: { children: ReactNode }) {
   const applyStatus = useCallback(
     (status: TripAccessStatusResponse, nextShareToken: string, nextEditorToken: string) => {
       const nextTravelers = Array.isArray(status.travelers) ? status.travelers : [];
-      const nextMode = status.mode ?? null;
+      const nextMode = status.authorized ? "editor" : null;
       setConfigured(Boolean(status.configured));
       setAuthorized(Boolean(status.authorized));
       setMode(nextMode);
@@ -252,20 +251,20 @@ export function TripAccessProvider({ children }: { children: ReactNode }) {
   );
 
   const initializeAccess = useCallback(
-    async (editPasscode: string) => {
+    async () => {
       const response = await fetch("/api/access/setup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ editPasscode })
+        body: JSON.stringify({})
       });
       const data = (await response.json()) as TripAccessSetupResponse;
 
-      if (!response.ok || !data.shareToken || !data.ownerRecoveryToken || !data.editorToken) {
+      if (!response.ok || !data.shareToken) {
         throw new Error(data.error ?? "Unable to configure trip access.");
       }
 
       setShareToken(data.shareToken);
-      setEditorToken(data.editorToken);
+      clearEditorToken();
       applyStatus(
         {
           configured: true,
@@ -275,16 +274,15 @@ export function TripAccessProvider({ children }: { children: ReactNode }) {
           travelers: data.travelers ?? []
         },
         data.shareToken,
-        data.editorToken
+        ""
       );
 
       return {
         privateLink: buildPrivateLink(data.shareToken),
-        shareToken: data.shareToken,
-        ownerRecoveryToken: data.ownerRecoveryToken
+        shareToken: data.shareToken
       };
     },
-    [applyStatus, setEditorToken, setShareToken]
+    [applyStatus, clearEditorToken, setShareToken]
   );
 
   const enterEditorMode = useCallback(
@@ -311,7 +309,7 @@ export function TripAccessProvider({ children }: { children: ReactNode }) {
 
   const exitEditorMode = useCallback(() => {
     clearEditorToken();
-    setMode(authorized ? "viewer" : null);
+    setMode(authorized ? "editor" : null);
   }, [authorized, clearEditorToken]);
 
   const recoverEditorMode = useCallback(
@@ -403,9 +401,9 @@ export function TripAccessGate({ children }: { children: ReactNode }) {
   if (!access.configured) {
     return (
       <AccessSetup
-        onSetup={async (editPasscode) => {
+        onSetup={async () => {
           setError(null);
-          const result = await access.initializeAccess(editPasscode);
+          const result = await access.initializeAccess();
           setSetupResult(result);
           return result;
         }}
@@ -427,81 +425,14 @@ export function TripAccessGate({ children }: { children: ReactNode }) {
   return children;
 }
 
-export function TripAccessToolbar() {
+export function TripAccessToolbar({ mobileActions }: { mobileActions?: ReactNode }) {
   const access = useTripAccess();
-  const [passcode, setPasscode] = useState("");
-  const [recoveryToken, setRecoveryToken] = useState("");
-  const [newPasscode, setNewPasscode] = useState("");
-  const [oneTimeRecoveryToken, setOneTimeRecoveryToken] = useState("");
   const [manualCopyValue, setManualCopyValue] = useState("");
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [submitting, setSubmitting] = useState(false);
-  const activeTravelers = access.travelers.filter((traveler) => traveler.isActive);
 
   if (!access.authorized) {
     return null;
-  }
-
-  async function submitEditorPasscode(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!passcode.trim()) {
-      setError("Enter the planner edit passcode.");
-      return;
-    }
-
-    setSubmitting(true);
-    setError(null);
-    setNotice(null);
-
-    try {
-      await access.enterEditorMode(passcode);
-      setPasscode("");
-      setNotice("Editor mode enabled.");
-    } catch (submitError) {
-      setError(submitError instanceof Error ? submitError.message : "Unable to enter editor mode.");
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
-  async function submitRecovery(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!recoveryToken.trim() || newPasscode.trim().length < 6) {
-      setError("Enter the recovery token and a new edit passcode with at least 6 characters.");
-      return;
-    }
-
-    setSubmitting(true);
-    setError(null);
-    setNotice(null);
-
-    try {
-      await access.recoverEditorMode(recoveryToken, newPasscode);
-      setRecoveryToken("");
-      setNewPasscode("");
-      setNotice("Editor access recovered. Generate a new recovery token from editor mode.");
-    } catch (submitError) {
-      setError(submitError instanceof Error ? submitError.message : "Unable to recover editor access.");
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
-  async function createRecoveryToken() {
-    setSubmitting(true);
-    setError(null);
-    setNotice(null);
-
-    try {
-      const token = await access.rotateRecoveryToken();
-      setOneTimeRecoveryToken(token);
-      setNotice("New one-time owner recovery token created. Store it outside this app.");
-    } catch (submitError) {
-      setError(submitError instanceof Error ? submitError.message : "Unable to create recovery token.");
-    } finally {
-      setSubmitting(false);
-    }
   }
 
   async function copyPrivateLink() {
@@ -518,9 +449,6 @@ export function TripAccessToolbar() {
       <div className="mx-auto grid max-w-6xl gap-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-start">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="access-dock__mode rounded-full px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.08em]">
-              {access.mode === "editor" ? "Editor mode" : "Viewer mode"}
-            </span>
             <button
               type="button"
               onClick={() => void copyPrivateLink()}
@@ -530,115 +458,23 @@ export function TripAccessToolbar() {
             </button>
           </div>
           <p className="mt-2 hidden text-sm leading-6 text-zinc-600 sm:block">
-            Viewer mode can only update your own low-risk checklist status after selecting a traveler identity.
+            Anyone with this private link can view and edit the trip workspace.
           </p>
-          <label className="access-dock__traveler mt-2 block max-w-sm text-sm font-semibold text-ink">
-            <span className="access-dock__traveler-label">Traveler identity</span>
-            <select
-              value={access.selectedTravelerId}
-              onChange={(event) => access.setSelectedTravelerId(event.target.value)}
-              className="access-dock__select mt-1 block w-full rounded-md px-3 py-2 text-sm text-zinc-700"
-            >
-              <option value="">Select traveler</option>
-              {activeTravelers.map((traveler) => (
-                <option key={traveler.id} value={traveler.id}>
-                  {traveler.displayName}
-                </option>
-              ))}
-            </select>
-          </label>
         </div>
 
-        <div className="grid gap-2 md:min-w-80">
-          <details className="access-dock__details rounded-md p-3" open={access.mode === "editor"}>
-            <summary className="cursor-pointer text-sm font-semibold text-ink">Editor tools</summary>
-            <div className="mt-3 grid gap-2">
-              {access.mode === "editor" ? (
-                <div className="flex flex-col gap-2 sm:flex-row md:justify-end">
-                  <button
-                    type="button"
-                    onClick={createRecoveryToken}
-                    disabled={submitting}
-                    className="access-dock__button rounded-md px-3 py-2 text-sm font-semibold disabled:opacity-60"
-                  >
-                    New recovery token
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      access.exitEditorMode();
-                      setNotice("Returned to viewer mode.");
-                    }}
-                    className="access-dock__button rounded-md px-3 py-2 text-sm font-semibold"
-                  >
-                    Exit editor
-                  </button>
-                </div>
-              ) : (
-                <form onSubmit={submitEditorPasscode} className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
-                  <input
-                    type="password"
-                    value={passcode}
-                    onChange={(event) => setPasscode(event.target.value)}
-                    placeholder="Planner edit passcode"
-                    className="access-dock__select rounded-md px-3 py-2 text-sm text-zinc-700"
-                  />
-                  <button
-                    type="submit"
-                    disabled={submitting}
-                    className="access-dock__primary rounded-md px-3 py-2 text-sm font-semibold disabled:opacity-60"
-                  >
-                    {submitting ? "Checking..." : "Enter editor"}
-                  </button>
-                </form>
-              )}
+        {mobileActions}
 
-              {access.mode !== "editor" ? (
-                <details className="access-dock__details rounded-md p-3">
-                  <summary className="cursor-pointer text-sm font-semibold text-ink">Recover editor access</summary>
-                  <form onSubmit={submitRecovery} className="mt-3 grid gap-2">
-                    <input
-                      type="password"
-                      value={recoveryToken}
-                      onChange={(event) => setRecoveryToken(event.target.value)}
-                      placeholder="Owner recovery token"
-                      className="access-dock__select rounded-md px-3 py-2 text-sm text-zinc-700"
-                    />
-                    <input
-                      type="password"
-                      value={newPasscode}
-                      onChange={(event) => setNewPasscode(event.target.value)}
-                      placeholder="New edit passcode"
-                      className="access-dock__select rounded-md px-3 py-2 text-sm text-zinc-700"
-                    />
-                    <button
-                      type="submit"
-                      disabled={submitting}
-                      className="access-dock__primary rounded-md px-3 py-2 text-sm font-semibold disabled:opacity-60"
-                    >
-                      Reset passcode
-                    </button>
-                  </form>
-                </details>
-              ) : null}
-
-              {oneTimeRecoveryToken ? (
-                <TokenBox
-                  label="One-time owner recovery token"
-                  value={oneTimeRecoveryToken}
-                  onCopy={() => void copyText(oneTimeRecoveryToken, setNotice, setError)}
-                />
-              ) : null}
-            </div>
-          </details>
-          {manualCopyValue ? (
-            <p className="break-all rounded-md border border-zinc-200 bg-white px-3 py-2 text-xs leading-5 text-zinc-700">
-              {manualCopyValue}
-            </p>
-          ) : null}
-          {notice ? <p className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">{notice}</p> : null}
-          {error ? <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p> : null}
-        </div>
+        {manualCopyValue || notice || error ? (
+          <div className="grid gap-2 md:min-w-80">
+            {manualCopyValue ? (
+              <p className="break-all rounded-md border border-zinc-200 bg-white px-3 py-2 text-xs leading-5 text-zinc-700">
+                {manualCopyValue}
+              </p>
+            ) : null}
+            {notice ? <p className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">{notice}</p> : null}
+            {error ? <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p> : null}
+          </div>
+        ) : null}
       </div>
     </section>
   );
@@ -662,31 +498,19 @@ function AccessSetup({
 }: {
   error: string | null;
   onError: (error: string | null) => void;
-  onSetup: (editPasscode: string) => Promise<TripAccessSetupResult>;
+  onSetup: () => Promise<TripAccessSetupResult>;
   setupResult: TripAccessSetupResult | null;
 }) {
-  const [passcode, setPasscode] = useState("");
-  const [confirmPasscode, setConfirmPasscode] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   async function submitSetup(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (passcode.length < 6) {
-      onError("Use an edit passcode with at least 6 characters.");
-      return;
-    }
-    if (passcode !== confirmPasscode) {
-      onError("Edit passcodes do not match.");
-      return;
-    }
 
     setSubmitting(true);
     onError(null);
 
     try {
-      await onSetup(passcode);
-      setPasscode("");
-      setConfirmPasscode("");
+      await onSetup();
     } catch (setupError) {
       onError(setupError instanceof Error ? setupError.message : "Unable to configure trip access.");
     } finally {
@@ -701,23 +525,9 @@ function AccessSetup({
   return (
     <AccessFrame
       title="Create private trip access"
-      description="This creates one unguessable private trip link, one planner edit passcode, and one owner recovery token."
+      description="This creates one unguessable private trip link. Anyone with the link can view and edit this workspace."
     >
       <form onSubmit={submitSetup} className="mt-5 grid gap-3">
-        <input
-          type="password"
-          value={passcode}
-          onChange={(event) => setPasscode(event.target.value)}
-          placeholder="Planner edit passcode"
-          className="rounded-md border border-zinc-200 bg-white px-3 py-2 text-base text-zinc-700"
-        />
-        <input
-          type="password"
-          value={confirmPasscode}
-          onChange={(event) => setConfirmPasscode(event.target.value)}
-          placeholder="Confirm edit passcode"
-          className="rounded-md border border-zinc-200 bg-white px-3 py-2 text-base text-zinc-700"
-        />
         <button
           type="submit"
           disabled={submitting}
@@ -738,11 +548,10 @@ function SetupResult({ result, onContinue }: { result: TripAccessSetupResult; on
   return (
     <AccessFrame
       title="Private access is ready"
-      description="Copy these now. The owner recovery token is shown once and is not stored in plaintext."
+      description="Copy this private link now. Anyone with it can open and edit the trip workspace."
     >
       <div className="mt-5 grid gap-3">
         <TokenBox label="Private trip link" value={result.privateLink} onCopy={() => void copyText(result.privateLink, setNotice, setError)} />
-        <TokenBox label="Owner recovery token" value={result.ownerRecoveryToken} onCopy={() => void copyText(result.ownerRecoveryToken, setNotice, setError)} />
         <button
           type="button"
           onClick={onContinue}

@@ -160,7 +160,7 @@ export function DocumentsClient({ travelers: initialTravelers }: DocumentsClient
 
   function openAddForm() {
     if (!canEdit) {
-      setError("Editor mode is required to add documents.");
+      setError("Private trip access is required to add documents.");
       return;
     }
 
@@ -173,7 +173,7 @@ export function DocumentsClient({ travelers: initialTravelers }: DocumentsClient
 
   function startEditing(document: SharedDocumentItem) {
     if (!canEdit) {
-      setError("Editor mode is required to edit documents.");
+      setError("Private trip access is required to edit documents.");
       return;
     }
 
@@ -220,7 +220,7 @@ export function DocumentsClient({ travelers: initialTravelers }: DocumentsClient
     event.preventDefault();
 
     if (!canEdit) {
-      setError("Editor mode is required to save documents.");
+      setError("Private trip access is required to save documents.");
       return;
     }
 
@@ -288,7 +288,7 @@ export function DocumentsClient({ travelers: initialTravelers }: DocumentsClient
 
   async function removeDocument(document: SharedDocumentItem) {
     if (!canEdit) {
-      setError("Editor mode is required to delete documents.");
+      setError("Private trip access is required to delete documents.");
       return;
     }
 
