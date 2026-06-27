@@ -62,6 +62,21 @@ function todayLocalDate() {
   return `${year}-${month}-${day}`;
 }
 
+function formatDisplayDate(value: string, language: ReturnType<typeof useLanguage>["language"]) {
+  const [year, month, day] = value.split("-").map(Number);
+
+  if (!year || !month || !day) {
+    return value;
+  }
+
+  const date = new Date(year, month - 1, day);
+  return new Intl.DateTimeFormat(language === "zh" ? "zh-CN" : "en", {
+    day: "numeric",
+    month: "short",
+    year: "numeric"
+  }).format(date);
+}
+
 function emptyForm(travelers: Traveler[], currency: SharedCurrency = fallbackCurrency): ExpenseFormState {
   const orderedTravelers = orderTravelers(travelers);
 
@@ -408,55 +423,85 @@ export function BudgetClient({
             />
           ) : null}
 
-          {!loading && displayExpenses.length === 0 ? (
-            <p className="budget-empty-card">
-              {t("budget.emptyLedger")}
-            </p>
-          ) : null}
+	          {!loading && displayExpenses.length === 0 ? (
+	            <EmptyLedgerState canEdit={canEdit} loading={loading} onAdd={openAddForm} t={t} />
+	          ) : null}
 
-          {!loading && displayExpenses.length > 0 ? (
-            <SummarySection summaries={summaries} travelers={orderedTravelers} t={t} />
-          ) : null}
+	          {!loading && displayExpenses.length > 0 ? (
+	            <SummarySection summaries={summaries} travelers={orderedTravelers} t={t} />
+	          ) : null}
 
-          <FilterSection
-            filtersOpen={filtersOpen}
-            currencyFilter={currencyFilter}
-            categoryFilter={categoryFilter}
-            sourceFilter={sourceFilter}
-            statusFilter={statusFilter}
-            currencies={visibleCurrencies}
-            categories={visibleCategories}
-            language={language}
-            t={t}
-            onToggleFilters={() => setFiltersOpen((current) => !current)}
-            onCurrencyChange={setCurrencyFilter}
-            onCategoryChange={setCategoryFilter}
-            onSourceChange={setSourceFilter}
-            onStatusChange={setStatusFilter}
-          />
+	          {!loading && displayExpenses.length > 0 ? (
+	            <>
+	              <FilterSection
+	                filtersOpen={filtersOpen}
+	                currencyFilter={currencyFilter}
+	                categoryFilter={categoryFilter}
+	                sourceFilter={sourceFilter}
+	                statusFilter={statusFilter}
+	                currencies={visibleCurrencies}
+	                categories={visibleCategories}
+	                language={language}
+	                t={t}
+	                onToggleFilters={() => setFiltersOpen((current) => !current)}
+	                onCurrencyChange={setCurrencyFilter}
+	                onCategoryChange={setCategoryFilter}
+	                onSourceChange={setSourceFilter}
+	                onStatusChange={setStatusFilter}
+	              />
 
-          <ExpenseList
-            expenses={filteredExpenses}
-            travelerNameById={travelerNameById}
-            deletingId={deletingId}
-            canEdit={canEdit}
-            language={language}
-            t={t}
-            editingId={editingId}
-            form={form}
-            formOpen={formOpen}
-            formTravelers={formTravelers}
-            submitting={submitting}
-            currencies={currencyOptions}
-            onSubmit={submitExpense}
-            onCancel={() => resetForm()}
-            onFormChange={setForm}
-            onEdit={startEditing}
-            onDelete={removeExpense}
-          />
-        </div>
+	              <ExpenseList
+	                expenses={filteredExpenses}
+	                travelerNameById={travelerNameById}
+	                deletingId={deletingId}
+	                canEdit={canEdit}
+	                language={language}
+	                t={t}
+	                editingId={editingId}
+	                form={form}
+	                formOpen={formOpen}
+	                formTravelers={formTravelers}
+	                submitting={submitting}
+	                currencies={currencyOptions}
+	                onSubmit={submitExpense}
+	                onCancel={() => resetForm()}
+	                onFormChange={setForm}
+	                onEdit={startEditing}
+	                onDelete={removeExpense}
+	              />
+	            </>
+	          ) : null}
+	        </div>
       </div>
     </div>
+  );
+}
+
+function EmptyLedgerState({
+  canEdit,
+  loading,
+  onAdd,
+  t
+}: {
+  canEdit: boolean;
+  loading: boolean;
+  onAdd: () => void;
+  t: TFunction;
+}) {
+  return (
+    <section className="budget-empty-card budget-empty-card--action">
+      <p>{t("budget.emptyLedger")}</p>
+      <button
+        type="button"
+        onClick={onAdd}
+        disabled={loading}
+        data-edit-required={!canEdit ? "true" : undefined}
+        title={!canEdit ? "Private trip access is required to add expenses." : undefined}
+        className="budget-action-button budget-action-button--primary"
+      >
+        {t("budget.emptyCta")}
+      </button>
+    </section>
   );
 }
 
@@ -774,9 +819,12 @@ function FilterSection({
   onSourceChange: (value: SourceFilter) => void;
   onStatusChange: (value: StatusFilter) => void;
 }) {
-  const filterSummary = [currencyFilter, categoryFilter, sourceFilter, statusFilter]
-    .map((value) => formatFilterValue(language, value))
-    .join(" / ");
+  const filterSummary = [
+    `${t("budget.filters.currency")}: ${formatFilterValue(language, currencyFilter)}`,
+    `${t("budget.filters.category")}: ${formatFilterValue(language, categoryFilter)}`,
+    `${t("budget.filters.source")}: ${formatFilterValue(language, sourceFilter)}`,
+    `${t("budget.filters.status")}: ${formatFilterValue(language, statusFilter)}`
+  ].join(" · ");
 
   return (
     <section className="budget-filter-card">
@@ -950,6 +998,7 @@ function ExpenseCard({
   onDelete: (expense: SharedExpense) => Promise<void>;
 }) {
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const [actionsOpen, setActionsOpen] = useState(false);
   const isMisc = expense.sourceType === "misc";
   const splitAmong = expense.splitTravelerIds
     .map((travelerId) => travelerNameById.get(travelerId) ?? travelerId)
@@ -967,7 +1016,7 @@ function ExpenseCard({
           </div>
           <h3>{expense.title}</h3>
           <p>
-            {translateOption(language, expense.category)} - {expense.expenseDate}
+            {translateOption(language, expense.category)} - {formatDisplayDate(expense.expenseDate, language)}
           </p>
         </div>
         <div className="budget-expense-card__side">
@@ -982,25 +1031,38 @@ function ExpenseCard({
             >
               {detailsOpen ? t("budget.expenses.hideDetails") : t("budget.expenses.details")}
             </button>
-            {isMisc && canEdit ? (
-              <>
-                <button
-                  type="button"
-                  onClick={() => onEdit(expense)}
-                  className="budget-action-button budget-action-button--mini"
-                >
-                  {t("common.edit")}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => void onDelete(expense)}
-                  disabled={deletingId === expense.id}
-                  className="budget-action-button budget-action-button--mini budget-action-button--danger"
-                >
-                  {deletingId === expense.id ? t("budget.expenses.deleting") : t("common.delete")}
-                </button>
-              </>
-            ) : null}
+	            {isMisc && canEdit ? (
+	              <>
+	                <button
+	                  type="button"
+	                  onClick={() => setActionsOpen((current) => !current)}
+	                  aria-expanded={actionsOpen}
+	                  aria-label={t("common.moreActions")}
+	                  className="budget-action-button budget-action-button--mini"
+	                >
+	                  {t("common.manage")}
+	                </button>
+	                {actionsOpen ? (
+	                  <div className="budget-expense-actions__menu">
+	                    <button
+	                      type="button"
+	                      onClick={() => onEdit(expense)}
+	                      className="budget-action-button budget-action-button--mini"
+	                    >
+	                      {t("common.edit")}
+	                    </button>
+	                    <button
+	                      type="button"
+	                      onClick={() => void onDelete(expense)}
+	                      disabled={deletingId === expense.id}
+	                      className="budget-action-button budget-action-button--mini budget-action-button--danger"
+	                    >
+	                      {deletingId === expense.id ? t("budget.expenses.deleting") : t("common.delete")}
+	                    </button>
+	                  </div>
+	                ) : null}
+	              </>
+	            ) : null}
           </div>
         </div>
       </div>

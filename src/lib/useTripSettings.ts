@@ -36,7 +36,7 @@ const fallbackTripSettingsView: TripSettingsView = {
   destination: tripInfo.countries[0] ?? "",
   startDate: tripInfo.startDate,
   endDate: tripInfo.endDate,
-  dateRangeLabel: `${formatShortDate(tripInfo.startDate)} - ${formatShortDate(tripInfo.endDate)}`,
+  dateRangeLabel: formatDateRange(tripInfo.startDate, tripInfo.endDate),
   routeStops: tripInfo.cities.map((city, index) => ({
     city,
     country: tripInfo.countries[0] ?? null,
@@ -45,7 +45,7 @@ const fallbackTripSettingsView: TripSettingsView = {
     sortOrder: index + 1
   })),
   routeCities: tripInfo.cities,
-  routeLabel: tripInfo.cities.join(" -> "),
+  routeLabel: formatRouteLabel(tripInfo.cities),
   travelerCount: tripInfo.participants.length,
   travelerDisplayNames: tripInfo.participants,
   travelers: fallbackTravelers,
@@ -188,7 +188,7 @@ function buildTripSettingsView(settings: TripSettingsResponse): TripSettingsView
     dateRangeLabel: formatDateRange(settings.trip.startDate, settings.trip.endDate),
     routeStops,
     routeCities,
-    routeLabel: routeCities.length > 0 ? routeCities.join(" -> ") : settings.trip.destination,
+    routeLabel: routeCities.length > 0 ? formatRouteLabel(routeCities) : settings.trip.destination,
     travelerCount: activeTravelers.length,
     travelerDisplayNames,
     travelers: mappedTravelers,
@@ -208,7 +208,22 @@ function formatDateRange(startDate: string | null, endDate: string | null) {
 }
 
 function formatShortDate(value: string) {
-  return value;
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!match) {
+    return value;
+  }
+
+  const [, year, month, day] = match;
+  const date = new Date(Number(year), Number(month) - 1, Number(day));
+  return new Intl.DateTimeFormat("en", {
+    day: "numeric",
+    month: "short",
+    year: "numeric"
+  }).format(date);
+}
+
+function formatRouteLabel(cities: string[]) {
+  return cities.filter(Boolean).join(" · ");
 }
 
 function readTripShareTokenForRequest() {

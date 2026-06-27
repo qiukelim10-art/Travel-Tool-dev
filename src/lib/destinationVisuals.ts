@@ -638,7 +638,7 @@ export function getDestinationVisualIdentity({
     countryNames,
     destinationLabel,
     stampLabel: formatStampLabel(destinationLabel),
-    stampDetail: firstStop === lastStop ? firstStop : `${firstStop} -> ${lastStop}`,
+    stampDetail: firstStop === lastStop ? firstStop : `${firstStop} · ${lastStop}`,
     routeMarks: visibleMarks.slice(0, 5),
     destinations
   };

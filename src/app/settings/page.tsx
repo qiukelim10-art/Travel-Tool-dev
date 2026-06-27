@@ -26,8 +26,11 @@ const copy = {
     basics: "Trip basics",
     currencies: "Defaults",
     travelers: "Travelers",
-    route: "Route stops",
-    name: "Trip name",
+	    route: "Route stops",
+	    advanced: "Advanced",
+	    regenerate: "Regenerate starter workspace",
+	    regenerateDescription: "This can rebuild starter content after explicit confirmation.",
+	    name: "Trip name",
     destination: "Destination",
     startDate: "Start date",
     endDate: "End date",
@@ -45,8 +48,11 @@ const copy = {
     moveDown: "Down",
     remove: "Remove",
     activeHint: "Inactive travelers stay available for historical records, but new forms use active travelers.",
-    routeEmpty: "No route stops yet.",
-    travelerEmpty: "Add at least one active traveler.",
+	    routeEmpty: "No route stops yet.",
+	    routeStopSummary: "Stop {index}",
+	    routeStopDates: "{start} to {end}",
+	    routeStopDateTbc: "TBC",
+	    travelerEmpty: "Add at least one active traveler.",
     validationName: "Trip name is required.",
     validationDestination: "Destination is required.",
     validationCurrency: "Select at least one currency.",
@@ -68,8 +74,11 @@ const copy = {
     basics: "行程基础信息",
     currencies: "默认设置",
     travelers: "成员",
-    route: "路线城市",
-    name: "行程名称",
+	    route: "路线城市",
+	    advanced: "高级",
+	    regenerate: "重新生成 starter workspace",
+	    regenerateDescription: "这会在明确确认后重建 starter 内容。",
+	    name: "行程名称",
     destination: "目的地",
     startDate: "开始日期",
     endDate: "结束日期",
@@ -87,8 +96,11 @@ const copy = {
     moveDown: "下移",
     remove: "移除",
     activeHint: "停用成员仍会用于历史记录显示，新建表单只使用启用成员。",
-    routeEmpty: "还没有路线城市。",
-    travelerEmpty: "至少需要一个启用成员。",
+	    routeEmpty: "还没有路线城市。",
+	    routeStopSummary: "第 {index} 站",
+	    routeStopDates: "{start} 至 {end}",
+	    routeStopDateTbc: "待确认",
+	    travelerEmpty: "至少需要一个启用成员。",
     validationName: "请填写行程名称。",
     validationDestination: "请填写目的地。",
     validationCurrency: "请至少选择一个币种。",
@@ -257,18 +269,22 @@ export default function SettingsPage() {
               Private trip access is required to modify trip settings.
             </p>
           ) : null}
-          <section className="settings-card">
-            <h2>{labels.basics}</h2>
+          <details className="settings-card settings-section" open>
+            <summary>
+              <span>{labels.basics}</span>
+            </summary>
             <div className="settings-field-grid">
               <TextField name="trip-name" label={labels.name} value={form.trip.name} autoComplete="off" onChange={(value) => updateTrip(form, setForm, { name: value })} />
               <TextField name="trip-destination" label={labels.destination} value={form.trip.destination} autoComplete="address-level1" onChange={(value) => updateTrip(form, setForm, { destination: value })} />
               <TextField name="trip-start-date" label={labels.startDate} type="date" value={form.trip.startDate ?? ""} onChange={(value) => updateTrip(form, setForm, { startDate: value || null })} />
               <TextField name="trip-end-date" label={labels.endDate} type="date" value={form.trip.endDate ?? ""} onChange={(value) => updateTrip(form, setForm, { endDate: value || null })} />
             </div>
-          </section>
+          </details>
 
-          <section className="settings-card">
-            <h2>{labels.currencies}</h2>
+          <details className="settings-card settings-section">
+            <summary>
+              <span>{labels.currencies}</span>
+            </summary>
             <fieldset className="settings-currency-grid">
               <legend className="sr-only">{labels.defaultCurrencies}</legend>
               {bookingCurrencies.map((currency) => (
@@ -297,12 +313,14 @@ export default function SettingsPage() {
                 />
               </label>
             </div>
-          </section>
+          </details>
 
-          <section className="settings-card">
-            <div className="settings-card__header">
+          <details className="settings-card settings-section">
+            <summary>
+              <span>{labels.travelers}</span>
+            </summary>
+            <div className="settings-card__header settings-card__header--inline">
               <div>
-                <h2>{labels.travelers}</h2>
                 <p>{labels.activeHint}</p>
               </div>
               <button type="button" onClick={() => addTraveler(form, setForm)} className="settings-action-button settings-action-button--primary">
@@ -346,44 +364,64 @@ export default function SettingsPage() {
                 </div>
               ))}
             </div>
-          </section>
+          </details>
 
-          <section className="settings-card">
-            <div className="settings-card__header">
-              <h2>{labels.route}</h2>
+          <details className="settings-card settings-section">
+            <summary>
+              <span>{labels.route}</span>
+            </summary>
+            <div className="settings-card__header settings-card__header--inline">
+              <div>
+                <p>{form.routeStops.map((stop) => stop.city).filter(Boolean).join(" · ") || labels.routeEmpty}</p>
+              </div>
               <button type="button" onClick={() => addRouteStop(form, setForm)} className="settings-action-button settings-action-button--primary">
                 {labels.addStop}
               </button>
             </div>
-            <div className="settings-list">
+            <div className="settings-list settings-route-list">
               {form.routeStops.length === 0 ? <p className="settings-muted">{labels.routeEmpty}</p> : null}
               {form.routeStops.map((stop, index) => (
-                <div key={stop.id ?? `new-${index}`} className="settings-list-item settings-list-item--route">
-                  <TextField name={`route-stop-${index}-city`} label={labels.city} value={stop.city} autoComplete="address-level2" onChange={(value) => updateRouteStop(form, setForm, index, { city: value })} />
-                  <TextField name={`route-stop-${index}-country`} label={labels.country} value={stop.country ?? ""} autoComplete="country-name" onChange={(value) => updateRouteStop(form, setForm, index, { country: value || null })} />
-                  <div className="settings-list-actions">
-                    <OrderButtons index={index} length={form.routeStops.length} onMove={(direction) => moveRouteStop(form, setForm, index, direction)} labels={labels} />
-                    <button type="button" onClick={() => removeRouteStop(form, setForm, index)} className="settings-action-button settings-action-button--danger">
-                      {labels.remove}
-                    </button>
+                <details key={stop.id ?? `new-${index}`} className="settings-route-stop" open={!stop.city}>
+                  <summary>
+                    <span>{stop.city || labels.routeStopSummary.replace("{index}", String(index + 1))}</span>
+                    <small>{formatRouteStopSummary(stop, labels)}</small>
+                  </summary>
+                  <div className="settings-list-item settings-list-item--route">
+                    <TextField name={`route-stop-${index}-city`} label={labels.city} value={stop.city} autoComplete="address-level2" onChange={(value) => updateRouteStop(form, setForm, index, { city: value })} />
+                    <TextField name={`route-stop-${index}-country`} label={labels.country} value={stop.country ?? ""} autoComplete="country-name" onChange={(value) => updateRouteStop(form, setForm, index, { country: value || null })} />
+                    <div className="settings-list-actions">
+                      <OrderButtons index={index} length={form.routeStops.length} onMove={(direction) => moveRouteStop(form, setForm, index, direction)} labels={labels} />
+                      <button type="button" onClick={() => removeRouteStop(form, setForm, index)} className="settings-action-button settings-action-button--danger">
+                        {labels.remove}
+                      </button>
+                    </div>
+                    <TextField name={`route-stop-${index}-start-date`} label={labels.startDate} type="date" value={stop.startDate ?? ""} onChange={(value) => updateRouteStop(form, setForm, index, { startDate: value || null })} />
+                    <TextField name={`route-stop-${index}-end-date`} label={labels.endDate} type="date" value={stop.endDate ?? ""} onChange={(value) => updateRouteStop(form, setForm, index, { endDate: value || null })} />
                   </div>
-                  <TextField name={`route-stop-${index}-start-date`} label={labels.startDate} type="date" value={stop.startDate ?? ""} onChange={(value) => updateRouteStop(form, setForm, index, { startDate: value || null })} />
-                  <TextField name={`route-stop-${index}-end-date`} label={labels.endDate} type="date" value={stop.endDate ?? ""} onChange={(value) => updateRouteStop(form, setForm, index, { endDate: value || null })} />
-                </div>
+                </details>
               ))}
             </div>
-          </section>
+          </details>
 
-          <SetupGenerationPanel
-            surface="settings"
-            base={formToSetupGenerationBase(form)}
-            onGenerated={(settings) => {
-              const nextForm = responseToForm(settings);
-              setForm(nextForm);
-              setSavedSnapshot(JSON.stringify(normalizeForSave(nextForm)));
-              setNotice(labels.settingsGenerated);
-            }}
-          />
+          <details className="settings-card settings-section settings-section--advanced">
+            <summary>
+              <span>{labels.advanced}</span>
+            </summary>
+            <div className="settings-advanced-copy">
+              <h2>{labels.regenerate}</h2>
+              <p>{labels.regenerateDescription}</p>
+            </div>
+            <SetupGenerationPanel
+              surface="settings"
+              base={formToSetupGenerationBase(form)}
+              onGenerated={(settings) => {
+                const nextForm = responseToForm(settings);
+                setForm(nextForm);
+                setSavedSnapshot(JSON.stringify(normalizeForSave(nextForm)));
+                setNotice(labels.settingsGenerated);
+              }}
+            />
+          </details>
 
           <div
             className={`settings-save-bar ${
@@ -507,6 +545,37 @@ function formToSetupGenerationBase(form: SettingsForm) {
       endDate: stop.endDate
     }))
   };
+}
+
+function formatRouteStopSummary(stop: SettingsForm["routeStops"][number], labels: SettingsLabels) {
+  const parts = [stop.country].filter(Boolean);
+  if (stop.startDate || stop.endDate) {
+    parts.push(
+      labels.routeStopDates
+        .replace("{start}", formatCompactDate(stop.startDate ?? "", labels))
+        .replace("{end}", formatCompactDate(stop.endDate ?? "", labels))
+    );
+  }
+
+  return parts.join(" · ") || labels.route;
+}
+
+function formatCompactDate(value: string, labels: SettingsLabels) {
+  if (!value) {
+    return labels.routeStopDateTbc;
+  }
+
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!match) {
+    return value;
+  }
+
+  const [, year, month, day] = match;
+  const date = new Date(Number(year), Number(month) - 1, Number(day));
+  return new Intl.DateTimeFormat("en", {
+    day: "numeric",
+    month: "short"
+  }).format(date);
 }
 
 function updateTrip(

@@ -1,7 +1,20 @@
 # Progress
 
+## 2026-06-28
+
+- Addressed the latest local browser review comments without changing APIs, database schema, access control, routes, fetch endpoints, or data write logic: itinerary detail blocks can now be clicked to expand/collapse long text, Booking cards no longer show the default `Next:` action hint, and Settings folded section headers are centered without the crowded Travelers/Advanced helper text.
+- Follow-up browser review removed the visible `Show full text` label from itinerary detail headers while keeping long detail text clickable and keyboard-expandable.
+- Follow-up itinerary review changed detail-block expansion from a character-length threshold to all non-empty detail blocks, so shorter text that still truncates in a narrow two-column card, such as Meal, can also expand on click.
+- Fixed Settings route-stop summary alignment by making each stop row use fixed city, country/date, and expand-control columns; verified the route-stop country/date column aligns consistently at 430px.
+- Verification passed with `npm run lint`, `npm run build`, local/LAN HTTP 200 for `/itinerary`, `/bookings`, `/settings`, and `/api/health`, plus in-app Browser 430px checks for no horizontal overflow, no browser console warnings/errors, Bookings next-action removal, Settings header centering, route-stop column alignment, and Itinerary long-text expansion.
+
 ## 2026-06-27
 
+- Implemented a scoped usability/information-hierarchy pass on `codex/ui-fix` without changing API routes, database schema, server data-store logic, access control, routes, fetch endpoints, or CRUD write handlers. Updated mobile bottom spacing/safe-area behavior, compacted the access toolbar, normalized route/date/traveler display copy, reorganized Today, and tightened Bookings/Budget/More/Settings/Packing/Documents default actions, filters, empty states, and mobile hierarchy.
+- Preserved existing Add/Edit/Delete/Save/Manage/Filter/Share/SOS/language/TripRouteMap/form-submit paths: destructive Delete controls were moved behind Manage/Edit-style secondary actions on default card surfaces, while existing handlers and confirmation flows remain in place.
+- Verification passed with `npm run lint`, `npm run build`, and `git diff --check` with CRLF warnings only. Local production server on port `3108` returned 200 for `/` and `/api/health`.
+- Mobile Browser QA at 390px and 430px confirmed the unauthenticated access gate had no horizontal overflow, no bottom-nav overlap, no framework overlay, and no console warnings/errors. Authenticated page-level interaction QA for Bookings/Budget/Settings/Packing/Documents could not be completed because the saved local private-link token returned `/api/access/status` 401 with `configured=true`; no access-control data was reset or rewritten to bypass this.
+- Generated a fresh local-only private link for the current local MySQL `active-trip` review on port `3108` after confirming `.env.local` points to local MySQL, not a remote/production DB. The new token was shared in chat only, not written to repo memory. Verification passed for desktop page 200, LAN page 200, desktop/LAN `/api/health` 200, and `/api/access/status` 200 with `authorized=true`, `mode=editor`.
 - Started `codex/remove-editor-viewer-modes` from clean `master` to remove the current viewer/editor workflow.
 - Changed the local access model so a valid private link or token grants full workspace edit access for all users; normal UI no longer asks for planner edit passcode, enter-editor, exit-editor, or recovery-token actions.
 - Removed the remaining traveler identity selector from the access dock because private-link users no longer need to choose an identity before editing.

@@ -1392,14 +1392,56 @@ function googleMapsSearchUrl(query: string) {
 }
 
 function RichTextBlock({ title, value }: { title: string; value: string | null }) {
+  const [expanded, setExpanded] = useState(false);
+
   if (!value) {
     return null;
   }
 
+  const isExpandable = value.trim().length > 0;
+
+  function toggleExpanded() {
+    if (!isExpandable) {
+      return;
+    }
+
+    setExpanded((current) => !current);
+  }
+
+  function handleKeyDown(event: KeyboardEvent<HTMLDivElement>) {
+    if (!isExpandable) {
+      return;
+    }
+
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      toggleExpanded();
+    }
+  }
+
   return (
-    <section>
-      <p className="text-xs font-semibold uppercase tracking-[0.08em] text-zinc-500">{title}</p>
-      <div className="mt-2 space-y-2 text-sm leading-6 text-zinc-700">
+    <section
+      className={[
+        "itinerary-rich-text",
+        isExpandable ? "itinerary-rich-text--expandable" : "",
+        expanded ? "itinerary-rich-text--expanded" : ""
+      ]
+        .filter(Boolean)
+        .join(" ")}
+    >
+      <div className="itinerary-rich-text__header">
+        <p className="itinerary-rich-text__title text-xs font-semibold uppercase tracking-[0.08em] text-zinc-500">
+          {title}
+        </p>
+      </div>
+      <div
+        className="itinerary-rich-text__content mt-2 space-y-2 text-sm leading-6 text-zinc-700"
+        role={isExpandable ? "button" : undefined}
+        tabIndex={isExpandable ? 0 : undefined}
+        aria-expanded={isExpandable ? expanded : undefined}
+        onClick={toggleExpanded}
+        onKeyDown={handleKeyDown}
+      >
         <SimpleMarkdown value={value} />
       </div>
     </section>

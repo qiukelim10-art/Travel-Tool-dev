@@ -861,7 +861,7 @@ function PreviewBox({
       .replace("{start}", formatIsoDate(previewStartDate))
       .replace("{end}", formatIsoDate(previewEndDate))
       .replace("{duration}", formatDurationLabel(duration, labels)),
-    labels.previewRouteCities.replace("{value}", summary.routeCities.length > 0 ? summary.routeCities.join(" -> ") : "-"),
+    labels.previewRouteCities.replace("{value}", summary.routeCities.length > 0 ? summary.routeCities.join(" · ") : "-"),
     labels.previewRouteLegs.replace("{value}", summary.routeLegs.length > 0 ? summary.routeLegs.join("; ") : "-"),
     labels.previewOvernights.replace("{count}", String(summary.overnightCityCount)),
     labels.previewDayTrips.replace("{count}", String(summary.dayTripCityCount)),
