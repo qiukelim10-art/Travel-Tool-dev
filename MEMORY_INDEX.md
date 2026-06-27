@@ -45,10 +45,11 @@
 - The route-stop-driven Today visual pass now supports multi-country SOS groups and corrected multi-country map dot positioning: a route such as London -> Barcelona -> Paris resolves to GB/ES/FR, shows route dots inside each country panel, and surfaces United Kingdom, Spain, and France emergency-number groups from the same route-derived country list.
 - The Shell + Today UI refresh is committed and merged to `master`; local `master` now tracks GitHub `origin/main` at `https://github.com/qiukelim10-art/Travel-Tool-dev` after the initial push.
 - The Bookings/Budget/More/Packing/Documents/Settings UI batch is committed, merged to `master`, pushed to GitHub `origin/main`, and deployed to `https://italy-trip-2026-cyan.vercel.app`: it extends the Travel Journal + Cockpit direction across the remaining workspace surfaces, includes itinerary card action grouping and packing traveler status menu fixes, and preserves existing APIs, schemas, access control, setup generation, payment, and user-entered content rules.
+- The production UI breakage after that batch was fixed and deployed: malformed legacy pseudo-icon `content` strings in `src/app/globals.css` had stopped Chrome from parsing the later Travel Journal styles, so route maps, cards, and page surfaces fell back to unstyled layout. The hotfix preserves functionality and only restores valid CSS parsing plus a desktop mobile-nav guard.
 
 ## Highest Priority Task
 
-- Review the deployed Travel Journal + Cockpit UI refresh on the production workspace, then handle only user-identified follow-up issues; do not broaden the UI batch automatically.
+- Review the hotfixed deployed Travel Journal + Cockpit UI refresh on the production workspace, then handle only user-identified follow-up issues; do not broaden the UI batch automatically.
 - Review the production access-controlled controlled pilot after workspace-boundary deployment using the private link saved outside the repo at `C:\Users\qiuke\Documents\Italy Trip 2026 Controlled Pilot Access 2026-06-22.txt`.
 - Pause deeper feature work while the UI design refresh is underway.
 - Do not run setup generation against the current production `active-trip` without explicit destructive approval; current production private-link counts are reminders 11, bookings 14, itinerary 11, expenses 0, packing 16, and documents 11.
