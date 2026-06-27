@@ -100,7 +100,7 @@ function getOverallStatus(item: SharedPackingItem): OverallStatus {
   return activeStatuses.every((status) => status.status === "packed") ? "Completed" : "Pending";
 }
 
-function shortTravelerName(name: string) {
+function shortTravelerName(name: string, allNames: string[] = [name]) {
   const initials = name
     .split(/\s+/)
     .filter(Boolean)
@@ -108,7 +108,23 @@ function shortTravelerName(name: string) {
     .join("")
     .slice(0, 3);
 
-  return initials || name.slice(0, 3);
+  const base = initials || name.slice(0, 3);
+  const duplicateCount = allNames.filter((candidate) => {
+    const candidateInitials = candidate
+      .split(/\s+/)
+      .filter(Boolean)
+      .map((part) => part[0])
+      .join("")
+      .slice(0, 3);
+    return (candidateInitials || candidate.slice(0, 3)).toLowerCase() === base.toLowerCase();
+  }).length;
+
+  if (duplicateCount <= 1) {
+    return base;
+  }
+
+  const firstName = name.split(/\s+/).filter(Boolean)[0] ?? name;
+  return firstName.length <= 5 ? firstName : firstName.slice(0, 5);
 }
 
 function isPackingResponse(data: unknown): data is { items: SharedPackingItem[] } {
@@ -140,6 +156,7 @@ export function PackingClient({ travelers }: PackingClientProps) {
   const [categoryFilter, setCategoryFilter] = useState<FilterValue | PackingCategory>("All");
   const [priorityFilter, setPriorityFilter] = useState<FilterValue | PackingPriority>("All");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("All");
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
   const [form, setForm] = useState<PackingInput>(() => emptyForm(activeTravelers));
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -417,12 +434,12 @@ export function PackingClient({ travelers }: PackingClientProps) {
 
   return (
     <div className="packing-workspace">
-      <section className="packing-stats-strip" aria-label={t("page.packing.title")}>
-        <PackingStat label={t("packing.summary.total")} value={String(items.length)} />
-        <PackingStat label={t("packing.summary.highPriority")} value={String(highPriorityCount)} warm={highPriorityCount > 0} />
-        <PackingStat label={t("packing.summary.requiredPeopleItems")} value={String(requiredPeopleItems)} />
-        <PackingStat label={t("packing.summary.packedProgress")} value={`${packedPeopleItems} / ${requiredPeopleItems}`} />
-      </section>
+	    <section className="packing-stats-strip" aria-label={t("page.packing.title")}>
+	        <PackingStat label={t("packing.summary.total")} value={String(items.length)} />
+	        <PackingStat label={t("packing.summary.highPriority")} value={String(highPriorityCount)} warm={highPriorityCount > 0} />
+	        <PackingStat label={t("packing.summary.packedProgress")} value={t("packing.summary.packedValue", { packed: packedPeopleItems, total: requiredPeopleItems })} />
+	        <PackingStat label={t("packing.summary.requiredPeopleItems")} value={String(requiredPeopleItems)} />
+	      </section>
 
       <section className="packing-control-card" aria-label={t("page.packing.title")}>
         <div className="packing-control-card__header">
@@ -435,28 +452,43 @@ export function PackingClient({ travelers }: PackingClientProps) {
             {t("packing.addItem")}
           </button>
         </div>
-        <div className="packing-filter-grid">
-          <FilterChipGroup
-            label={t("common.category")}
-            value={categoryFilter}
-            options={["All", ...packingCategories]}
-            getOptionLabel={(value) => translateOption(language, value)}
-            onChange={(value) => setCategoryFilter(value as typeof categoryFilter)}
-          />
-          <FilterChipGroup
-            label={t("common.priority")}
-            value={priorityFilter}
-            options={["All", ...packingPriorities]}
-            getOptionLabel={(value) => translateOption(language, value)}
-            onChange={(value) => setPriorityFilter(value as typeof priorityFilter)}
-          />
-          <FilterChipGroup
-            label={t("common.status")}
-            value={statusFilter}
-            options={["All", "Incomplete only", "Completed only", "Unassigned only"]}
-            getOptionLabel={(value) => translateOption(language, value)}
-            onChange={(value) => setStatusFilter(value as StatusFilter)}
-          />
+        <div className="packing-filter-summary">
+          <div className="min-w-0">
+            <p className="packing-filter-summary__label">{t("packing.filters.title")}</p>
+            <p>{formatPackingFilterSummary(language, t, categoryFilter, priorityFilter, statusFilter)}</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setFiltersOpen((current) => !current)}
+            className="packing-filter-toggle itinerary-action-button itinerary-action-button--ghost"
+          >
+            {filtersOpen ? t("packing.filters.hide") : t("packing.filters.title")}
+          </button>
+        </div>
+        <div className={`packing-filter-panel ${filtersOpen ? "packing-filter-panel--open" : ""}`}>
+          <div className="packing-filter-grid">
+            <FilterChipGroup
+              label={t("common.category")}
+              value={categoryFilter}
+              options={["All", ...packingCategories]}
+              getOptionLabel={(value) => translateOption(language, value)}
+              onChange={(value) => setCategoryFilter(value as typeof categoryFilter)}
+            />
+            <FilterChipGroup
+              label={t("common.priority")}
+              value={priorityFilter}
+              options={["All", ...packingPriorities]}
+              getOptionLabel={(value) => translateOption(language, value)}
+              onChange={(value) => setPriorityFilter(value as typeof priorityFilter)}
+            />
+            <FilterChipGroup
+              label={t("common.status")}
+              value={statusFilter}
+              options={["All", "Incomplete only", "Completed only", "Unassigned only"]}
+              getOptionLabel={(value) => translateOption(language, value)}
+              onChange={(value) => setStatusFilter(value as StatusFilter)}
+            />
+          </div>
         </div>
       </section>
 
@@ -672,7 +704,9 @@ function PackingItemCard({
   ) => Promise<void>;
 }) {
   const { language, t } = useLanguage();
+  const [actionsOpen, setActionsOpen] = useState(false);
   const overallStatus = getOverallStatus(item);
+  const travelerNames = item.statuses.map((status) => travelerNameById.get(status.travelerId) ?? status.travelerId);
 
   return (
     <article className="packing-item-card">
@@ -700,19 +734,32 @@ function PackingItemCard({
         <div className="packing-card-actions">
           <button
             type="button"
-            onClick={() => onEdit(item)}
+            onClick={() => setActionsOpen((current) => !current)}
+            aria-expanded={actionsOpen}
+            aria-label={t("common.moreActions")}
             className="itinerary-action-button itinerary-action-button--ghost"
           >
-            {t("common.edit")}
+            {t("common.manage")}
           </button>
-          <button
-            type="button"
-            onClick={() => void onDelete(item)}
-            disabled={deletingId === item.id}
-            className="itinerary-action-button itinerary-action-button--danger disabled:opacity-60"
-          >
-            {deletingId === item.id ? t("common.deleting") : t("common.delete")}
-          </button>
+          {actionsOpen ? (
+            <div className="packing-card-actions__menu">
+              <button
+                type="button"
+                onClick={() => onEdit(item)}
+                className="itinerary-action-button itinerary-action-button--ghost"
+              >
+                {t("common.edit")}
+              </button>
+              <button
+                type="button"
+                onClick={() => void onDelete(item)}
+                disabled={deletingId === item.id}
+                className="itinerary-action-button itinerary-action-button--danger disabled:opacity-60"
+              >
+                {deletingId === item.id ? t("common.deleting") : t("common.delete")}
+              </button>
+            </div>
+          ) : null}
         </div>
         ) : null}
       </div>
@@ -724,10 +771,11 @@ function PackingItemCard({
           const travelerName = travelerNameById.get(status.travelerId) ?? status.travelerId;
           const canUpdateStatus = canEdit || status.travelerId === selectedTravelerId;
           return (
-            <TravelerStatusButton
-              key={status.travelerId}
-              travelerName={travelerName}
-              status={status.status}
+	            <TravelerStatusButton
+	              key={status.travelerId}
+	              travelerName={travelerName}
+	              travelerLabel={shortTravelerName(travelerName, travelerNames)}
+	              status={status.status}
               disabled={!canUpdateStatus || statusUpdatingId === `${item.id}:${status.travelerId}`}
               saving={statusUpdatingId === `${item.id}:${status.travelerId}`}
               onStatusChange={(nextStatus) => void onStatusChange(item, status.travelerId, nextStatus)}
@@ -740,12 +788,14 @@ function PackingItemCard({
 }
 
 function TravelerStatusButton({
+  travelerLabel,
   travelerName,
   status,
   disabled,
   saving,
   onStatusChange
 }: {
+  travelerLabel: string;
   travelerName: string;
   status: PackingTravelerStatus;
   disabled: boolean;
@@ -769,7 +819,7 @@ function TravelerStatusButton({
         aria-label={`${travelerName} status: ${statusLabel}.${actionHint}`}
         title={statusLabel}
       >
-        <span>{shortTravelerName(travelerName)}</span>
+        <span>{travelerLabel}</span>
       </button>
       {open ? (
         <div
@@ -828,6 +878,20 @@ function PackingStat({ label, value, warm = false }: { label: string; value: str
       <strong>{value}</strong>
     </div>
   );
+}
+
+function formatPackingFilterSummary(
+  language: ReturnType<typeof useLanguage>["language"],
+  t: ReturnType<typeof useLanguage>["t"],
+  category: string,
+  priority: string,
+  status: string
+) {
+  return [
+    `${t("common.category")}: ${translateOption(language, category)}`,
+    `${t("common.priority")}: ${translateOption(language, priority)}`,
+    `${t("common.status")}: ${translateOption(language, status)}`
+  ].join(" · ");
 }
 
 function FilterChipGroup({

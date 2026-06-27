@@ -63,6 +63,7 @@ export function BookingsClient({ participants, defaultCurrencies }: BookingsClie
   const [categoryFilter, setCategoryFilter] = useState<FilterValue | SharedBooking["category"]>("All");
   const [statusFilter, setStatusFilter] = useState<FilterValue | SharedBooking["status"]>("All");
   const [bookedByFilter, setBookedByFilter] = useState<FilterValue | string>("All");
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [form, setForm] = useState<BookingInput>(() => emptyForm(participants[0] ?? "Person A", [], primaryCurrency));
   const [formOpen, setFormOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -282,7 +283,7 @@ export function BookingsClient({ participants, defaultCurrencies }: BookingsClie
           <div className="bookings-stats-strip">
             <SummaryPill label={t("bookings.summary.total")} value={String(bookings.length)} />
             <SummaryPill label={t("bookings.summary.needAction")} value={String(incompleteCount)} />
-            <SummaryPill label={t("common.visible")} value={String(visibleBookings.length)} />
+            <SummaryPill label={t("bookings.summary.showing")} value={String(visibleBookings.length)} />
           </div>
           <button
             type="button"
@@ -295,45 +296,61 @@ export function BookingsClient({ participants, defaultCurrencies }: BookingsClie
           </button>
         </div>
 
-        <div className="bookings-filter-group">
-          <div className="bookings-filter-group__label">{t("common.category")}</div>
-          <div className="scroll-fade-x bookings-chip-row" role="list" aria-label={t("common.category")}>
-            {(["All", ...bookingCategories] as const).map((category) => (
-              <FilterChip
-                key={category}
-                active={categoryFilter === category}
-                label={translateOption(language, category)}
-                onClick={() => setCategoryFilter(category as typeof categoryFilter)}
-              />
-            ))}
+        <div className="bookings-filter-summary">
+          <div className="min-w-0">
+            <p className="bookings-filter-summary__label">{t("bookings.filters.title")}</p>
+            <p>{formatBookingFilterSummary(language, t, categoryFilter, statusFilter, bookedByFilter)}</p>
           </div>
+          <button
+            type="button"
+            onClick={() => setFiltersOpen((current) => !current)}
+            className="bookings-filter-toggle itinerary-action-button itinerary-action-button--ghost"
+          >
+            {filtersOpen ? t("bookings.filters.hide") : t("bookings.filters.title")}
+          </button>
         </div>
 
-        <div className="bookings-filter-row">
+        <div className={`bookings-filter-panel ${filtersOpen ? "bookings-filter-panel--open" : ""}`}>
           <div className="bookings-filter-group">
-            <div className="bookings-filter-group__label">{t("common.status")}</div>
-            <div className="scroll-fade-x bookings-chip-row" role="list" aria-label={t("common.status")}>
-              {(["All", ...bookingStatuses] as const).map((status) => (
+            <div className="bookings-filter-group__label">{t("common.category")}</div>
+            <div className="scroll-fade-x bookings-chip-row" role="list" aria-label={t("common.category")}>
+              {(["All", ...bookingCategories] as const).map((category) => (
                 <FilterChip
-                  key={status}
-                  active={statusFilter === status}
-                  label={translateOption(language, status)}
-                  onClick={() => setStatusFilter(status as typeof statusFilter)}
+                  key={category}
+                  active={categoryFilter === category}
+                  label={translateOption(language, category)}
+                  onClick={() => setCategoryFilter(category as typeof categoryFilter)}
                 />
               ))}
             </div>
           </div>
-          <div className="bookings-filter-group">
-            <div className="bookings-filter-group__label">{t("bookings.form.bookedBy")}</div>
-            <div className="scroll-fade-x bookings-chip-row" role="list" aria-label={t("bookings.form.bookedBy")}>
-              {(["All", ...bookingOwnerOptions] as const).map((owner) => (
-                <FilterChip
-                  key={owner}
-                  active={bookedByFilter === owner}
-                  label={owner === "All" ? translateOption(language, owner) : owner}
-                  onClick={() => setBookedByFilter(owner)}
-                />
-              ))}
+
+          <div className="bookings-filter-row">
+            <div className="bookings-filter-group">
+              <div className="bookings-filter-group__label">{t("common.status")}</div>
+              <div className="scroll-fade-x bookings-chip-row" role="list" aria-label={t("common.status")}>
+                {(["All", ...bookingStatuses] as const).map((status) => (
+                  <FilterChip
+                    key={status}
+                    active={statusFilter === status}
+                    label={translateOption(language, status)}
+                    onClick={() => setStatusFilter(status as typeof statusFilter)}
+                  />
+                ))}
+              </div>
+            </div>
+            <div className="bookings-filter-group">
+              <div className="bookings-filter-group__label">{t("bookings.form.bookedBy")}</div>
+              <div className="scroll-fade-x bookings-chip-row" role="list" aria-label={t("bookings.form.bookedBy")}>
+                {(["All", ...bookingOwnerOptions] as const).map((owner) => (
+                  <FilterChip
+                    key={owner}
+                    active={bookedByFilter === owner}
+                    label={owner === "All" ? translateOption(language, owner) : owner}
+                    onClick={() => setBookedByFilter(owner)}
+                  />
+                ))}
+              </div>
             </div>
           </div>
         </div>
@@ -575,7 +592,7 @@ function BookingCard({
           </p>
           <h3>{booking.description}</h3>
           <div>
-            <span>{booking.date}</span>
+            <span>{formatDisplayDate(booking.date, language)}</span>
             <span>{booking.location ?? t("common.tbc")}</span>
           </div>
         </div>
@@ -714,6 +731,35 @@ function SummaryPill({ label, value }: { label: string; value: string }) {
   );
 }
 
+function formatBookingFilterSummary(
+  language: ReturnType<typeof useLanguage>["language"],
+  t: ReturnType<typeof useLanguage>["t"],
+  category: string,
+  status: string,
+  bookedBy: string
+) {
+  return [
+    `${t("common.category")}: ${translateOption(language, category)}`,
+    `${t("common.status")}: ${translateOption(language, status)}`,
+    `${t("bookings.form.bookedBy")}: ${bookedBy === "All" ? translateOption(language, bookedBy) : bookedBy}`
+  ].join(" · ");
+}
+
+function formatDisplayDate(value: string, language: ReturnType<typeof useLanguage>["language"]) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!match) {
+    return value;
+  }
+
+  const [, year, month, day] = match;
+  const date = new Date(Number(year), Number(month) - 1, Number(day));
+  return new Intl.DateTimeFormat(language === "zh" ? "zh-CN" : "en", {
+    day: "numeric",
+    month: "short",
+    year: "numeric"
+  }).format(date);
+}
+
 function FilterChip({ active, label, onClick }: { active: boolean; label: string; onClick: () => void }) {
   return (
     <button
@@ -819,27 +865,41 @@ function ActionButtons({
   onDelete: (booking: SharedBooking) => Promise<void>;
 }) {
   const { t } = useLanguage();
+  const [actionsOpen, setActionsOpen] = useState(false);
 
   return (
     <div className="bookings-card-actions">
       <button
         type="button"
-        onClick={() => onEdit(booking)}
-        data-edit-required={!canEdit ? "true" : undefined}
-        title={!canEdit ? "Private trip access is required to edit bookings." : undefined}
+        onClick={() => setActionsOpen((current) => !current)}
+        aria-expanded={actionsOpen}
+        aria-label={t("common.moreActions")}
         className="itinerary-action-button itinerary-action-button--ghost"
       >
-        {t("common.edit")}
+        {t("common.manage")}
       </button>
-      {canEdit ? (
-        <button
-          type="button"
-          onClick={() => void onDelete(booking)}
-          disabled={deletingId === booking.id}
-          className="itinerary-action-button itinerary-action-button--danger disabled:opacity-60"
-        >
-          {deletingId === booking.id ? t("common.deleting") : t("common.delete")}
-        </button>
+      {actionsOpen ? (
+        <div className="bookings-card-actions__menu">
+          <button
+            type="button"
+            onClick={() => onEdit(booking)}
+            data-edit-required={!canEdit ? "true" : undefined}
+            title={!canEdit ? "Private trip access is required to edit bookings." : undefined}
+            className="itinerary-action-button itinerary-action-button--ghost"
+          >
+            {t("common.edit")}
+          </button>
+          {canEdit ? (
+            <button
+              type="button"
+              onClick={() => void onDelete(booking)}
+              disabled={deletingId === booking.id}
+              className="itinerary-action-button itinerary-action-button--danger disabled:opacity-60"
+            >
+              {deletingId === booking.id ? t("common.deleting") : t("common.delete")}
+            </button>
+          ) : null}
+        </div>
       ) : null}
     </div>
   );

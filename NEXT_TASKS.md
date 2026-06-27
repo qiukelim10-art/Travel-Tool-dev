@@ -2,6 +2,8 @@
 
 ## Current Priority
 
+- Latest local browser review comments are addressed on the current UI fix pass: itinerary long detail text expands on click, Bookings no longer shows the default `Next:` hint, and Settings folded headers/route-stop alignment have been corrected. Continue only from fresh user-identified review issues.
+- Current `codex/ui-fix` local UI usability pass has passed `npm run lint` and `npm run build`; a fresh local-only private `?trip=` link for port `3108` was regenerated on 2026-06-28 and shared in chat for review. Do not store that token in repo files. The older saved `C:\Users\qiuke\Documents\Italy Trip 2026 Controlled Pilot Access 2026-06-22.txt` token is stale for this local DB.
 - Production UI hotfix for the deployed Travel Journal + Cockpit batch is complete: malformed legacy pseudo-icon CSS content caused the browser to stop parsing before the later page styles, making maps/cards/nav appear broken on the live workspace. Production CSSOM, private-link API checks, and desktop browser layout have been rechecked; next work should come from fresh user review only.
 - Private-link full-editing access is committed, merged to `master`, pushed to GitHub `origin/main`, and deployed to production. Every private-link user should be able to edit workspace data without entering a separate edit passcode, while unauthenticated API requests should still return 401.
 - The UI batch on `codex/ui-bookings-journal-cockpit` has been committed, merged into `master`, pushed to GitHub `origin/main`, and deployed to `https://italy-trip-2026-cyan.vercel.app`.

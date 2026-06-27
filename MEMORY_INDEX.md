@@ -68,6 +68,7 @@
 
 ## Key Known Issue
 
+- Local authenticated browser QA requires a valid private `?trip=` token for the current local DB. The saved controlled-pilot access file can be stale for local review: on 2026-06-27 it returned `/api/access/status` 401 with `configured=true`. A fresh local-only review link for port `3108` was regenerated and shared in chat on 2026-06-28; do not store that token in repo files.
 - Aiven Free MySQL can automatically power off after inactivity. If production shared-data APIs return database unavailable or DNS lookup errors again, start the Aiven service first; Vercel environment variables only need changing if the Aiven Service URI changes.
 - Real traveller and booking information has not been fully entered yet.
 - Some trip content still uses placeholder data only.

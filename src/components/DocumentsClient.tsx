@@ -374,10 +374,10 @@ export function DocumentsClient({ travelers: initialTravelers }: DocumentsClient
             <div className="documents-control-card__header">
               <div className="min-w-0">
                 <p className="cockpit-eyebrow">{t("documents.checklist")}</p>
-                <h2>
-                  {t("documents.visibleSummary", { visible: visibleDocuments.length, total: documents.length })}
-                </h2>
-                <p>{t("documents.warningDescription")}</p>
+	                <h2>
+	                  {t("documents.visibleSummary", { visible: visibleDocuments.length, total: documents.length })}
+	                </h2>
+	                <p>{t("documents.controlHint")}</p>
               </div>
               <button
                 type="button"
@@ -495,9 +495,9 @@ export function DocumentsClient({ travelers: initialTravelers }: DocumentsClient
 
         <aside className="documents-side-rail" aria-label={t("documents.mastheadOverview")}>
           <section className="documents-rail-card">
-            <p className="cockpit-eyebrow">{t("documents.filters.linkAccess")}</p>
-            <h3>{t("documents.protected")}</h3>
-            <p>{t("documents.warningDescription")}</p>
+	            <p className="cockpit-eyebrow">{t("documents.filters.linkAccess")}</p>
+	            <h3>{t("documents.protected")}</h3>
+	            <p>{t("documents.linkAccessHint")}</p>
           </section>
           <section className="documents-rail-card">
             <p className="cockpit-eyebrow">{t("documents.form.travelerStatuses")}</p>
@@ -740,7 +740,12 @@ function FilterSection({
         <div className="min-w-0">
           <p className="documents-filter-card__label">{t("documents.filters.title")}</p>
           <p>
-            {translateOption(language, categoryFilter)} / {translateOption(language, priorityFilter)} / {translateOption(language, statusFilter)} / {translateOption(language, protectedFilter)}
+            {[
+              `${t("common.category")}: ${translateOption(language, categoryFilter)}`,
+              `${t("common.priority")}: ${translateOption(language, priorityFilter)}`,
+              `${t("common.status")}: ${translateOption(language, statusFilter)}`,
+              `${t("documents.filters.linkAccess")}: ${translateOption(language, protectedFilter)}`
+            ].join(" · ")}
           </p>
         </div>
         <button
@@ -817,6 +822,7 @@ function DocumentCard({
 }) {
   const { language, t } = useLanguage();
   const folderUrl = document.externalUrl ?? unlockedUrl ?? null;
+  const [actionsOpen, setActionsOpen] = useState(false);
 
   return (
     <article className="documents-item-card">
@@ -842,19 +848,31 @@ function DocumentCard({
           <div className="documents-card-actions">
             <button
               type="button"
-              onClick={() => onEdit(document)}
+              onClick={() => setActionsOpen((current) => !current)}
+              aria-expanded={actionsOpen}
               className="documents-action-button documents-action-button--ghost"
             >
-              {t("common.edit")}
+              {t("common.manage")}
             </button>
-            <button
-              type="button"
-              onClick={() => void onDelete(document)}
-              disabled={deletingId === document.id}
-              className="documents-action-button documents-action-button--danger disabled:opacity-60"
-            >
-              {deletingId === document.id ? t("common.deleting") : t("common.delete")}
-            </button>
+            {actionsOpen ? (
+              <div className="documents-card-actions__menu">
+                <button
+                  type="button"
+                  onClick={() => onEdit(document)}
+                  className="documents-action-button documents-action-button--ghost"
+                >
+                  {t("common.edit")}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void onDelete(document)}
+                  disabled={deletingId === document.id}
+                  className="documents-action-button documents-action-button--danger disabled:opacity-60"
+                >
+                  {deletingId === document.id ? t("common.deleting") : t("common.delete")}
+                </button>
+              </div>
+            ) : null}
           </div>
         ) : null}
       </div>
@@ -892,7 +910,18 @@ function DocumentCard({
             </button>
           </div>
         ) : (
-          <p>{t("documents.noFolder")}</p>
+          <div className="documents-folder-empty">
+            <p>{t("documents.noFolder")}</p>
+            {canEdit ? (
+              <button
+                type="button"
+                onClick={() => onEdit(document)}
+                className="documents-action-button documents-action-button--primary"
+              >
+                {t("documents.addLink")}
+              </button>
+            ) : null}
+          </div>
         )}
       </div>
     </article>

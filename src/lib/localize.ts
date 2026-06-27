@@ -62,7 +62,7 @@ const uiValueTranslations: Record<string, { en: string; zh: string }> = {
   Passport: { en: "Passport", zh: "护照" },
   Receipt: { en: "Receipt", zh: "收据" },
   "Emergency Number": { en: "Emergency Number", zh: "紧急号码" },
-  Traveller: { en: "Traveller", zh: "旅伴" },
+  Traveller: { en: "Traveler", zh: "旅伴" },
   Bank: { en: "Bank", zh: "银行" },
   Embassy: { en: "Embassy", zh: "大使馆" },
   Medical: { en: "Medical", zh: "医疗" },

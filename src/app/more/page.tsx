@@ -9,7 +9,6 @@ const moreItems = [
   {
     href: "/settings",
     icon: "settings",
-    symbol: "⚙️",
     eyebrow: {
       en: "Setup",
       zh: "设置"
@@ -19,18 +18,17 @@ const moreItems = [
       zh: "行程设置"
     },
     description: {
-      en: "Active trip basics, travelers, route stops, and display defaults.",
-      zh: "管理当前 active trip 的基础信息、成员、路线城市和默认显示。"
+      en: "Trip basics, defaults, travelers, and route stops for the active private trip.",
+      zh: "管理当前私人行程的基础信息、默认值、成员和路线停靠点。"
     },
     detail: {
-      en: "Route · Travelers · Defaults",
-      zh: "路线 · 成员 · 默认值"
+      en: "Basics · Travelers · Route",
+      zh: "基础 · 成员 · 路线"
     }
   },
   {
     href: "/packing",
     icon: "packing",
-    symbol: "🧳",
     eyebrow: {
       en: "Checklist",
       zh: "清单"
@@ -40,39 +38,37 @@ const moreItems = [
       zh: "行李清单"
     },
     description: {
-      en: "Required items, shared responsibilities, and travel essentials.",
-      zh: "必备物品、共同责任和旅行必需品。"
+      en: "Pack-by-traveler checks for required, shared, and optional items.",
+      zh: "按成员检查必带、共享和可选物品的打包状态。"
     },
     detail: {
       en: "Required · Shared · Packed",
-      zh: "必备 · 共享 · 已打包"
+      zh: "必带 · 共享 · 已打包"
     }
   },
   {
     href: "/documents",
     icon: "documents",
-    symbol: "📁",
     eyebrow: {
-      en: "Private links",
-      zh: "私人链接"
+      en: "Safe links",
+      zh: "安全链接"
     },
     title: {
       en: "Documents",
-      zh: "文件"
+      zh: "文件清单"
     },
     description: {
-      en: "Private link placeholders and sensitive document safety rules.",
-      zh: "私人链接占位和敏感文件安全规则。"
+      en: "Safe checklist and cloud-folder link references; no sensitive files stored here.",
+      zh: "用于安全检查和云端文件夹链接引用，不在这里存放敏感文件。"
     },
     detail: {
-      en: "Cloud folders · Safe notes",
-      zh: "云端文件夹 · 安全备注"
+      en: "Folder links · Safety notes",
+      zh: "文件夹链接 · 安全备注"
     }
   }
 ] satisfies Array<{
   href: string;
   icon: "settings" | "packing" | "documents";
-  symbol: string;
   eyebrow: LocalizedText;
   title: LocalizedText;
   description: LocalizedText;
@@ -81,20 +77,20 @@ const moreItems = [
 
 const moreCopy = {
   en: {
-    prepDeskTitle: "Trip prep desk",
+    prepDeskTitle: "Trip prep tools",
     prepDeskDescription:
-      "Keep settings, packing, and documents easy to reach without changing app behavior.",
-    readyTitle: "Ready for mobile review",
+      "Settings, packing, and document links stay easy to reach without changing app behavior.",
+    readyTitle: "Mobile prep shortcuts",
     readyDescription:
-      "Same links, same routes, same access behavior. Only the More surface changes."
+      "Same links, same routes, same access behavior. This page only clarifies where each tool belongs."
   },
   zh: {
-    prepDeskTitle: "旅行准备台",
+    prepDeskTitle: "旅行准备工具",
     prepDeskDescription:
-      "让设置、行李和文件入口更容易找到，同时不改变现有应用行为。",
-    readyTitle: "手机端审核准备",
+      "设置、行李和文件链接保持容易找到，同时不改变现有应用行为。",
+    readyTitle: "移动端准备入口",
     readyDescription:
-      "相同链接、相同路由、相同访问行为。只更新 More 页面表层。"
+      "链接、路由和访问行为保持不变。这里仅让每个工具的用途更清楚。"
   }
 } as const;
 
@@ -119,9 +115,7 @@ export default function MorePage() {
               href={item.href}
               className="more-tool-card"
             >
-              <span className={`more-tool-card__icon more-tool-card__icon--${item.icon}`} aria-hidden="true">
-                {item.symbol}
-              </span>
+              <span className={`more-tool-card__icon more-tool-card__icon--${item.icon}`} aria-hidden="true" />
               <span className="more-tool-card__body">
                 <span className="cockpit-eyebrow">{item.eyebrow[language]}</span>
                 <strong>{item.title[language]}</strong>
@@ -130,7 +124,7 @@ export default function MorePage() {
               </span>
               <span className="more-tool-card__action">
                 {t("page.more.open")}
-                <span aria-hidden="true">›</span>
+                <span aria-hidden="true">→</span>
               </span>
             </Link>
           ))}
@@ -145,9 +139,7 @@ export default function MorePage() {
         <div className="more-review-card__items" aria-label={copy.readyTitle}>
           {moreItems.map((item) => (
             <span key={item.href}>
-              <span className={`more-review-card__icon more-review-card__icon--${item.icon}`} aria-hidden="true">
-                {item.symbol}
-              </span>
+              <span className={`more-review-card__icon more-review-card__icon--${item.icon}`} aria-hidden="true" />
               {item.title[language]}
             </span>
           ))}

@@ -12,6 +12,7 @@ import {
   useState
 } from "react";
 import type { TripTraveler } from "@/lib/sharedDataTypes";
+import { useLanguage } from "@/lib/i18n";
 
 type TripAccessMode = "editor";
 
@@ -427,9 +428,19 @@ export function TripAccessGate({ children }: { children: ReactNode }) {
 
 export function TripAccessToolbar({ mobileActions }: { mobileActions?: ReactNode }) {
   const access = useTripAccess();
+  const { t } = useLanguage();
   const [manualCopyValue, setManualCopyValue] = useState("");
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const noticeTimerRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (noticeTimerRef.current !== null) {
+        window.clearTimeout(noticeTimerRef.current);
+      }
+    };
+  }, []);
 
   if (!access.authorized) {
     return null;
@@ -438,34 +449,45 @@ export function TripAccessToolbar({ mobileActions }: { mobileActions?: ReactNode
   async function copyPrivateLink() {
     const privateLink = buildPrivateLink(access.shareToken);
     setManualCopyValue("");
-    const copied = await copyText(privateLink, setNotice, setError);
+    const copied = await copyText(
+      privateLink,
+      setNotice,
+      setError,
+      t("access.copySuccess"),
+      t("access.copyUnavailable")
+    );
     if (!copied) {
       setManualCopyValue(privateLink);
+      return;
     }
+
+    if (noticeTimerRef.current !== null) {
+      window.clearTimeout(noticeTimerRef.current);
+    }
+    noticeTimerRef.current = window.setTimeout(() => setNotice(null), 4200);
   }
 
   return (
-    <section className="access-dock px-4 py-3 backdrop-blur">
+    <section className="access-dock px-4 py-3 backdrop-blur" aria-label={t("access.privateLinkWarning")}>
       <div className="mx-auto grid max-w-6xl gap-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-start">
-        <div className="min-w-0">
+        <div className="access-dock__copy-cluster min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
               onClick={() => void copyPrivateLink()}
+              title={t("access.privateLinkWarning")}
               className="access-dock__button rounded-md px-2.5 py-1.5 text-xs font-semibold"
             >
-              Copy private link
+              {t("access.copyPrivateLink")}
             </button>
+            <span className="access-dock__security-note">{t("access.privateLinkWarning")}</span>
           </div>
-          <p className="mt-2 hidden text-sm leading-6 text-zinc-600 sm:block">
-            Anyone with this private link can view and edit the trip workspace.
-          </p>
         </div>
 
         {mobileActions}
 
         {manualCopyValue || notice || error ? (
-          <div className="grid gap-2 md:min-w-80">
+          <div className="access-dock__status grid gap-2 md:min-w-80">
             {manualCopyValue ? (
               <p className="break-all rounded-md border border-zinc-200 bg-white px-3 py-2 text-xs leading-5 text-zinc-700">
                 {manualCopyValue}
@@ -542,6 +564,7 @@ function AccessSetup({
 }
 
 function SetupResult({ result, onContinue }: { result: TripAccessSetupResult; onContinue: () => void }) {
+  const { t } = useLanguage();
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -551,7 +574,19 @@ function SetupResult({ result, onContinue }: { result: TripAccessSetupResult; on
       description="Copy this private link now. Anyone with it can open and edit the trip workspace."
     >
       <div className="mt-5 grid gap-3">
-        <TokenBox label="Private trip link" value={result.privateLink} onCopy={() => void copyText(result.privateLink, setNotice, setError)} />
+        <TokenBox
+          label="Private trip link"
+          value={result.privateLink}
+          onCopy={() =>
+            void copyText(
+              result.privateLink,
+              setNotice,
+              setError,
+              t("access.copySuccess"),
+              t("access.copyUnavailable")
+            )
+          }
+        />
         <button
           type="button"
           onClick={onContinue}
@@ -701,17 +736,19 @@ function buildPrivateLink(token: string) {
 async function copyText(
   value: string,
   setNotice: (notice: string | null) => void,
-  setError: (error: string | null) => void
+  setError: (error: string | null) => void,
+  successMessage: string,
+  unavailableMessage: string
 ) {
   const copied = await copyToClipboard(value);
   if (copied) {
-    setNotice("Copied.");
+    setNotice(successMessage);
     setError(null);
     return true;
   }
 
   setNotice(null);
-  setError("Clipboard copy is unavailable in this browser. Select and copy the value shown manually.");
+  setError(unavailableMessage);
   return false;
 }
 

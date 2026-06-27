@@ -340,7 +340,7 @@ export function RemindersClient({ participants }: RemindersClientProps) {
                 </div>
                 <p className="reminders-card__text mt-2 break-words leading-5 text-ink">{reminder.text}</p>
               </div>
-              {canEdit ? (
+              {canEdit && expanded ? (
                 <div className="reminders-card__actions flex shrink-0 gap-1.5">
                   <button
                     type="button"

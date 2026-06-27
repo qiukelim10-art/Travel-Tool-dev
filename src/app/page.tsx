@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { EmergencyQuickAccess } from "@/components/EmergencyQuickAccess";
 import { RemindersClient } from "@/components/RemindersClient";
 import { SetupGenerationPanel } from "@/components/SetupGenerationPanel";
 import { StatusBadge } from "@/components/StatusBadge";
@@ -228,10 +229,6 @@ export default function DashboardPage() {
             routeLabel={trip.routeLabel}
             visual={destinationVisual}
           />
-
-          <section className="today-desktop-lower" aria-label="Desktop trip summaries">
-            <RemindersClient participants={trip.travelerDisplayNames} />
-          </section>
         </div>
 
         <aside className="today-summary-rail" aria-label="Today summary">
@@ -255,8 +252,13 @@ export default function DashboardPage() {
             title={language === "zh" ? "行李和文件" : "Prep"}
             detail={language === "zh" ? "检查文件和行李清单" : "Documents and packing lists"}
           />
-          <DestinationStampCard date={trip.startDate} visual={destinationVisual} />
         </aside>
+      </section>
+
+      <SosSummaryStrip visual={destinationVisual} />
+
+      <section className="today-reminders-section today-desktop-lower" aria-label={t("reminders.title")}>
+        <RemindersClient participants={trip.travelerDisplayNames} />
       </section>
     </div>
   );
@@ -305,9 +307,9 @@ function PrimaryPlanCard({
   routeLabel: string;
   visual: DestinationVisualIdentity;
 }) {
-  const { t } = useLanguage();
+  const { language, t } = useLanguage();
   const title = item?.title ?? t("dashboard.noItineraryItems");
-  const timeLabel = item?.startTime || item?.travelDate || "";
+  const timeLabel = item?.startTime || (item?.travelDate ? formatDate(item.travelDate, language) : "");
   const locationLabel = item?.location || item?.city || routeLabel;
   const details = item?.details || item?.transport || "";
 
@@ -329,7 +331,7 @@ function PrimaryPlanCard({
             <div className="primary-plan-card__meta">
               <div className="plan-meta-row">
                 <span className="plan-meta-icon plan-meta-icon--time" aria-hidden="true" />
-                <strong>{timeLabel || item?.travelDate || ""}</strong>
+                <strong>{timeLabel}</strong>
               </div>
               <div className="plan-meta-row">
                 <span className="plan-meta-icon plan-meta-icon--pin" aria-hidden="true" />
@@ -356,6 +358,7 @@ function TravelTicketVisual({
   routeLabel: string;
   visual: DestinationVisualIdentity;
 }) {
+  const { language } = useLanguage();
   const routeSummary = summarizeRouteMarks(visual.routeMarks, item?.city ?? routeLabel);
 
   return (
@@ -372,7 +375,7 @@ function TravelTicketVisual({
         label={formatRouteMapTitle(visual)}
       />
       <div className="travel-ticket-visual__footer">
-        {item?.travelDate ? <span>{item.travelDate}</span> : null}
+        {item?.travelDate ? <span>{formatDate(item.travelDate, language)}</span> : null}
         {routeSummary ? <span>{routeSummary}</span> : null}
       </div>
     </aside>
@@ -397,7 +400,7 @@ function AttentionSummaryCard({
       <div className="cockpit-card__heading">
         <div>
           <p className="cockpit-eyebrow">{t("dashboard.needsAttention")}</p>
-          <h2>{totalCount}</h2>
+          <h2>{t("dashboard.attentionCount", { count: totalCount })}</h2>
         </div>
         <Link href="/bookings" aria-label={t("dashboard.openBookings")} className="cockpit-arrow-link">
           ›
@@ -416,7 +419,7 @@ function AttentionSummaryCard({
               <span>
                 <strong>{booking.description}</strong>
                 <small>
-                  {translateText(language, booking.category)} · {booking.date}
+                  {translateText(language, booking.category)} · {formatDate(booking.date, language)}
                 </small>
               </span>
               <span className="attention-list__chevron" aria-hidden="true">›</span>
@@ -426,6 +429,44 @@ function AttentionSummaryCard({
       ) : null}
     </article>
   );
+}
+
+function SosSummaryStrip({ visual }: { visual: DestinationVisualIdentity }) {
+  const { t } = useLanguage();
+
+  return (
+    <section className="sos-summary-card today-sos-strip" aria-label={t("dashboard.sosStripTitle")}>
+      <div className="min-w-0">
+        <p className="cockpit-eyebrow">{t("dashboard.sosStripTitle")}</p>
+        <p>{t("dashboard.sosStripDescription")}</p>
+      </div>
+      <EmergencyQuickAccess
+        countryCode={visual.countryCode}
+        countryName={visual.countryName}
+        countries={emergencyCountriesForVisual(visual)}
+      />
+    </section>
+  );
+}
+
+function emergencyCountriesForVisual(visual: DestinationVisualIdentity) {
+  const codes = visual.countryCodes.length > 0 ? visual.countryCodes : [visual.countryCode];
+  const names = visual.countryNames.length > 0 ? visual.countryNames : [visual.countryName];
+  const seen = new Set<string>();
+
+  return codes
+    .map((code, index) => ({
+      code: code.toUpperCase(),
+      name: names[index] ?? code
+    }))
+    .filter((country) => {
+      if (!country.code || seen.has(country.code)) {
+        return false;
+      }
+
+      seen.add(country.code);
+      return true;
+    });
 }
 
 function SummaryLinkCard({
@@ -494,7 +535,7 @@ function summarizeRouteMarks(routeMarks: string[], fallback: string) {
       return true;
     });
 
-  return uniqueMarks.length > 0 ? uniqueMarks.join(" / ") : fallback;
+  return uniqueMarks.length > 0 ? uniqueMarks.join(" · ") : fallback;
 }
 
 function formatRouteMapTitle(visual: DestinationVisualIdentity) {
@@ -618,7 +659,7 @@ function NextPlanMini({
   item: SharedItineraryItem | null;
   loading: boolean;
 }) {
-  const { t } = useLanguage();
+  const { language, t } = useLanguage();
 
   return (
     <div className="rounded-lg border border-white/70 bg-white/78 p-3 shadow-soft backdrop-blur-sm">
@@ -637,7 +678,7 @@ function NextPlanMini({
             {item.title}
           </p>
           <p className="mt-1 text-sm text-zinc-600">
-            {formatDate(item.travelDate)} - {item.city}
+            {formatDate(item.travelDate, language)} - {item.city}
           </p>
         </>
       ) : null}
@@ -663,7 +704,7 @@ function NextPlanCard({
   item: SharedItineraryItem | null;
   loading: boolean;
 }) {
-  const { t } = useLanguage();
+  const { language, t } = useLanguage();
 
   return (
     <article className="travel-panel hidden p-4 sm:block">
@@ -686,7 +727,7 @@ function NextPlanCard({
                   {item.title}
                 </h2>
                 <p className="mt-1 text-sm text-zinc-500">
-                  {formatDate(item.travelDate)} - {item.city}
+                  {formatDate(item.travelDate, language)} - {item.city}
                 </p>
                 {item.details ? (
                   <p className="mt-2 line-clamp-2 text-sm leading-6 text-zinc-600">{item.details}</p>
@@ -771,7 +812,7 @@ function NeedsAttentionCard({
             <div className="min-w-0">
               <p className="break-words text-sm font-semibold text-ink">{booking.description}</p>
               <p className="mt-0.5 text-xs text-zinc-500">
-                {translateText(language, booking.category)} - {booking.date}
+                {translateText(language, booking.category)} - {formatDate(booking.date, language)}
               </p>
             </div>
             <StatusBadge status={booking.status} />
@@ -828,6 +869,17 @@ function isSharedItineraryItem(value: unknown): value is SharedItineraryItem {
   );
 }
 
-function formatDate(value: string) {
-  return value;
+function formatDate(value: string, language: Language = "en") {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!match) {
+    return value;
+  }
+
+  const [, year, month, day] = match;
+  const date = new Date(Number(year), Number(month) - 1, Number(day));
+  return new Intl.DateTimeFormat(language === "zh" ? "zh-CN" : "en", {
+    day: "numeric",
+    month: "short",
+    year: "numeric"
+  }).format(date);
 }
