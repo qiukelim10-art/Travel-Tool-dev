@@ -2,7 +2,7 @@
 
 ## Current Priority
 
-- Production UI hotfix is in progress for the deployed Travel Journal + Cockpit batch: malformed legacy pseudo-icon CSS content caused the browser to stop parsing before the later page styles, making maps/cards/nav appear broken on the live workspace. After deployment, re-check the production private workspace visually before taking on new UI scope.
+- Production UI hotfix for the deployed Travel Journal + Cockpit batch is complete: malformed legacy pseudo-icon CSS content caused the browser to stop parsing before the later page styles, making maps/cards/nav appear broken on the live workspace. Production CSSOM, private-link API checks, and desktop browser layout have been rechecked; next work should come from fresh user review only.
 - The UI batch on `codex/ui-bookings-journal-cockpit` has been committed, merged into `master`, pushed to GitHub `origin/main`, and deployed to `https://italy-trip-2026-cyan.vercel.app`.
 - The committed UI batch includes the review/reference assets under `Image Reference/` and `output/`, per the user's request to commit everything.
 - Next active work should be based on fresh user review of the production UI rather than continuing to broaden this batch automatically.
