@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type FormEvent, type KeyboardEvent, type ReactNode } from "react";
 import { useTripAccess } from "@/lib/access";
 import { formatMoney } from "@/lib/budget";
 import { activeTripCurrencies, fallbackCurrency } from "@/lib/currencyPreferences";
@@ -18,6 +18,31 @@ import {
 import type { Traveler } from "@/data/tripData";
 
 const requestTimeoutMs = 10000;
+
+function handleMenuKeyboard(event: KeyboardEvent<HTMLDivElement>) {
+  const buttons = Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>("button:not(:disabled)"));
+  if (buttons.length === 0) {
+    return;
+  }
+
+  const currentIndex = buttons.findIndex((button) => button === document.activeElement);
+  let nextIndex: number | null = null;
+
+  if (event.key === "ArrowDown") {
+    nextIndex = currentIndex >= 0 ? (currentIndex + 1) % buttons.length : 0;
+  } else if (event.key === "ArrowUp") {
+    nextIndex = currentIndex >= 0 ? (currentIndex - 1 + buttons.length) % buttons.length : buttons.length - 1;
+  } else if (event.key === "Home") {
+    nextIndex = 0;
+  } else if (event.key === "End") {
+    nextIndex = buttons.length - 1;
+  }
+
+  if (nextIndex !== null) {
+    event.preventDefault();
+    buttons[nextIndex]?.focus();
+  }
+}
 
 type CityFilter = "All" | string;
 type DateFilter = "All";
@@ -907,6 +932,7 @@ function ItineraryCard({
   const { t } = useLanguage();
   const mapsQuery = item.mapQuery || item.location;
   const [expenseDetailsOpen, setExpenseDetailsOpen] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
   const expenseDetailsVisible = expenseDetailsOpen || Boolean(expenseForm);
   const outstandingSummary = formatOutstandingSummary(expenses, t("linkedExpenses.none"));
 
@@ -935,61 +961,101 @@ function ItineraryCard({
             {item.location ? <span>- {item.location}</span> : null}
           </div>
         </div>
-        <div className="itinerary-item-card__side" aria-label={t("linkedExpenses.title")}>
-          <section className="itinerary-card-summary">
-            <span className="itinerary-card-summary__stat itinerary-card-summary__stat--expenses">
-              {t("linkedExpenses.expensesCount", { count: expenses.length })}
-            </span>
-            {mapsQuery ? (
-              <a
-                href={googleMapsSearchUrl(mapsQuery)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="itinerary-action-button itinerary-action-button--primary itinerary-card-summary__action itinerary-card-summary__action--map"
-              >
-                <span className="sm:hidden">{t("common.map")}</span>
-                <span className="hidden sm:inline">{t("itinerary.openMaps")}</span>
-              </a>
-            ) : null}
-            <span className="itinerary-card-summary__stat itinerary-card-summary__stat--outstanding">
-              {t("linkedExpenses.outstanding", { amount: outstandingSummary })}
-            </span>
+      </div>
+
+      <section className="itinerary-expense-summary" aria-label={t("linkedExpenses.title")}>
+        <span className="itinerary-expense-chip">
+          {t("linkedExpenses.expensesCount", { count: expenses.length })}
+        </span>
+        <span className="itinerary-expense-chip">
+          {t("linkedExpenses.outstanding", { amount: outstandingSummary })}
+        </span>
+      </section>
+
+      <div className="itinerary-card-action-row">
+        <div className="itinerary-card-action-group itinerary-card-action-group--expense" aria-label={t("linkedExpenses.title")}>
+          {canEdit ? (
             <button
               type="button"
-              onClick={() => setExpenseDetailsOpen((current) => !current)}
-              className="itinerary-action-button itinerary-action-button--ghost itinerary-card-summary__action itinerary-card-summary__action--details"
+              onClick={handleAddExpense}
+              className="itinerary-action-button itinerary-action-button--secondary itinerary-card-action-button"
+              aria-label={t("linkedExpenses.addAria")}
             >
-              <span className="sm:hidden">{t("linkedExpenses.detailsShort")}</span>
-              <span className="hidden sm:inline">
-                {expenseDetailsVisible ? t("linkedExpenses.hideDetails") : t("linkedExpenses.showDetails")}
-              </span>
+              {t("linkedExpenses.addAction")}
             </button>
-          </section>
+          ) : null}
+          <button
+            type="button"
+            onClick={() => setExpenseDetailsOpen((current) => !current)}
+            className="itinerary-action-button itinerary-action-button--ghost itinerary-card-action-button"
+            aria-label={t("linkedExpenses.viewAria")}
+          >
+            {expenseDetailsVisible ? t("linkedExpenses.hideAction") : t("linkedExpenses.viewAction")}
+          </button>
+        </div>
+
+        <div className="itinerary-card-action-group itinerary-card-action-group--trip" aria-label={t("itinerary.cardActions")}>
+          {mapsQuery ? (
+            <a
+              href={googleMapsSearchUrl(mapsQuery)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="itinerary-action-button itinerary-action-button--primary itinerary-card-action-button"
+              aria-label={t("itinerary.openMapAria")}
+            >
+              {t("common.map")}
+            </a>
+          ) : null}
           {canEdit ? (
-            <div className="itinerary-card-actions itinerary-card-actions--editor">
+            <div className="itinerary-more-menu">
               <button
                 type="button"
-                onClick={handleAddExpense}
-                className="itinerary-action-button itinerary-action-button--primary"
+                onClick={() => setMoreOpen((current) => !current)}
+                className="itinerary-action-button itinerary-action-button--ghost itinerary-more-menu__trigger"
+                aria-haspopup="menu"
+                aria-expanded={moreOpen}
+                aria-label={t("itinerary.moreActionsAria")}
               >
-                <span className="sm:hidden">{t("linkedExpenses.addShort")}</span>
-                <span className="hidden sm:inline">{t("linkedExpenses.add")}</span>
+                {t("nav.more")}
               </button>
-              <button
-                type="button"
-                onClick={() => onEdit(item)}
-                className="itinerary-action-button itinerary-action-button--ghost"
-              >
-                {t("common.edit")}
-              </button>
-              <button
-                type="button"
-                onClick={() => void onDelete(item)}
-                disabled={deletingId === item.id}
-                className="itinerary-action-button itinerary-action-button--danger disabled:opacity-60"
-              >
-                {deletingId === item.id ? t("common.deleting") : t("common.delete")}
-              </button>
+              {moreOpen ? (
+                <div
+                  className="itinerary-more-menu__panel"
+                  role="menu"
+                  onKeyDown={(event) => {
+                    if (event.key === "Escape") {
+                      event.preventDefault();
+                      setMoreOpen(false);
+                      return;
+                    }
+
+                    handleMenuKeyboard(event);
+                  }}
+                >
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={() => {
+                      setMoreOpen(false);
+                      onEdit(item);
+                    }}
+                  >
+                    {t("itinerary.editAction")}
+                  </button>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={() => {
+                      setMoreOpen(false);
+                      void onDelete(item);
+                    }}
+                    disabled={deletingId === item.id}
+                    className="itinerary-more-menu__danger"
+                  >
+                    {deletingId === item.id ? t("common.deleting") : t("itinerary.deleteAction")}
+                  </button>
+                </div>
+              ) : null}
             </div>
           ) : null}
         </div>

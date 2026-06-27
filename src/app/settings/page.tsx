@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { SectionHeader } from "@/components/SectionHeader";
 import { SetupGenerationPanel } from "@/components/SetupGenerationPanel";
 import { useTripAccess } from "@/lib/access";
 import { useLanguage } from "@/lib/i18n";
@@ -217,16 +216,27 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="w-full max-w-full min-w-0">
-      <SectionHeader eyebrow={labels.eyebrow} title={labels.title} description={labels.description} />
+    <div className="settings-workspace">
+      <section className="settings-masthead" aria-labelledby="settings-page-title">
+        <p className="cockpit-eyebrow">{labels.eyebrow}</p>
+        <h1 id="settings-page-title">{labels.title}</h1>
+        <p>{labels.description}</p>
+        {form ? (
+          <div className="settings-chip-row" aria-label={labels.title}>
+            <span>{form.trip.name}</span>
+            <span>{form.trip.destination}</span>
+            <span>{form.trip.defaultCurrencies.join(" / ")}</span>
+          </div>
+        ) : null}
+      </section>
 
       {loading ? (
-        <p role="status" aria-live="polite" className="text-sm text-zinc-600">
+        <p role="status" aria-live="polite" className="settings-loading-card">
           {labels.loading}
         </p>
       ) : null}
       {error ? (
-        <p role="alert" className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+        <p role="alert" className="settings-inline-status settings-inline-status--error">
           {error}
         </p>
       ) : null}
@@ -234,22 +244,22 @@ export default function SettingsPage() {
         <p
           role="status"
           aria-live="polite"
-          className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800"
+          className="settings-inline-status settings-inline-status--success"
         >
           {notice}
         </p>
       ) : null}
 
       {form ? (
-        <form onSubmit={submitSettings} className="mobile-safe-form space-y-4 pb-20 md:pb-0">
+        <form onSubmit={submitSettings} className="settings-form mobile-safe-form">
           {!canEdit ? (
-            <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+            <p className="settings-inline-status settings-inline-status--warning">
               Editor mode is required to modify trip settings.
             </p>
           ) : null}
-          <section className="rounded-lg border border-zinc-200 bg-white p-4 shadow-soft">
-            <h2 className="text-lg font-semibold text-ink">{labels.basics}</h2>
-            <div className="mt-4 grid gap-3 md:grid-cols-2">
+          <section className="settings-card">
+            <h2>{labels.basics}</h2>
+            <div className="settings-field-grid">
               <TextField name="trip-name" label={labels.name} value={form.trip.name} autoComplete="off" onChange={(value) => updateTrip(form, setForm, { name: value })} />
               <TextField name="trip-destination" label={labels.destination} value={form.trip.destination} autoComplete="address-level1" onChange={(value) => updateTrip(form, setForm, { destination: value })} />
               <TextField name="trip-start-date" label={labels.startDate} type="date" value={form.trip.startDate ?? ""} onChange={(value) => updateTrip(form, setForm, { startDate: value || null })} />
@@ -257,12 +267,12 @@ export default function SettingsPage() {
             </div>
           </section>
 
-          <section className="rounded-lg border border-zinc-200 bg-white p-4 shadow-soft">
-            <h2 className="text-lg font-semibold text-ink">{labels.currencies}</h2>
-            <fieldset className="mt-4 grid gap-2 sm:grid-cols-3">
+          <section className="settings-card">
+            <h2>{labels.currencies}</h2>
+            <fieldset className="settings-currency-grid">
               <legend className="sr-only">{labels.defaultCurrencies}</legend>
               {bookingCurrencies.map((currency) => (
-                <label key={currency} className="flex items-center gap-2 rounded-md border border-zinc-200 px-3 py-2 text-sm font-semibold text-ink">
+                <label key={currency} className="settings-check-pill">
                   <input
                     type="checkbox"
                     name="default-currencies"
@@ -274,35 +284,35 @@ export default function SettingsPage() {
                 </label>
               ))}
             </fieldset>
-            <div className="mt-4 grid gap-3 md:grid-cols-2">
+            <div className="settings-field-grid">
               <TextField name="trip-timezone" label={labels.timezone} value={form.trip.timezone} autoComplete="off" onChange={(value) => updateTrip(form, setForm, { timezone: value })} />
-              <label className="block text-sm font-semibold text-ink">
+              <label className="settings-field">
                 {labels.notes}
                 <textarea
                   name="trip-notes"
                   autoComplete="off"
                   value={form.trip.notes ?? ""}
                   onChange={(event) => updateTrip(form, setForm, { notes: event.target.value || null })}
-                  className="mt-2 block min-h-24 w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-base text-zinc-700 sm:text-sm"
+                  className="settings-input settings-input--textarea"
                 />
               </label>
             </div>
           </section>
 
-          <section className="rounded-lg border border-zinc-200 bg-white p-4 shadow-soft">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <section className="settings-card">
+            <div className="settings-card__header">
               <div>
-                <h2 className="text-lg font-semibold text-ink">{labels.travelers}</h2>
-                <p className="mt-1 text-sm text-zinc-600">{labels.activeHint}</p>
+                <h2>{labels.travelers}</h2>
+                <p>{labels.activeHint}</p>
               </div>
-              <button type="button" onClick={() => addTraveler(form, setForm)} className="rounded-md bg-moss px-3 py-2 text-sm font-semibold text-white">
+              <button type="button" onClick={() => addTraveler(form, setForm)} className="settings-action-button settings-action-button--primary">
                 {labels.addTraveler}
               </button>
             </div>
-            <div className="mt-4 space-y-3">
-              {form.travelers.length === 0 ? <p className="text-sm text-zinc-600">{labels.travelerEmpty}</p> : null}
+            <div className="settings-list">
+              {form.travelers.length === 0 ? <p className="settings-muted">{labels.travelerEmpty}</p> : null}
               {form.travelers.map((traveler, index) => (
-                <div key={traveler.id ?? `new-${index}`} className="grid gap-2 rounded-md bg-zinc-50 p-3 md:grid-cols-[1fr_auto]">
+                <div key={traveler.id ?? `new-${index}`} className="settings-list-item settings-list-item--traveler">
                   <TextField
                     name={`traveler-${index}-display-name`}
                     label={labels.displayName}
@@ -310,8 +320,8 @@ export default function SettingsPage() {
                     autoComplete="name"
                     onChange={(value) => updateTraveler(form, setForm, index, { displayName: value })}
                   />
-                  <div className="flex flex-wrap items-end gap-2">
-                    <label className="flex items-center gap-2 rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold text-ink">
+                  <div className="settings-list-actions">
+                    <label className="settings-check-pill">
                       <input
                         type="checkbox"
                         name={`traveler-${index}-active`}
@@ -328,7 +338,7 @@ export default function SettingsPage() {
                       labels={labels}
                     />
                     {!traveler.id ? (
-                      <button type="button" onClick={() => removeNewTraveler(form, setForm, index)} className="rounded-md border border-red-200 bg-white px-3 py-2 text-sm font-semibold text-red-700">
+                      <button type="button" onClick={() => removeNewTraveler(form, setForm, index)} className="settings-action-button settings-action-button--danger">
                         {labels.remove}
                       </button>
                     ) : null}
@@ -338,22 +348,22 @@ export default function SettingsPage() {
             </div>
           </section>
 
-          <section className="rounded-lg border border-zinc-200 bg-white p-4 shadow-soft">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-              <h2 className="text-lg font-semibold text-ink">{labels.route}</h2>
-              <button type="button" onClick={() => addRouteStop(form, setForm)} className="rounded-md bg-moss px-3 py-2 text-sm font-semibold text-white">
+          <section className="settings-card">
+            <div className="settings-card__header">
+              <h2>{labels.route}</h2>
+              <button type="button" onClick={() => addRouteStop(form, setForm)} className="settings-action-button settings-action-button--primary">
                 {labels.addStop}
               </button>
             </div>
-            <div className="mt-4 space-y-3">
-              {form.routeStops.length === 0 ? <p className="text-sm text-zinc-600">{labels.routeEmpty}</p> : null}
+            <div className="settings-list">
+              {form.routeStops.length === 0 ? <p className="settings-muted">{labels.routeEmpty}</p> : null}
               {form.routeStops.map((stop, index) => (
-                <div key={stop.id ?? `new-${index}`} className="grid gap-2 rounded-md bg-zinc-50 p-3 md:grid-cols-[1fr_1fr_auto]">
+                <div key={stop.id ?? `new-${index}`} className="settings-list-item settings-list-item--route">
                   <TextField name={`route-stop-${index}-city`} label={labels.city} value={stop.city} autoComplete="address-level2" onChange={(value) => updateRouteStop(form, setForm, index, { city: value })} />
                   <TextField name={`route-stop-${index}-country`} label={labels.country} value={stop.country ?? ""} autoComplete="country-name" onChange={(value) => updateRouteStop(form, setForm, index, { country: value || null })} />
-                  <div className="flex flex-wrap items-end gap-2">
+                  <div className="settings-list-actions">
                     <OrderButtons index={index} length={form.routeStops.length} onMove={(direction) => moveRouteStop(form, setForm, index, direction)} labels={labels} />
-                    <button type="button" onClick={() => removeRouteStop(form, setForm, index)} className="rounded-md border border-red-200 bg-white px-3 py-2 text-sm font-semibold text-red-700">
+                    <button type="button" onClick={() => removeRouteStop(form, setForm, index)} className="settings-action-button settings-action-button--danger">
                       {labels.remove}
                     </button>
                   </div>
@@ -376,7 +386,7 @@ export default function SettingsPage() {
           />
 
           <div
-            className={`rounded-lg border border-zinc-200 bg-white/95 p-3 shadow-soft backdrop-blur ${
+            className={`settings-save-bar ${
               dirty || saving
                 ? "sticky bottom-[calc(5.5rem+env(safe-area-inset-bottom))] z-10 md:bottom-4"
                 : ""
@@ -385,8 +395,8 @@ export default function SettingsPage() {
               <button
                 type="submit"
               disabled={saving || !dirty || !canEdit}
-              className={`w-full rounded-md px-3 py-2 text-base font-semibold sm:w-auto sm:text-sm ${
-                dirty ? "bg-moss text-white disabled:opacity-60" : "border border-zinc-200 bg-zinc-50 text-zinc-500"
+              className={`settings-action-button ${
+                dirty ? "settings-action-button--primary disabled:opacity-60" : "settings-action-button--disabled"
               }`}
             >
               {saving ? labels.saving : dirty ? labels.save : labels.noChanges}
@@ -631,7 +641,7 @@ function OrderButtons({
         type="button"
         onClick={() => onMove(-1)}
         disabled={index === 0}
-        className="rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold text-ink disabled:opacity-50"
+        className="settings-action-button settings-action-button--ghost disabled:opacity-50"
       >
         {labels.moveUp}
       </button>
@@ -639,7 +649,7 @@ function OrderButtons({
         type="button"
         onClick={() => onMove(1)}
         disabled={index === length - 1}
-        className="rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold text-ink disabled:opacity-50"
+        className="settings-action-button settings-action-button--ghost disabled:opacity-50"
       >
         {labels.moveDown}
       </button>
@@ -663,7 +673,7 @@ function TextField({
   type?: "date" | "text";
 }) {
   return (
-    <label className="block min-w-0 text-sm font-semibold text-ink">
+    <label className="settings-field">
       {label}
       <input
         name={name}
@@ -671,7 +681,7 @@ function TextField({
         autoComplete={autoComplete}
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="mt-2 block w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-base text-zinc-700 sm:text-sm"
+        className="settings-input"
       />
     </label>
   );

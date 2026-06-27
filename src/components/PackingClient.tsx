@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent, type KeyboardEvent } from "react";
 import type { Traveler } from "@/data/tripData";
 import { useTripAccess } from "@/lib/access";
 import { useLanguage } from "@/lib/i18n";
@@ -28,9 +28,9 @@ type OverallStatus = "Pending" | "Completed" | "Not assigned";
 const PACKING_FETCH_TIMEOUT_MS = 10000;
 
 const statusClass: Record<PackingTravelerStatus, string> = {
-  required: "bg-amber-100 text-amber-800 ring-amber-200",
-  packed: "bg-emerald-100 text-emerald-800 ring-emerald-200",
-  not_needed: "bg-zinc-100 text-zinc-700 ring-zinc-200"
+  required: "packing-traveler-button--required",
+  packed: "packing-traveler-button--packed",
+  not_needed: "packing-traveler-button--not-needed"
 };
 
 const priorityClass: Record<PackingPriority, string> = {
@@ -44,6 +44,31 @@ const overallClass: Record<OverallStatus, string> = {
   Completed: "bg-emerald-100 text-emerald-800 ring-emerald-200",
   "Not assigned": "bg-zinc-100 text-zinc-700 ring-zinc-200"
 };
+
+function handleStatusMenuKeyboard(event: KeyboardEvent<HTMLDivElement>) {
+  const buttons = Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>("button:not(:disabled)"));
+  if (buttons.length === 0) {
+    return;
+  }
+
+  const currentIndex = buttons.findIndex((button) => button === document.activeElement);
+  let nextIndex: number | null = null;
+
+  if (event.key === "ArrowDown") {
+    nextIndex = currentIndex >= 0 ? (currentIndex + 1) % buttons.length : 0;
+  } else if (event.key === "ArrowUp") {
+    nextIndex = currentIndex >= 0 ? (currentIndex - 1 + buttons.length) % buttons.length : buttons.length - 1;
+  } else if (event.key === "Home") {
+    nextIndex = 0;
+  } else if (event.key === "End") {
+    nextIndex = buttons.length - 1;
+  }
+
+  if (nextIndex !== null) {
+    event.preventDefault();
+    buttons[nextIndex]?.focus();
+  }
+}
 
 function buildDefaultStatuses(category: PackingCategory, travelers: Traveler[]) {
   const status = defaultPackingStatusForCategory(category);
@@ -84,18 +109,6 @@ function shortTravelerName(name: string) {
     .slice(0, 3);
 
   return initials || name.slice(0, 3);
-}
-
-function shortPackingStatus(status: PackingTravelerStatus) {
-  if (status === "packed") {
-    return "OK";
-  }
-
-  if (status === "not_needed") {
-    return "Skip";
-  }
-
-  return "Need";
 }
 
 function isPackingResponse(data: unknown): data is { items: SharedPackingItem[] } {
@@ -352,21 +365,42 @@ export function PackingClient({ travelers }: PackingClientProps) {
     }
   }
 
-  async function updateOwnStatus(item: SharedPackingItem, status: PackingTravelerStatus) {
-    if (!selectedTravelerId) {
+  async function updateTravelerStatus(
+    item: SharedPackingItem,
+    travelerId: string,
+    status: PackingTravelerStatus
+  ) {
+    if (!canEdit && travelerId !== selectedTravelerId) {
       setError("Select a traveler identity before updating packing status.");
       return;
     }
 
-    setStatusUpdatingId(item.id);
+    setStatusUpdatingId(`${item.id}:${travelerId}`);
     setError(null);
 
     try {
-      const response = await fetch(`/api/packing/${item.id}/status`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status })
-      });
+      const response = canEdit
+        ? await fetch(`/api/packing/${item.id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              name: item.name,
+              category: item.category,
+              priority: item.priority,
+              notes: item.notes ?? "",
+              quantity: item.quantity,
+              sortOrder: item.sortOrder,
+              statuses: item.statuses.map((currentStatus) => ({
+                travelerId: currentStatus.travelerId,
+                status: currentStatus.travelerId === travelerId ? status : currentStatus.status
+              }))
+            } satisfies PackingInput)
+          })
+        : await fetch(`/api/packing/${item.id}/status`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ status })
+          });
       const data = await response.json();
 
       if (!response.ok) {
@@ -382,34 +416,41 @@ export function PackingClient({ travelers }: PackingClientProps) {
   }
 
   return (
-    <div className="space-y-5">
-      <div className="status-strip grid grid-cols-2 gap-2 p-2 lg:grid-cols-4">
+    <div className="packing-workspace">
+      <section className="packing-stats-strip" aria-label={t("page.packing.title")}>
         <PackingStat label={t("packing.summary.total")} value={String(items.length)} />
         <PackingStat label={t("packing.summary.highPriority")} value={String(highPriorityCount)} warm={highPriorityCount > 0} />
         <PackingStat label={t("packing.summary.requiredPeopleItems")} value={String(requiredPeopleItems)} />
         <PackingStat label={t("packing.summary.packedProgress")} value={`${packedPeopleItems} / ${requiredPeopleItems}`} />
-      </div>
+      </section>
 
-      <div className="travel-panel grid w-full gap-2 p-3 sm:grid-cols-[1fr_1fr_1fr_auto] sm:items-end">
-        <div className="grid grid-cols-2 gap-2 sm:contents">
-          <SelectField
-            name="packing-filter-category"
+      <section className="packing-control-card" aria-label={t("page.packing.title")}>
+        <div className="packing-control-card__header">
+          <button
+            type="button"
+            onClick={openNewForm}
+            disabled={!canEdit}
+            className="itinerary-action-button itinerary-action-button--primary disabled:opacity-60"
+          >
+            {t("packing.addItem")}
+          </button>
+        </div>
+        <div className="packing-filter-grid">
+          <FilterChipGroup
             label={t("common.category")}
             value={categoryFilter}
             options={["All", ...packingCategories]}
             getOptionLabel={(value) => translateOption(language, value)}
             onChange={(value) => setCategoryFilter(value as typeof categoryFilter)}
           />
-          <SelectField
-            name="packing-filter-priority"
+          <FilterChipGroup
             label={t("common.priority")}
             value={priorityFilter}
             options={["All", ...packingPriorities]}
             getOptionLabel={(value) => translateOption(language, value)}
             onChange={(value) => setPriorityFilter(value as typeof priorityFilter)}
           />
-          <SelectField
-            name="packing-filter-status"
+          <FilterChipGroup
             label={t("common.status")}
             value={statusFilter}
             options={["All", "Incomplete only", "Completed only", "Unassigned only"]}
@@ -417,20 +458,15 @@ export function PackingClient({ travelers }: PackingClientProps) {
             onChange={(value) => setStatusFilter(value as StatusFilter)}
           />
         </div>
-        <button
-          type="button"
-          onClick={openNewForm}
-          disabled={!canEdit}
-          className="rounded-md bg-moss px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
-        >
-          {t("packing.addItem")}
-        </button>
-      </div>
+      </section>
 
       {formOpen ? (
-        <form onSubmit={submitPackingItem} className="mobile-safe-form travel-panel p-4">
+        <form
+          onSubmit={submitPackingItem}
+          className="packing-form packing-editor-card mobile-safe-form box-border w-full max-w-full min-w-0 overflow-hidden"
+        >
           <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
+            <div className="min-w-0">
               <p className="text-xs font-semibold uppercase tracking-[0.08em] text-terracotta">
                 {editingId ? t("packing.editItem") : t("packing.addItemEyebrow")}
               </p>
@@ -441,7 +477,7 @@ export function PackingClient({ travelers }: PackingClientProps) {
             <button
               type="button"
               onClick={resetForm}
-              className="rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold text-ink"
+              className="itinerary-action-button itinerary-action-button--ghost max-w-full"
             >
               {t("common.cancel")}
             </button>
@@ -498,12 +534,12 @@ export function PackingClient({ travelers }: PackingClientProps) {
               autoComplete="off"
               value={form.notes ?? ""}
               onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))}
-              className="mt-2 min-h-24 w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-700"
+              className="packing-textarea"
               placeholder={t("packing.form.notesPlaceholder")}
             />
           </label>
 
-          <div className="traveler-matrix mt-4 p-3">
+          <div className="packing-traveler-matrix">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <p className="text-sm font-semibold text-ink">{t("packing.form.travelerStatuses")}</p>
@@ -514,7 +550,7 @@ export function PackingClient({ travelers }: PackingClientProps) {
               <button
                 type="button"
                 onClick={applyCategoryDefault}
-                className="rounded-md border border-zinc-200 bg-white px-3 py-2 text-xs font-semibold text-ink"
+                className="itinerary-action-button itinerary-action-button--ghost packing-small-action"
               >
                 {t("packing.form.applyDefault")}
               </button>
@@ -540,7 +576,7 @@ export function PackingClient({ travelers }: PackingClientProps) {
           <button
             type="submit"
             disabled={submitting}
-            className="mt-4 rounded-md bg-moss px-3 py-2 text-sm font-semibold text-white disabled:opacity-60"
+            className="itinerary-action-button itinerary-action-button--primary mt-4 box-border w-full max-w-full disabled:opacity-60 sm:w-auto"
           >
             {submitting ? t("common.saving") : editingId ? t("bookings.saveChanges") : t("packing.addButton")}
           </button>
@@ -550,39 +586,44 @@ export function PackingClient({ travelers }: PackingClientProps) {
       {error ? (
         <div
           role="alert"
-          className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
+          className="packing-inline-status packing-inline-status--error flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
         >
           <p>{error}</p>
           <button
             type="button"
             onClick={() => void loadItems()}
-            className="rounded-md border border-red-200 bg-white px-3 py-1.5 text-xs font-semibold text-red-700"
+            disabled={loading}
+            className="itinerary-action-button itinerary-action-button--ghost disabled:opacity-60"
           >
-            {t("common.retry")}
+            {loading ? t("common.retrying") : t("common.retry")}
           </button>
         </div>
       ) : null}
 
       {loading ? (
-        <p role="status" aria-live="polite" className="text-sm text-zinc-600">
+        <p role="status" aria-live="polite" className="packing-loading-card">
           {t("packing.loading")}
         </p>
       ) : null}
 
       {!loading && visibleItems.length === 0 ? (
-        <p className="rounded-lg border border-zinc-200 bg-white px-4 py-8 text-sm text-zinc-600 shadow-soft">
+        <p className="packing-empty-card">
           {t("packing.empty")}
         </p>
       ) : null}
 
-      <div className="space-y-5">
+      <section className="packing-category-list" aria-label={t("page.packing.title")}>
         {groupedItems.map((group) => (
-          <section key={group.category}>
-            <div className="mb-3 flex items-center gap-3">
-              <h2 className="text-lg font-semibold text-ink">{translateOption(language, group.category)}</h2>
-              <span className="h-px flex-1 bg-route/20" />
+          <section key={group.category} className="packing-category-section route-line">
+            <div className="packing-category-section__header">
+              <span className="route-dot" />
+              <div>
+                <p>{t("common.category")}</p>
+                <h2>{translateOption(language, group.category)}</h2>
+              </div>
+              <span>{group.items.length}</span>
             </div>
-            <div className="grid gap-2">
+            <div className="packing-category-section__cards">
               {group.items.map((item) => (
                 <PackingItemCard
                   key={item.id}
@@ -594,13 +635,13 @@ export function PackingClient({ travelers }: PackingClientProps) {
                   travelerNameById={travelerNameById}
                   onEdit={startEditing}
                   onDelete={removeItem}
-                  onStatusChange={updateOwnStatus}
+                  onStatusChange={updateTravelerStatus}
                 />
               ))}
             </div>
           </section>
         ))}
-      </div>
+      </section>
     </div>
   );
 }
@@ -624,39 +665,43 @@ function PackingItemCard({
   travelerNameById: Map<string, string>;
   onEdit: (item: SharedPackingItem) => void;
   onDelete: (item: SharedPackingItem) => Promise<void>;
-  onStatusChange: (item: SharedPackingItem, status: PackingTravelerStatus) => Promise<void>;
+  onStatusChange: (
+    item: SharedPackingItem,
+    travelerId: string,
+    status: PackingTravelerStatus
+  ) => Promise<void>;
 }) {
   const { language, t } = useLanguage();
   const overallStatus = getOverallStatus(item);
 
   return (
-    <article className="checklist-band p-3 shadow-soft">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className={`rounded-full px-2 py-1 text-xs font-semibold ring-1 ${priorityClass[item.priority]}`}>
+    <article className="packing-item-card">
+      <div className="packing-item-card__header">
+        <div className="packing-item-card__title">
+          <div className="packing-badge-row">
+            <span className={`packing-badge ${priorityClass[item.priority]}`}>
               {translateOption(language, item.priority)}
             </span>
-            <span className={`rounded-full px-2 py-1 text-xs font-semibold ring-1 ${overallClass[overallStatus]}`}>
+            <span className={`packing-badge ${overallClass[overallStatus]}`}>
               {translateOption(language, overallStatus)}
             </span>
-            <span className="rounded-full bg-white/75 px-2 py-1 text-xs font-semibold text-zinc-600 ring-1 ring-zinc-200">
+            <span className="packing-badge packing-badge--category">
               {translateOption(language, item.category)}
             </span>
           </div>
-          <h3 className="mt-1.5 break-words text-base font-semibold text-ink sm:text-lg">{item.name}</h3>
+          <h3>{item.name}</h3>
           {item.quantity !== null ? (
-            <p className="mt-0.5 text-xs text-zinc-500">
+            <p>
               {t("common.quantity")}: {item.quantity}
             </p>
           ) : null}
         </div>
         {canEdit ? (
-        <div className="flex shrink-0 gap-1.5">
+        <div className="packing-card-actions">
           <button
             type="button"
             onClick={() => onEdit(item)}
-            className="rounded-md border border-zinc-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-ink"
+            className="itinerary-action-button itinerary-action-button--ghost"
           >
             {t("common.edit")}
           </button>
@@ -664,7 +709,7 @@ function PackingItemCard({
             type="button"
             onClick={() => void onDelete(item)}
             disabled={deletingId === item.id}
-            className="rounded-md border border-red-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-red-700 disabled:opacity-60"
+            className="itinerary-action-button itinerary-action-button--danger disabled:opacity-60"
           >
             {deletingId === item.id ? t("common.deleting") : t("common.delete")}
           </button>
@@ -672,64 +717,147 @@ function PackingItemCard({
         ) : null}
       </div>
 
-      {item.notes ? <p className="mt-1.5 line-clamp-1 text-sm leading-5 text-zinc-600">{item.notes}</p> : null}
+      {item.notes ? <p className="packing-item-card__notes">{item.notes}</p> : null}
 
-      <div className="mt-2 grid grid-cols-4 gap-1.5">
+      <div className="packing-traveler-grid">
         {item.statuses.map((status) => {
           const travelerName = travelerNameById.get(status.travelerId) ?? status.travelerId;
+          const canUpdateStatus = canEdit || status.travelerId === selectedTravelerId;
           return (
-          <div
-            key={status.travelerId}
-            className="flex min-w-0 items-center justify-between gap-1 rounded-md border border-white/75 bg-white/70 px-1.5 py-1"
-            title={`${travelerName}: ${translateOption(language, status.status)}`}
-          >
-            <span className="min-w-0 truncate text-xs font-semibold text-ink">
-              {shortTravelerName(travelerName)}
-            </span>
-            <span
-              className={`shrink-0 rounded-full px-1.5 py-0.5 text-[0.65rem] font-semibold ring-1 ${statusClass[status.status]}`}
-              title={translateOption(language, status.status)}
-            >
-              {shortPackingStatus(status.status)}
-            </span>
-          </div>
+            <TravelerStatusButton
+              key={status.travelerId}
+              travelerName={travelerName}
+              status={status.status}
+              disabled={!canUpdateStatus || statusUpdatingId === `${item.id}:${status.travelerId}`}
+              saving={statusUpdatingId === `${item.id}:${status.travelerId}`}
+              onStatusChange={(nextStatus) => void onStatusChange(item, status.travelerId, nextStatus)}
+            />
           );
         })}
-      </div>
-
-      <div className="mt-3 rounded-md border border-zinc-200 bg-white/75 p-2">
-        {selectedTravelerId ? (
-          <SelectField
-            name={`packing-${item.id}-own-status`}
-            label={`${travelerNameById.get(selectedTravelerId) ?? selectedTravelerId} status`}
-            value={
-              item.statuses.find((status) => status.travelerId === selectedTravelerId)?.status ??
-              "required"
-            }
-            options={packingTravelerStatuses}
-            onChange={(value) => void onStatusChange(item, value as PackingTravelerStatus)}
-            getOptionLabel={(value) => translateOption(language, value)}
-          />
-        ) : (
-          <p className="text-sm text-zinc-600">
-            Select a traveler identity above to update your own packing status.
-          </p>
-        )}
-        {statusUpdatingId === item.id ? (
-          <p className="mt-2 text-xs font-semibold text-zinc-500">{t("common.saving")}</p>
-        ) : null}
       </div>
     </article>
   );
 }
 
+function TravelerStatusButton({
+  travelerName,
+  status,
+  disabled,
+  saving,
+  onStatusChange
+}: {
+  travelerName: string;
+  status: PackingTravelerStatus;
+  disabled: boolean;
+  saving: boolean;
+  onStatusChange: (status: PackingTravelerStatus) => void;
+}) {
+  const { language, t } = useLanguage();
+  const [open, setOpen] = useState(false);
+  const statusLabel = packingTravelerStatusLabel(language, status);
+  const actionHint = disabled ? "" : ` ${t("packing.statusMenu.changeHint")}`;
+
+  return (
+    <div className="packing-traveler-status-menu">
+      <button
+        type="button"
+        onClick={() => setOpen((current) => !current)}
+        disabled={disabled}
+        className={`packing-traveler-button ${statusClass[status]}`}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-label={`${travelerName} status: ${statusLabel}.${actionHint}`}
+        title={statusLabel}
+      >
+        <span>{shortTravelerName(travelerName)}</span>
+      </button>
+      {open ? (
+        <div
+          className="packing-traveler-status-menu__panel"
+          role="menu"
+          onKeyDown={(event) => {
+            if (event.key === "Escape") {
+              event.preventDefault();
+              setOpen(false);
+              return;
+            }
+
+            handleStatusMenuKeyboard(event);
+          }}
+        >
+          {packingTravelerStatuses.map((option) => (
+            <button
+              key={option}
+              type="button"
+              role="menuitemradio"
+              aria-checked={option === status}
+              onClick={() => {
+                setOpen(false);
+                onStatusChange(option);
+              }}
+            >
+              {packingTravelerStatusLabel(language, option)}
+            </button>
+          ))}
+        </div>
+      ) : null}
+      {saving ? <span className="packing-saving-note">{t("common.saving")}</span> : null}
+    </div>
+  );
+}
+
+function packingTravelerStatusLabel(
+  language: ReturnType<typeof useLanguage>["language"],
+  status: PackingTravelerStatus
+) {
+  if (status === "packed") {
+    return language === "zh" ? "已经带了" : "Packed";
+  }
+
+  if (status === "not_needed") {
+    return language === "zh" ? "不需要带" : "Not needed";
+  }
+
+  return language === "zh" ? "需要带" : "Need";
+}
+
 function PackingStat({ label, value, warm = false }: { label: string; value: string; warm?: boolean }) {
   return (
-    <div className={`compact-stat ${warm ? "bg-amber-50" : "bg-white/70"}`}>
-      <p className="min-h-8 break-words text-[0.65rem] font-semibold uppercase leading-4 tracking-[0.08em] text-zinc-500 sm:min-h-0 sm:text-xs">
-        {label}
-      </p>
-      <p className={`mt-1 text-xl font-semibold ${warm ? "text-amber-800" : "text-ink"}`}>{value}</p>
+    <div className={`packing-stat ${warm ? "packing-stat--warm" : ""}`}>
+      <p>{label}</p>
+      <strong>{value}</strong>
+    </div>
+  );
+}
+
+function FilterChipGroup({
+  label,
+  value,
+  options,
+  onChange,
+  getOptionLabel
+}: {
+  label: string;
+  value: string;
+  options: readonly string[];
+  onChange: (value: string) => void;
+  getOptionLabel?: (value: string) => string;
+}) {
+  return (
+    <div className="packing-filter-group">
+      <div className="packing-filter-group__label">{label}</div>
+      <div className="scroll-fade-x itinerary-chip-row" role="list" aria-label={label}>
+        {options.map((option) => (
+          <button
+            key={option}
+            type="button"
+            onClick={() => onChange(option)}
+            className={`itinerary-chip ${value === option ? "itinerary-chip--active" : ""}`}
+          >
+            {getOptionLabel ? getOptionLabel(option) : option}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
@@ -750,13 +878,13 @@ function SelectField({
   getOptionLabel?: (value: string) => string;
 }) {
   return (
-    <label className="min-w-0 text-sm font-semibold text-ink">
+    <label className="packing-field">
       {label}
       <select
         name={name}
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="mt-2 w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-700"
+        className="packing-input"
       >
         {options.map((option) => (
           <option key={option} value={option}>
@@ -784,7 +912,7 @@ function TextField({
   type?: "number" | "text";
 }) {
   return (
-    <label className="min-w-0 text-sm font-semibold text-ink">
+    <label className="packing-field">
       {label}
       <input
         name={name}
@@ -796,7 +924,7 @@ function TextField({
         placeholder={placeholder}
         min={type === "number" ? "0" : undefined}
         step={type === "number" ? "1" : undefined}
-        className="mt-2 w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-700"
+        className="packing-input"
       />
     </label>
   );

@@ -1,0 +1,1325 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Budget UI Concept</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: #211e1a;
+        --muted: rgba(33, 30, 26, 0.64);
+        --faint: rgba(33, 30, 26, 0.48);
+        --paper: #fffdf7;
+        --paper-warm: #f6efe3;
+        --line: rgba(88, 68, 50, 0.1);
+        --line-strong: rgba(88, 68, 50, 0.16);
+        --clay: #c85f3f;
+        --clay-dark: #9d4632;
+        --moss: #3f6746;
+        --moss-soft: rgba(63, 103, 70, 0.12);
+        --sky: #d9e7ec;
+        --blue: #426d82;
+        --shadow: 0 24px 62px rgba(73, 53, 35, 0.09);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        overflow-x: hidden;
+        background:
+          radial-gradient(circle at 8% 0%, rgba(217, 231, 236, 0.66), transparent 30rem),
+          radial-gradient(circle at 86% 12%, rgba(200, 95, 63, 0.12), transparent 24rem),
+          linear-gradient(180deg, #fffdf7 0%, #f7f1e7 52%, #eee8dc 100%);
+        color: var(--ink);
+        font-family:
+          Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+          sans-serif;
+      }
+
+      .journal-shell {
+        min-height: 100vh;
+        background:
+          linear-gradient(rgba(36, 48, 47, 0.025) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(36, 48, 47, 0.025) 1px, transparent 1px);
+        background-size: 32px 32px;
+        padding: 0.8rem;
+      }
+
+      .app-frame {
+        max-width: 88rem;
+        margin: 0 auto;
+        overflow: hidden;
+        border: 1px solid rgba(36, 48, 47, 0.08);
+        border-radius: 1.35rem;
+        background: rgba(255, 253, 247, 0.62);
+        box-shadow: 0 30px 90px rgba(36, 48, 47, 0.12);
+      }
+
+      .top-nav {
+        display: grid;
+        grid-template-columns: minmax(15rem, 1fr) auto auto;
+        align-items: center;
+        gap: 1rem;
+        border-bottom: 1px solid rgba(36, 48, 47, 0.1);
+        background: rgba(255, 253, 247, 0.86);
+        padding: 1.05rem 1.3rem;
+      }
+
+      .brand {
+        display: grid;
+        grid-template-columns: 2.35rem minmax(0, 1fr);
+        gap: 0.75rem;
+        align-items: center;
+        min-width: 0;
+      }
+
+      .brand-mark {
+        display: grid;
+        width: 2.35rem;
+        height: 2.35rem;
+        place-items: center;
+        border: 1px solid rgba(200, 95, 63, 0.28);
+        border-radius: 999px;
+        color: var(--clay);
+      }
+
+      .brand-mark svg,
+      .icon svg {
+        width: 1.12rem;
+        height: 1.12rem;
+        stroke: currentColor;
+        stroke-width: 2;
+        fill: none;
+      }
+
+      .brand h1 {
+        margin: 0;
+        overflow: hidden;
+        font-family: Georgia, "Times New Roman", serif;
+        font-size: 1.55rem;
+        font-weight: 650;
+        line-height: 1;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .brand p {
+        margin: 0.35rem 0 0;
+        color: var(--muted);
+        font-size: 0.82rem;
+        font-weight: 650;
+      }
+
+      .nav-links {
+        display: flex;
+        gap: 0.4rem;
+      }
+
+      .nav-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        border: 1px solid transparent;
+        border-radius: 999px;
+        color: rgba(33, 30, 26, 0.72);
+        font-size: 0.84rem;
+        font-weight: 800;
+        padding: 0.65rem 0.82rem;
+      }
+
+      .nav-link.active {
+        border-color: rgba(200, 95, 63, 0.22);
+        background: var(--clay);
+        color: #fffaf2;
+        box-shadow: 0 10px 24px rgba(157, 70, 50, 0.18);
+      }
+
+      .nav-actions {
+        display: flex;
+        gap: 0.55rem;
+        justify-content: end;
+      }
+
+      .utility-button {
+        border: 1px solid rgba(36, 48, 47, 0.1);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.72);
+        color: rgba(33, 30, 26, 0.76);
+        font-size: 0.82rem;
+        font-weight: 800;
+        padding: 0.65rem 0.9rem;
+        box-shadow: 0 10px 24px rgba(36, 48, 47, 0.06);
+      }
+
+      .mobile-mode-row,
+      .bottom-nav {
+        display: none;
+      }
+
+      main {
+        padding: clamp(1.1rem, 2.3vw, 2rem);
+      }
+
+      .budget-shell {
+        display: grid;
+        gap: 1.35rem;
+        min-width: 0;
+      }
+
+      .budget-masthead,
+      .budget-control-card,
+      .ledger-card,
+      .settlement-card,
+      .expense-card,
+      .empty-card,
+      .loading-card {
+        border: 1px solid var(--line);
+        border-radius: 1.5rem;
+        background:
+          radial-gradient(circle at 18% 14%, rgba(255, 255, 255, 0.82), transparent 11rem),
+          linear-gradient(180deg, rgba(255, 252, 246, 0.96), rgba(255, 248, 238, 0.9));
+        box-shadow: var(--shadow), inset 0 1px 0 rgba(255, 255, 255, 0.84);
+      }
+
+      .budget-masthead {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(23rem, 0.72fr);
+        gap: clamp(1.4rem, 3vw, 3rem);
+        align-items: center;
+        overflow: hidden;
+        padding: clamp(1.5rem, 3vw, 2.55rem);
+      }
+
+      .eyebrow {
+        margin: 0;
+        color: #9c5a45;
+        font-size: 0.78rem;
+        font-weight: 850;
+        letter-spacing: 0;
+        text-transform: uppercase;
+      }
+
+      .budget-masthead h2 {
+        margin: 0.55rem 0 0;
+        font-family: Georgia, "Times New Roman", serif;
+        font-size: clamp(2.35rem, 4vw, 4.3rem);
+        font-weight: 650;
+        letter-spacing: 0;
+        line-height: 1;
+      }
+
+      .budget-masthead p.description {
+        max-width: 47rem;
+        margin: 0.85rem 0 0;
+        color: var(--muted);
+        font-size: 1rem;
+        line-height: 1.65;
+      }
+
+      .chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.55rem;
+        margin-top: 1.15rem;
+      }
+
+      .chip {
+        max-width: 100%;
+        overflow: hidden;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: rgba(255, 252, 246, 0.76);
+        color: rgba(33, 30, 26, 0.72);
+        font-size: 0.82rem;
+        font-weight: 850;
+        padding: 0.55rem 0.85rem;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .ledger-ticket {
+        position: relative;
+        min-height: 18.5rem;
+        transform: rotate(-1.4deg);
+        overflow: hidden;
+        border: 1px solid rgba(88, 68, 50, 0.12);
+        border-radius: 1.25rem;
+        background:
+          linear-gradient(rgba(119, 92, 65, 0.04) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(119, 92, 65, 0.04) 1px, transparent 1px),
+          linear-gradient(180deg, rgba(255, 252, 246, 0.98), rgba(247, 236, 219, 0.88));
+        background-size: 22px 22px, 22px 22px, auto;
+        box-shadow: 0 22px 55px rgba(73, 53, 35, 0.1);
+        padding: 1.25rem;
+      }
+
+      .ticket-top {
+        display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+        color: rgba(33, 30, 26, 0.58);
+        font-size: 0.72rem;
+        font-weight: 900;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .ticket-amount {
+        margin-top: 1.45rem;
+      }
+
+      .ticket-amount small {
+        color: var(--muted);
+        font-size: 0.78rem;
+        font-weight: 850;
+      }
+
+      .ticket-amount strong {
+        display: block;
+        margin-top: 0.2rem;
+        font-family: Georgia, "Times New Roman", serif;
+        font-size: clamp(2.2rem, 4vw, 3.7rem);
+        font-weight: 650;
+        line-height: 0.98;
+      }
+
+      .ticket-route {
+        position: relative;
+        height: 4.2rem;
+        margin: 1.55rem 0 1rem;
+      }
+
+      .ticket-route::before {
+        content: "";
+        position: absolute;
+        left: 10%;
+        right: 10%;
+        top: 2rem;
+        height: 2px;
+        background: repeating-linear-gradient(90deg, var(--clay), var(--clay) 10px, transparent 10px, transparent 18px);
+        transform: rotate(-6deg);
+      }
+
+      .route-dot {
+        position: absolute;
+        width: 0.75rem;
+        height: 0.75rem;
+        border-radius: 999px;
+        background: var(--clay);
+        box-shadow: 0 0 0 5px rgba(200, 95, 63, 0.12);
+      }
+
+      .route-dot.one {
+        left: 10%;
+        top: 2.2rem;
+      }
+
+      .route-dot.two {
+        left: 48%;
+        top: 1.45rem;
+      }
+
+      .route-dot.three {
+        right: 10%;
+        top: 0.75rem;
+      }
+
+      .ticket-row {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0.7rem;
+      }
+
+      .ticket-row span {
+        border: 1px solid rgba(88, 68, 50, 0.08);
+        border-radius: 0.85rem;
+        background: rgba(255, 252, 246, 0.68);
+        padding: 0.72rem;
+      }
+
+      .ticket-row small {
+        display: block;
+        color: var(--faint);
+        font-size: 0.66rem;
+        font-weight: 900;
+        text-transform: uppercase;
+      }
+
+      .ticket-row strong {
+        display: block;
+        margin-top: 0.22rem;
+        color: var(--ink);
+        font-size: 0.9rem;
+        font-weight: 850;
+      }
+
+      .stamp {
+        position: absolute;
+        right: 1rem;
+        top: 5rem;
+        display: grid;
+        width: 5.1rem;
+        height: 5.1rem;
+        place-items: center;
+        border: 2px solid rgba(200, 95, 63, 0.34);
+        border-radius: 999px;
+        color: rgba(200, 95, 63, 0.72);
+        font-size: 0.78rem;
+        font-weight: 950;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        transform: rotate(10deg);
+      }
+
+      .budget-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1.38fr) minmax(20rem, 0.74fr);
+        gap: 1.2rem;
+        align-items: start;
+        min-width: 0;
+      }
+
+      .main-stack,
+      .rail-stack {
+        display: grid;
+        gap: 1rem;
+        min-width: 0;
+      }
+
+      .budget-control-card {
+        display: grid;
+        gap: 0.9rem;
+        min-width: 0;
+        overflow: hidden;
+        padding: clamp(0.9rem, 1.7vw, 1.2rem);
+      }
+
+      .control-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+      }
+
+      .control-copy h3,
+      .card-title {
+        margin: 0.2rem 0 0;
+        color: var(--ink);
+        font-family: Georgia, "Times New Roman", serif;
+        font-size: clamp(1.35rem, 2vw, 1.9rem);
+        font-weight: 650;
+        line-height: 1.08;
+      }
+
+      .control-copy p,
+      .card-copy {
+        margin: 0.35rem 0 0;
+        color: var(--muted);
+        font-size: 0.9rem;
+        line-height: 1.55;
+      }
+
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.55rem;
+        justify-content: end;
+      }
+
+      .button {
+        display: inline-flex;
+        min-height: 2.35rem;
+        align-items: center;
+        justify-content: center;
+        gap: 0.45rem;
+        border: 1px solid transparent;
+        border-radius: 999px;
+        font-size: 0.85rem;
+        font-weight: 900;
+        line-height: 1;
+        padding: 0.62rem 0.95rem;
+        text-decoration: none;
+        white-space: nowrap;
+      }
+
+      .button.primary {
+        background: linear-gradient(180deg, #d46b48, #bd5a3d);
+        color: #fffaf2;
+        box-shadow: 0 14px 28px rgba(182, 91, 66, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+      }
+
+      .button.ghost {
+        border-color: var(--line);
+        background: rgba(255, 252, 246, 0.78);
+        color: rgba(33, 30, 26, 0.78);
+      }
+
+      .button.danger {
+        border-color: rgba(198, 82, 82, 0.22);
+        background: rgba(255, 245, 242, 0.72);
+        color: #b42318;
+      }
+
+      .filter-drawer {
+        display: grid;
+        gap: 0.62rem;
+        border-top: 1px solid rgba(88, 68, 50, 0.09);
+        padding-top: 0.88rem;
+      }
+
+      .filter-note {
+        margin: 0;
+        color: var(--muted);
+        font-size: 0.82rem;
+        line-height: 1.5;
+      }
+
+      .filter-row {
+        display: flex;
+        max-width: 100%;
+        min-width: 0;
+        gap: 0.5rem;
+        overflow-x: auto;
+        padding-bottom: 0.28rem;
+        scrollbar-width: none;
+      }
+
+      .filter-row::-webkit-scrollbar {
+        display: none;
+      }
+
+      .filter-pill {
+        flex: 0 0 auto;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: rgba(255, 252, 246, 0.78);
+        color: rgba(33, 30, 26, 0.7);
+        font-size: 0.82rem;
+        font-weight: 850;
+        padding: 0.52rem 0.8rem;
+      }
+
+      .filter-pill.active {
+        border-color: rgba(63, 103, 70, 0.22);
+        background: var(--moss);
+        color: #fffaf2;
+        box-shadow: 0 12px 26px rgba(63, 103, 70, 0.18);
+      }
+
+      .summary-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.85rem;
+      }
+
+      .ledger-card {
+        display: grid;
+        gap: 0.9rem;
+        min-width: 0;
+        overflow: hidden;
+        padding: 1rem;
+      }
+
+      .ledger-head,
+      .expense-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 1rem;
+      }
+
+      .currency-pill,
+      .status-pill {
+        border-radius: 999px;
+        font-size: 0.74rem;
+        font-weight: 900;
+        padding: 0.44rem 0.65rem;
+      }
+
+      .currency-pill {
+        background: var(--moss-soft);
+        color: var(--moss);
+      }
+
+      .status-pill.warning {
+        border: 1px solid rgba(217, 141, 32, 0.18);
+        background: rgba(251, 191, 36, 0.16);
+        color: #a15c12;
+      }
+
+      .status-pill.done {
+        border: 1px solid rgba(16, 128, 88, 0.18);
+        background: rgba(236, 253, 245, 0.86);
+        color: #065f46;
+      }
+
+      .metric-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.55rem;
+      }
+
+      .metric,
+      .traveler-row,
+      .settlement-row {
+        border: 1px solid rgba(88, 68, 50, 0.08);
+        border-radius: 0.95rem;
+        background: rgba(255, 252, 246, 0.66);
+        padding: 0.78rem;
+      }
+
+      .metric small,
+      .traveler-row small,
+      .settlement-row small,
+      .expense-meta,
+      .field dt {
+        color: var(--faint);
+        font-size: 0.68rem;
+        font-weight: 900;
+        text-transform: uppercase;
+      }
+
+      .metric strong {
+        display: block;
+        margin-top: 0.3rem;
+        overflow-wrap: anywhere;
+        font-size: 1.12rem;
+        font-weight: 900;
+      }
+
+      .traveler-list,
+      .settlement-list {
+        display: grid;
+        gap: 0.52rem;
+      }
+
+      .traveler-row,
+      .settlement-row {
+        display: flex;
+        min-width: 0;
+        justify-content: space-between;
+        gap: 0.75rem;
+        color: rgba(33, 30, 26, 0.76);
+        font-size: 0.84rem;
+        font-weight: 750;
+      }
+
+      .traveler-row strong,
+      .settlement-row strong {
+        color: var(--ink);
+        overflow-wrap: anywhere;
+      }
+
+      .settlement-card {
+        display: grid;
+        gap: 0.85rem;
+        min-width: 0;
+        overflow: hidden;
+        padding: 1rem;
+      }
+
+      .settlement-row {
+        display: block;
+        line-height: 1.5;
+      }
+
+      .expense-list {
+        display: grid;
+        gap: 0.85rem;
+      }
+
+      .section-heading {
+        display: flex;
+        align-items: end;
+        justify-content: space-between;
+        gap: 1rem;
+      }
+
+      .section-heading h3 {
+        margin: 0;
+        font-family: Georgia, "Times New Roman", serif;
+        font-size: 1.65rem;
+        font-weight: 650;
+        line-height: 1.1;
+      }
+
+      .section-heading span {
+        color: var(--faint);
+        font-size: 0.85rem;
+        font-weight: 850;
+      }
+
+      .expense-card {
+        display: grid;
+        gap: 0.75rem;
+        min-width: 0;
+        overflow: hidden;
+        padding: 1rem;
+      }
+
+      .expense-title h4 {
+        margin: 0.18rem 0 0;
+        font-family: Georgia, "Times New Roman", serif;
+        font-size: 1.38rem;
+        font-weight: 650;
+        line-height: 1.13;
+      }
+
+      .expense-title p {
+        margin: 0.3rem 0 0;
+        color: var(--muted);
+        font-size: 0.86rem;
+        font-weight: 650;
+      }
+
+      .amount-block {
+        display: grid;
+        gap: 0.55rem;
+        justify-items: end;
+      }
+
+      .amount-block strong {
+        font-size: 1.05rem;
+        font-weight: 900;
+      }
+
+      .mini-actions {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: end;
+        gap: 0.35rem;
+      }
+
+      .mini-actions .button {
+        min-height: 1.78rem;
+        padding: 0.36rem 0.58rem;
+        font-size: 0.66rem;
+      }
+
+      .details-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.55rem;
+        border-top: 1px solid rgba(88, 68, 50, 0.09);
+        padding-top: 0.72rem;
+      }
+
+      .field {
+        min-width: 0;
+        border: 1px solid rgba(88, 68, 50, 0.08);
+        border-radius: 0.85rem;
+        background: rgba(255, 252, 246, 0.62);
+        padding: 0.65rem;
+      }
+
+      .field dd {
+        margin: 0.2rem 0 0;
+        color: rgba(33, 30, 26, 0.75);
+        font-size: 0.86rem;
+        font-weight: 750;
+        overflow-wrap: anywhere;
+      }
+
+      .linked-note {
+        justify-self: start;
+        border-radius: 0.85rem;
+        background: rgba(36, 48, 47, 0.07);
+        color: var(--muted);
+        font-size: 0.82rem;
+        font-weight: 750;
+        padding: 0.65rem 0.8rem;
+      }
+
+      .rail-card-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+      }
+
+      .rail-card-top h3 {
+        margin: 0.2rem 0 0;
+        font-size: 1.05rem;
+        font-weight: 900;
+      }
+
+      .category-bars {
+        display: grid;
+        gap: 0.8rem;
+      }
+
+      .bar-row {
+        display: grid;
+        gap: 0.38rem;
+      }
+
+      .bar-label {
+        display: flex;
+        justify-content: space-between;
+        color: rgba(33, 30, 26, 0.66);
+        font-size: 0.82rem;
+        font-weight: 800;
+      }
+
+      .bar-track {
+        height: 0.5rem;
+        overflow: hidden;
+        border-radius: 999px;
+        background: rgba(88, 68, 50, 0.1);
+      }
+
+      .bar-fill {
+        height: 100%;
+        border-radius: inherit;
+        background: linear-gradient(90deg, #c85f3f, #d8895f);
+      }
+
+      .bar-fill.moss {
+        background: linear-gradient(90deg, #3f6746, #71906b);
+      }
+
+      .bar-fill.blue {
+        background: linear-gradient(90deg, #426d82, #7ba0ad);
+      }
+
+      .toast {
+        border: 1px solid rgba(16, 128, 88, 0.18);
+        border-radius: 1rem;
+        background: rgba(236, 253, 245, 0.86);
+        color: #065f46;
+        font-size: 0.88rem;
+        font-weight: 750;
+        padding: 0.85rem 1rem;
+      }
+
+      .bottom-nav {
+        position: fixed;
+        left: 1rem;
+        right: 1rem;
+        bottom: max(0.75rem, env(safe-area-inset-bottom));
+        z-index: 10;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 0.2rem;
+        border: 1px solid rgba(36, 48, 47, 0.1);
+        border-radius: 1.45rem;
+        background: rgba(255, 253, 247, 0.94);
+        padding: 0.45rem;
+        box-shadow: 0 -18px 40px rgba(36, 48, 47, 0.09);
+      }
+
+      .bottom-nav span {
+        display: grid;
+        gap: 0.16rem;
+        place-items: center;
+        border: 1px solid transparent;
+        border-radius: 1.05rem;
+        color: rgba(33, 30, 26, 0.62);
+        font-size: 0.68rem;
+        font-weight: 850;
+        padding: 0.52rem 0.2rem;
+      }
+
+      .bottom-nav .active {
+        background: var(--clay);
+        color: #fff;
+        box-shadow: 0 8px 18px rgba(125, 70, 56, 0.2);
+      }
+
+      .bottom-nav svg {
+        width: 1.1rem;
+        height: 1.1rem;
+        stroke: currentColor;
+        stroke-width: 2;
+        fill: none;
+      }
+
+      @media (max-width: 980px) {
+        .top-nav {
+          grid-template-columns: minmax(0, 1fr) auto;
+        }
+
+        .nav-links {
+          display: none;
+        }
+
+        .budget-masthead,
+        .budget-grid {
+          grid-template-columns: minmax(0, 1fr);
+        }
+
+        .ledger-ticket {
+          justify-self: start;
+          width: min(100%, 32rem);
+        }
+      }
+
+      @media (max-width: 680px) {
+        .journal-shell {
+          padding: 0;
+        }
+
+        .app-frame {
+          border: 0;
+          border-radius: 0;
+          background: transparent;
+          box-shadow: none;
+        }
+
+        .top-nav {
+          display: none;
+        }
+
+        .mobile-mode-row {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 1rem 1rem 0;
+        }
+
+        .mode-pill,
+        .user-pill {
+          border: 1px solid rgba(36, 48, 47, 0.1);
+          border-radius: 999px;
+          background: rgba(255, 253, 247, 0.8);
+          box-shadow: 0 10px 24px rgba(36, 48, 47, 0.06);
+          color: rgba(33, 30, 26, 0.72);
+          font-size: 0.78rem;
+          font-weight: 850;
+          padding: 0.7rem 0.9rem;
+        }
+
+        .user-pill {
+          display: grid;
+          width: 2.65rem;
+          height: 2.65rem;
+          place-items: center;
+          padding: 0;
+        }
+
+        main {
+          padding: 1rem 1rem 7.5rem;
+          overflow: hidden;
+        }
+
+        .budget-shell {
+          gap: 1rem;
+        }
+
+        .budget-masthead {
+          display: block;
+          border: 0;
+          background: transparent;
+          box-shadow: none;
+          padding: 0.95rem 0 0.15rem;
+        }
+
+        .budget-masthead h2 {
+          font-size: clamp(1.82rem, 10vw, 2.36rem);
+        }
+
+        .budget-masthead p.description {
+          display: none;
+        }
+
+        .chips {
+          gap: 0.42rem;
+          margin-top: 0.72rem;
+        }
+
+        .chip {
+          max-width: calc(100vw - 3rem);
+          font-size: 0.72rem;
+          padding: 0.48rem 0.66rem;
+          white-space: normal;
+        }
+
+        .budget-masthead .chip:nth-child(4) {
+          display: none;
+        }
+
+        .ledger-ticket {
+          display: none;
+        }
+
+        .control-top,
+        .ledger-head,
+        .expense-head,
+        .section-heading {
+          align-items: stretch;
+        }
+
+        .control-top,
+        .expense-head {
+          display: grid;
+          min-width: 0;
+        }
+
+        .actions,
+        .mini-actions {
+          justify-content: start;
+        }
+
+        .actions .button {
+          flex: 1 1 auto;
+        }
+
+        .control-copy,
+        .expense-title,
+        .amount-block,
+        .section-heading,
+        .metric,
+        .traveler-row,
+        .settlement-row,
+        .field {
+          min-width: 0;
+        }
+
+        .traveler-row {
+          align-items: start;
+        }
+
+        .budget-masthead > div,
+        .control-copy,
+        .control-copy p,
+        .card-copy,
+        .expense-title,
+        .expense-title p,
+        .field dd,
+        .section-heading h3,
+        .metric strong,
+        .traveler-row span,
+        .traveler-row strong,
+        .settlement-row,
+        .settlement-row strong {
+          overflow-wrap: anywhere;
+          word-break: break-word;
+        }
+
+        .traveler-row {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) auto;
+        }
+
+        .control-copy p,
+        .filter-note,
+        .traveler-list {
+          display: none;
+        }
+
+        .budget-control-card,
+        .ledger-card,
+        .settlement-card,
+        .expense-card {
+          width: 100%;
+          max-width: calc(100vw - 2rem);
+        }
+
+        .summary-grid,
+        .metric-grid,
+        .details-grid {
+          grid-template-columns: minmax(0, 1fr);
+        }
+
+        .expense-title h4 {
+          font-family: inherit;
+          font-size: 1.05rem;
+          font-weight: 900;
+        }
+
+        .amount-block {
+          justify-items: start;
+        }
+
+        .rail-stack {
+          order: 2;
+        }
+
+        .bottom-nav {
+          display: grid;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="journal-shell">
+      <div class="app-frame">
+        <header class="top-nav">
+          <div class="brand">
+            <div class="brand-mark" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M12 3v18M3 12h18" /><circle cx="12" cy="12" r="7" /></svg>
+            </div>
+            <div>
+              <h1>Italy Trip 2026</h1>
+              <p>Oct 8-18, 2026 · 4 travelers</p>
+            </div>
+          </div>
+          <nav class="nav-links" aria-label="Primary">
+            <span class="nav-link">Today</span>
+            <span class="nav-link">Plan</span>
+            <span class="nav-link">Bookings</span>
+            <span class="nav-link active">Money</span>
+            <span class="nav-link">More</span>
+          </nav>
+          <div class="nav-actions">
+            <span class="utility-button">EN / 中文</span>
+            <span class="utility-button">Viewer</span>
+          </div>
+        </header>
+
+        <div class="mobile-mode-row" aria-hidden="true">
+          <span class="mode-pill">Viewer mode</span>
+          <span class="user-pill">人</span>
+        </div>
+
+        <main>
+          <section class="budget-shell" aria-label="Budget concept">
+            <section class="budget-masthead" aria-labelledby="budget-title">
+              <div>
+                <p class="eyebrow">共同费用</p>
+                <h2 id="budget-title">预算</h2>
+                <p class="description">按币种计算总费用、人均分摊、已付款金额和简单结算建议。</p>
+                <div class="chips" aria-label="Trip summary">
+                  <span class="chip">Oct 8-18</span>
+                  <span class="chip">Rome - Florence - Venice</span>
+                  <span class="chip">4 travelers</span>
+                  <span class="chip">EUR / SGD</span>
+                </div>
+              </div>
+
+              <aside class="ledger-ticket" aria-label="Ledger preview">
+                <div class="ticket-top">
+                  <span>Shared ledger</span>
+                  <span>2 currencies</span>
+                </div>
+                <div class="ticket-amount">
+                  <small>待结算</small>
+                  <strong>EUR 124.00</strong>
+                </div>
+                <div class="ticket-route" aria-hidden="true">
+                  <span class="route-dot one"></span>
+                  <span class="route-dot two"></span>
+                  <span class="route-dot three"></span>
+                </div>
+                <div class="ticket-row">
+                  <span><small>已花费</small><strong>EUR 1,240.50</strong></span>
+                  <span><small>已结算</small><strong>EUR 980.50</strong></span>
+                  <span><small>人均</small><strong>EUR 31.00</strong></span>
+                </div>
+                <div class="stamp">Money</div>
+              </aside>
+            </section>
+
+            <section class="budget-grid">
+              <div class="main-stack">
+                <section class="budget-control-card">
+                  <div class="control-top">
+                    <div class="control-copy">
+                      <p class="eyebrow">统一账本</p>
+                      <h3>共同费用操作</h3>
+                      <p>预算汇总来自共同费用，包括其他费用、行程费用和预订费用。</p>
+                    </div>
+                    <div class="actions">
+                      <span class="button primary">新增其他费用</span>
+                      <span class="button ghost">隐藏筛选</span>
+                    </div>
+                  </div>
+                  <div class="filter-drawer">
+                    <p class="filter-note">筛选只影响下方费用列表。摘要和结算建议仍基于完整账本。</p>
+                    <div class="filter-row" aria-label="Filters">
+                      <span class="filter-pill active">全部币种</span>
+                      <span class="filter-pill">EUR</span>
+                      <span class="filter-pill">SGD</span>
+                      <span class="filter-pill active">全部分类</span>
+                      <span class="filter-pill">Food</span>
+                      <span class="filter-pill">Transport</span>
+                      <span class="filter-pill active">全部来源</span>
+                      <span class="filter-pill">行程</span>
+                      <span class="filter-pill">预订</span>
+                      <span class="filter-pill active">全部状态</span>
+                      <span class="filter-pill">待结算</span>
+                      <span class="filter-pill">已结算</span>
+                    </div>
+                  </div>
+                </section>
+
+                <section class="summary-grid" aria-label="Currency summaries">
+                  <article class="ledger-card">
+                    <div class="ledger-head">
+                      <div>
+                        <p class="eyebrow">EUR 摘要</p>
+                        <h3 class="card-title">欧洲账本</h3>
+                      </div>
+                      <span class="currency-pill">EUR</span>
+                    </div>
+                    <div class="metric-grid">
+                      <span class="metric"><small>已花费</small><strong>EUR 1,240.50</strong></span>
+                      <span class="metric"><small>待结算</small><strong>EUR 124.00</strong></span>
+                      <span class="metric"><small>已结算</small><strong>EUR 980.50</strong></span>
+                      <span class="metric"><small>人均待结算</small><strong>EUR 31.00</strong></span>
+                    </div>
+                    <div class="traveler-list">
+                      <span class="traveler-row"><span>Traveler 1</span><strong>EUR 31.00</strong></span>
+                      <span class="traveler-row"><span>Traveler 2</span><strong>EUR 31.00</strong></span>
+                    </div>
+                  </article>
+
+                  <article class="ledger-card">
+                    <div class="ledger-head">
+                      <div>
+                        <p class="eyebrow">SGD 摘要</p>
+                        <h3 class="card-title">预付账本</h3>
+                      </div>
+                      <span class="currency-pill">SGD</span>
+                    </div>
+                    <div class="metric-grid">
+                      <span class="metric"><small>已花费</small><strong>SGD 640.00</strong></span>
+                      <span class="metric"><small>待结算</small><strong>SGD 84.00</strong></span>
+                      <span class="metric"><small>已结算</small><strong>SGD 556.00</strong></span>
+                      <span class="metric"><small>人均待结算</small><strong>SGD 21.00</strong></span>
+                    </div>
+                    <div class="traveler-list">
+                      <span class="traveler-row"><span>Traveler 3</span><strong>SGD 42.00</strong></span>
+                      <span class="traveler-row"><span>Traveler 4</span><strong>SGD 42.00</strong></span>
+                    </div>
+                  </article>
+                </section>
+
+                <section class="expense-list" aria-label="Expenses">
+                  <div class="section-heading">
+                    <h3>费用</h3>
+                    <span>显示 3 条</span>
+                  </div>
+
+                  <article class="expense-card">
+                    <div class="expense-head">
+                      <div class="expense-title">
+                        <p class="eyebrow">其他 <span class="status-pill warning">待结算</span></p>
+                        <h4>车站附近午餐</h4>
+                        <p>Food · 2026-10-10</p>
+                      </div>
+                      <div class="amount-block">
+                        <strong>EUR 76.00</strong>
+                        <div class="mini-actions">
+                          <span class="button ghost">隐藏详情</span>
+                          <span class="button ghost">编辑</span>
+                          <span class="button danger">删除</span>
+                        </div>
+                      </div>
+                    </div>
+                    <dl class="details-grid">
+                      <div class="field"><dt>付款人</dt><dd>Traveler 1</dd></div>
+                      <div class="field"><dt>分摊成员</dt><dd>Traveler 1, Traveler 2, Traveler 3, Traveler 4</dd></div>
+                    </dl>
+                  </article>
+
+                  <article class="expense-card">
+                    <div class="expense-head">
+                      <div class="expense-title">
+                        <p class="eyebrow">行程 <span class="status-pill warning">待结算</span></p>
+                        <h4>Colosseum timed entry</h4>
+                        <p>Attraction · 2026-10-11</p>
+                      </div>
+                      <div class="amount-block">
+                        <strong>EUR 96.00</strong>
+                        <div class="mini-actions">
+                          <span class="button ghost">详情</span>
+                        </div>
+                      </div>
+                    </div>
+                    <span class="linked-note">请到行程编辑。</span>
+                  </article>
+
+                  <article class="expense-card">
+                    <div class="expense-head">
+                      <div class="expense-title">
+                        <p class="eyebrow">预订 <span class="status-pill done">已结算</span></p>
+                        <h4>Florence hotel deposit</h4>
+                        <p>Accommodation · 2026-10-12</p>
+                      </div>
+                      <div class="amount-block">
+                        <strong>SGD 640.00</strong>
+                        <div class="mini-actions">
+                          <span class="button ghost">详情</span>
+                        </div>
+                      </div>
+                    </div>
+                    <span class="linked-note">请到预订编辑。</span>
+                  </article>
+                </section>
+              </div>
+
+              <aside class="rail-stack" aria-label="Budget rail">
+                <section class="settlement-card">
+                  <div class="rail-card-top">
+                    <div>
+                      <p class="eyebrow">结算建议</p>
+                      <h3>最少转账</h3>
+                    </div>
+                    <span class="currency-pill">2</span>
+                  </div>
+                  <div class="settlement-list">
+                    <span class="settlement-row"><strong>Traveler 2</strong> 支付给 <strong>Traveler 1</strong><br />EUR 62.00</span>
+                    <span class="settlement-row"><strong>Traveler 4</strong> 支付给 <strong>Traveler 3</strong><br />SGD 84.00</span>
+                  </div>
+                </section>
+
+                <section class="settlement-card">
+                  <div class="rail-card-top">
+                    <div>
+                      <p class="eyebrow">分类</p>
+                      <h3>费用分布</h3>
+                    </div>
+                  </div>
+                  <div class="category-bars">
+                    <div class="bar-row">
+                      <div class="bar-label"><span>Accommodation</span><span>48%</span></div>
+                      <div class="bar-track"><div class="bar-fill" style="width: 48%"></div></div>
+                    </div>
+                    <div class="bar-row">
+                      <div class="bar-label"><span>Food</span><span>28%</span></div>
+                      <div class="bar-track"><div class="bar-fill moss" style="width: 28%"></div></div>
+                    </div>
+                    <div class="bar-row">
+                      <div class="bar-label"><span>Transport</span><span>18%</span></div>
+                      <div class="bar-track"><div class="bar-fill blue" style="width: 18%"></div></div>
+                    </div>
+                  </div>
+                </section>
+
+                <p class="toast">其他费用已新增。</p>
+              </aside>
+            </section>
+          </section>
+        </main>
+      </div>
+
+      <nav class="bottom-nav" aria-hidden="true">
+        <span>
+          <svg viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5v9a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 19.5z" /></svg>
+          Today
+        </span>
+        <span>
+          <svg viewBox="0 0 24 24"><path d="M4 5.5 10 3v15.5L4 21zM10 3l6 2.5V21l-6-2.5zM16 5.5 20 4v15.5L16 21z" /></svg>
+          Plan
+        </span>
+        <span>
+          <svg viewBox="0 0 24 24"><rect x="4" y="6" width="16" height="13" rx="2" /><path d="M8 6V4h8v2" /></svg>
+          Bookings
+        </span>
+        <span class="active">
+          <svg viewBox="0 0 24 24"><rect x="4" y="6" width="16" height="12" rx="2" /><path d="M8 10h8M8 14h5" /></svg>
+          Money
+        </span>
+        <span>
+          <svg viewBox="0 0 24 24"><path d="M5 12h.01M12 12h.01M19 12h.01" /></svg>
+          More
+        </span>
+      </nav>
+    </div>
+  </body>
+</html>
