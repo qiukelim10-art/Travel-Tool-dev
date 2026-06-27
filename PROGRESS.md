@@ -2,6 +2,9 @@
 
 ## 2026-06-27
 
+- Diagnosed the production UI breakage after the UI batch deploy: the generated CSS file contained the later Travel Journal styles, but Chrome CSSOM stopped before the `TripRouteMap`, booking, budget, packing, documents, and settings sections because `globals.css` still had malformed mojibake `content: "..."` rules from older pseudo-icon styling.
+- Fixed the CSS parse cutoff by replacing the malformed pseudo-icon `content` values with safe empty content and adding an explicit desktop fallback to hide `.mobile-bottom-nav`. No API, schema, access-control, setup-generation, or business logic was changed.
+- Verification for the production UI fix passed locally with `npm run lint`, `npm run build`, and a local production CSSOM check on port `3110` confirming the generated CSS now parses through `trip-route-map__canvas` and later budget rules.
 - Committed the accepted UI batch as `b10b1a9` (`Refresh trip workspace UI batch`), merged it into `master` with merge commit `dd4ae65`, pushed `master` to GitHub `origin/main`, and deployed the production alias `https://italy-trip-2026-cyan.vercel.app`.
 - Production smoke after deployment passed for `/`, `/bookings`, `/budget`, `/packing`, `/documents`, `/more`, `/settings`, and `/api/health`; unauthenticated workspace APIs returned 401 as expected for the private-link access-control boundary.
 - Prepared the Travel Journal + Cockpit UI refresh batch on `codex/ui-bookings-journal-cockpit`; the implementation remained scoped to UI/interaction changes with no API contract change, database schema change, access-control change, setup-generation change, or payment change.

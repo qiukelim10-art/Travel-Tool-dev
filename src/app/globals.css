@@ -1157,27 +1157,27 @@ body {
 
 .journal-nav-icon--home::before,
 .mobile-nav-icon--home::before {
-  content: "鈱?;
+  content: "";
 }
 
 .journal-nav-icon--plan::before,
 .mobile-nav-icon--plan::before {
-  content: "鈻?;
+  content: "";
 }
 
 .journal-nav-icon--book::before,
 .mobile-nav-icon--book::before {
-  content: "鈻?;
+  content: "";
 }
 
 .journal-nav-icon--money::before,
 .mobile-nav-icon--money::before {
-  content: "鈼?;
+  content: "";
 }
 
 .journal-nav-icon--more::before,
 .mobile-nav-icon--more::before {
-  content: "鈥⑩€⑩€?;
+  content: "";
   font-size: 0.82rem;
 }
 
@@ -1247,6 +1247,16 @@ body {
 
 .mobile-main-shell {
   padding-bottom: calc(7.25rem + env(safe-area-inset-bottom));
+}
+
+@media (min-width: 768px) {
+  .mobile-bottom-nav {
+    display: none !important;
+  }
+
+  .mobile-main-shell {
+    padding-bottom: 3rem;
+  }
 }
 
 .access-dock {
@@ -1459,11 +1469,11 @@ body {
 }
 
 .plan-meta-icon--time::before {
-  content: "鈼?;
+  content: "";
 }
 
 .plan-meta-icon--pin::before {
-  content: "鈱?;
+  content: "";
 }
 
 .cockpit-primary-button {
@@ -1739,17 +1749,17 @@ body {
 }
 
 .summary-icon--calendar::before {
-  content: "鈻?;
+  content: "";
 }
 
 .summary-icon--money::before {
-  content: "鈧?;
+  content: "";
   font-family: Georgia, "Times New Roman", serif;
   font-size: 1.55rem;
 }
 
 .summary-icon--prep::before {
-  content: "鈻?;
+  content: "";
 }
 
 .sos-summary-card {
