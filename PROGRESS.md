@@ -2,7 +2,9 @@
 
 ## 2026-06-27
 
-- Prepared the current uncommitted Travel Journal + Cockpit UI refresh batch on `codex/ui-bookings-journal-cockpit`; no commit, merge, push, deploy, API contract change, database schema change, access-control change, setup-generation change, or payment change has been performed yet.
+- Committed the accepted UI batch as `b10b1a9` (`Refresh trip workspace UI batch`), merged it into `master` with merge commit `dd4ae65`, pushed `master` to GitHub `origin/main`, and deployed the production alias `https://italy-trip-2026-cyan.vercel.app`.
+- Production smoke after deployment passed for `/`, `/bookings`, `/budget`, `/packing`, `/documents`, `/more`, `/settings`, and `/api/health`; unauthenticated workspace APIs returned 401 as expected for the private-link access-control boundary.
+- Prepared the Travel Journal + Cockpit UI refresh batch on `codex/ui-bookings-journal-cockpit`; the implementation remained scoped to UI/interaction changes with no API contract change, database schema change, access-control change, setup-generation change, or payment change.
 - Refreshed the Bookings, Budget, More, Packing, Documents, and Settings surfaces toward the accepted Today/Itinerary journal style while preserving existing route, CRUD, filter, i18n, editor/viewer, and private-link access behavior.
 - Addressed follow-up browser review items in the same UI batch: booking cards now keep Edit/Delete near status, booking filter chips are horizontally scrollable on mobile, redundant booking list headings were removed, itinerary card actions are grouped into expense actions plus Map/More, Budget has a lighter summary and local edit form placement, Documents no longer shows the per-traveler status card, and Packing traveler status pills open a visible status menu without card clipping.
 - Added supporting design/reference artifacts under `Image Reference/` and `output/` for the current UI review batch; these are untracked review assets and should be intentionally included or omitted before committing.

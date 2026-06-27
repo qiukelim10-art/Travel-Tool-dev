@@ -2,9 +2,9 @@
 
 ## Current Priority
 
-- The current uncommitted UI batch on `codex/ui-bookings-journal-cockpit` is verified and ready for user review, staging, and commit decision. It covers Bookings, Budget, More, Packing, Documents, Settings, itinerary card action grouping, reminder/card polish, supporting i18n labels, and review screenshots/reference assets.
-- Before committing, decide whether to include the untracked `Image Reference/` and `output/` review assets or leave them out of the source commit.
-- If the user approves the batch, stage the intended files, commit with the generated UI batch commit message, then decide separately whether to merge/push/deploy.
+- The UI batch on `codex/ui-bookings-journal-cockpit` has been committed, merged into `master`, pushed to GitHub `origin/main`, and deployed to `https://italy-trip-2026-cyan.vercel.app`.
+- The committed UI batch includes the review/reference assets under `Image Reference/` and `output/`, per the user's request to commit everything.
+- Next active work should be based on fresh user review of the production UI rather than continuing to broaden this batch automatically.
 - Keep this UI batch scoped to presentation and interaction polish. Do not change APIs, schemas, access control, setup generation, payment, or production data unless explicitly requested.
 - The Shell + Today UI branch work is committed, merged to `master`, and pushed to GitHub `origin/main` at `qiukelim10-art/Travel-Tool-dev`.
 - Keep destination visuals generated from current workspace settings. Maps, postmarks, route pins, and visual tone must derive from `trip.destination`, `routeCities`, and `routeLabel`; do not hardcode Italy, Japan, or any other destination into shared UI components.
