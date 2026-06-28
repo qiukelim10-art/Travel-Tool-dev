@@ -7,7 +7,7 @@ import { TripAccessGate, TripAccessProvider } from "@/lib/access";
 import { LanguageProvider } from "@/lib/i18n";
 
 const publicRoutes = new Set(["/pilot"]);
-const standaloneWorkspaceRoutes = new Set(["/"]);
+const standaloneWorkspaceRoutes = new Set(["/", "/itinerary", "/budget"]);
 
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();

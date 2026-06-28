@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { TripRouteMap } from "@/components/TripRouteMap";
+import { EmergencyQuickAccess } from "@/components/EmergencyQuickAccess";
 import { useTripAccess } from "@/lib/access";
 import { formatMoney, summarizeExpenseLedger } from "@/lib/budget";
 import { activeTripCurrencies, fallbackCurrency } from "@/lib/currencyPreferences";
@@ -30,12 +30,14 @@ type CurrencyFilter = "All" | SharedCurrency;
 type CategoryFilter = "All" | ExpenseCategory;
 type SourceFilter = "All" | ExpenseSourceType;
 type StatusFilter = "All" | "Outstanding" | "Settled";
+type ExpenseSortOrder = "newest" | "oldest";
 type TFunction = ReturnType<typeof useLanguage>["t"];
 
 type BudgetClientProps = {
   destinationVisual: DestinationVisualIdentity;
   defaultCurrencies: SharedCurrency[];
   tripDateRangeLabel: string;
+  tripName: string;
   tripRouteLabel: string;
   tripTravelerCount: number;
 };
@@ -77,6 +79,16 @@ function formatDisplayDate(value: string, language: ReturnType<typeof useLanguag
   }).format(date);
 }
 
+function compareExpenseDate(a: SharedExpense, b: SharedExpense, sortOrder: ExpenseSortOrder) {
+  const dateComparison = a.expenseDate.localeCompare(b.expenseDate);
+  if (dateComparison !== 0) {
+    return sortOrder === "newest" ? -dateComparison : dateComparison;
+  }
+
+  const createdComparison = a.createdAt.localeCompare(b.createdAt);
+  return sortOrder === "newest" ? -createdComparison : createdComparison;
+}
+
 function emptyForm(travelers: Traveler[], currency: SharedCurrency = fallbackCurrency): ExpenseFormState {
   const orderedTravelers = orderTravelers(travelers);
 
@@ -97,10 +109,11 @@ export function BudgetClient({
   destinationVisual,
   defaultCurrencies,
   tripDateRangeLabel,
+  tripName,
   tripRouteLabel,
   tripTravelerCount
 }: BudgetClientProps) {
-  const { language, t } = useLanguage();
+  const { language, t, toggleLanguage } = useLanguage();
   const { mode } = useTripAccess();
   const canEdit = mode === "editor";
   const currencyOptions = useMemo(() => activeTripCurrencies(defaultCurrencies), [defaultCurrencies]);
@@ -121,6 +134,7 @@ export function BudgetClient({
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>("All");
   const [sourceFilter, setSourceFilter] = useState<SourceFilter>("All");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("All");
+  const [expenseSortOrder, setExpenseSortOrder] = useState<ExpenseSortOrder>("newest");
 
   const orderedTravelers = useMemo(() => orderTravelers(travelers), [travelers]);
   const activeTravelers = useMemo(
@@ -165,6 +179,10 @@ export function BudgetClient({
         return currencyMatches && categoryMatches && sourceMatches && statusMatches;
       }),
     [categoryFilter, currencyFilter, displayExpenses, sourceFilter, statusFilter]
+  );
+  const sortedFilteredExpenses = useMemo(
+    () => filteredExpenses.slice().sort((a, b) => compareExpenseDate(a, b, expenseSortOrder)),
+    [expenseSortOrder, filteredExpenses]
   );
   const currencyLabel = currencyOptions.join(" / ");
 
@@ -342,139 +360,298 @@ export function BudgetClient({
     }
   }
 
+  const desktopNavItems = getBudgetDesktopNavItems(t);
+  const mobileNavItems = getBudgetMobileNavItems(t);
+  const tripDetailLabel = [tripDateRangeLabel, tripRouteLabel].filter(Boolean).join(" - ");
+  const travelerLabel = language === "zh" ? `${tripTravelerCount} 人同行` : `${tripTravelerCount} travelers`;
+  const sosLabel = language === "zh" ? "打开 SOS" : "Open SOS";
+  const sosCountries = emergencyCountriesForVisual(destinationVisual);
+
   return (
-    <div className="budget-workspace">
-      <section className="budget-masthead" aria-labelledby="budget-page-title">
-        <div className="budget-masthead__copy">
-          <div className="budget-masthead__topline">
-            <p className="cockpit-eyebrow">{t("page.budget.eyebrow")}</p>
-          </div>
-          <h1 id="budget-page-title">{t("page.budget.title")}</h1>
-          <p>{t("page.budget.description")}</p>
-          <div className="budget-chip-row" aria-label={t("budget.eyebrow")}>
-            <span>{tripDateRangeLabel}</span>
-            <span>{tripRouteLabel}</span>
-            <span>{language === "zh" ? `${tripTravelerCount} 人同行` : `${tripTravelerCount} travelers`}</span>
-            <span>{currencyLabel}</span>
-          </div>
+    <div className="stitch-today-page stitch-budget-page">
+      <header className="stitch-top-appbar stitch-budget-topbar">
+        <div className="stitch-budget-top-title">
+          <h1>{tripName}</h1>
+          <p>{tripDetailLabel}</p>
         </div>
-        <TripRouteMap
-          compact
-          cityName={destinationVisual.routeMarks[0] ?? destinationVisual.destinationLabel}
-          className="trip-route-map--budget"
-          countryCode={destinationVisual.countryCode}
-          countryName={destinationVisual.countryName}
-          destinations={destinationVisual.destinations}
-          label={formatBudgetRouteMapTitle(destinationVisual)}
-        />
-      </section>
+        <div className="stitch-top-actions">
+          <IconButton icon="language" label={t("language.label")} onClick={toggleLanguage} />
+          <SosIconButton countries={sosCountries} label={sosLabel} />
+        </div>
+      </header>
 
-      {error ? (
-        <div role="alert" className="budget-inline-status budget-inline-status--error">
-          <p>{error}</p>
-          <button
-            type="button"
-            onClick={() => void loadExpenses()}
-            disabled={loading}
-            className="budget-action-button budget-action-button--ghost"
+      <nav className="stitch-side-nav" aria-label="Workspace navigation">
+        <div className="stitch-side-brand">
+          <strong>Trip Workspace</strong>
+          <span>Private Sanctuary</span>
+        </div>
+        <div className="stitch-side-links">
+          {desktopNavItems.map((item) => (
+            <a
+              key={item.href}
+              className={`stitch-side-link ${item.active ? "stitch-side-link--active" : ""}`}
+              href={item.href}
+            >
+              <MaterialIcon icon={item.icon} fill={item.active} />
+              <span>{item.label}</span>
+            </a>
+          ))}
+        </div>
+      </nav>
+
+      <main className="stitch-main-canvas stitch-budget-main">
+        <section className="stitch-trip-heading stitch-budget-heading" aria-label={t("budget.eyebrow")}>
+          <div>
+            <h1>{tripName}</h1>
+            <p>{tripDetailLabel}</p>
+          </div>
+          <div className="stitch-desktop-actions">
+            <IconButton icon="language" label={t("language.label")} onClick={toggleLanguage} surface />
+            <SosIconButton countries={sosCountries} label={sosLabel} surface />
+          </div>
+        </section>
+
+        <div className="stitch-dashboard-grid stitch-budget-grid">
+          <div className="stitch-main-stack stitch-budget-stack">
+            <section className="budget-masthead stitch-card" aria-labelledby="budget-page-title">
+              <div className="budget-masthead__copy">
+                <h2 id="budget-page-title">{t("page.budget.title")}</h2>
+                <p>{t("page.budget.description")}</p>
+                <div className="budget-chip-row" aria-label={t("budget.eyebrow")}>
+                  <span>
+                    <MaterialIcon icon="calendar_today" />
+                    <span className="budget-chip-label">{tripDateRangeLabel}</span>
+                  </span>
+                  <span>
+                    <MaterialIcon icon="route" />
+                    <span className="budget-chip-label">{tripRouteLabel}</span>
+                  </span>
+                  <span>
+                    <MaterialIcon icon="group" />
+                    <span className="budget-chip-label">{travelerLabel}</span>
+                  </span>
+                  <span>
+                    <MaterialIcon icon="currency_exchange" />
+                    <span className="budget-chip-label">{currencyLabel}</span>
+                  </span>
+                </div>
+              </div>
+            </section>
+
+            {error ? (
+              <div role="alert" className="budget-inline-status budget-inline-status--error">
+                <p>{error}</p>
+                <button
+                  type="button"
+                  onClick={() => void loadExpenses()}
+                  disabled={loading}
+                  className="budget-action-button budget-action-button--ghost"
+                >
+                  {loading ? t("budget.retrying") : t("common.retry")}
+                </button>
+              </div>
+            ) : null}
+
+            {notice ? (
+              <p role="status" aria-live="polite" className="budget-inline-status budget-inline-status--success">
+                {notice}
+              </p>
+            ) : null}
+
+            {loading ? (
+              <div role="status" aria-live="polite" className="budget-loading-card">
+                <span>{t("budget.loadingLedger")}</span>
+              </div>
+            ) : null}
+
+            {!loading && displayExpenses.length > 0 ? (
+              <SettlementSection
+                summaries={summaries}
+                travelerNameById={travelerNameById}
+                t={t}
+                showAddForm={formOpen && !editingId}
+                loading={loading}
+                onToggleAddForm={formOpen && !editingId ? () => resetForm() : openAddForm}
+              />
+            ) : null}
+
+            {formOpen && !editingId ? (
+              <ExpenseForm
+                form={form}
+                travelers={formTravelers}
+                editingId={editingId}
+                submitting={submitting}
+                currencies={currencyOptions}
+                onSubmit={submitExpense}
+                onCancel={() => resetForm()}
+                onChange={setForm}
+                language={language}
+                t={t}
+              />
+            ) : null}
+
+            {!loading && displayExpenses.length === 0 ? (
+              <EmptyLedgerState canEdit={canEdit} loading={loading} onAdd={openAddForm} t={t} />
+            ) : null}
+
+            {!loading && displayExpenses.length > 0 ? (
+              <SummarySection summaries={summaries} travelers={orderedTravelers} t={t} />
+            ) : null}
+
+            {!loading && displayExpenses.length > 0 ? (
+              <>
+                <FilterSection
+                  filtersOpen={filtersOpen}
+                  currencyFilter={currencyFilter}
+                  categoryFilter={categoryFilter}
+                  sourceFilter={sourceFilter}
+                  statusFilter={statusFilter}
+                  currencies={visibleCurrencies}
+                  categories={visibleCategories}
+                  language={language}
+                  t={t}
+                  onToggleFilters={() => setFiltersOpen((current) => !current)}
+                  onCurrencyChange={setCurrencyFilter}
+                  onCategoryChange={setCategoryFilter}
+                  onSourceChange={setSourceFilter}
+                  onStatusChange={setStatusFilter}
+                />
+
+                <ExpenseList
+                  expenses={sortedFilteredExpenses}
+                  travelerNameById={travelerNameById}
+                  deletingId={deletingId}
+                  canEdit={canEdit}
+                  language={language}
+                  t={t}
+                  sortOrder={expenseSortOrder}
+                  editingId={editingId}
+                  form={form}
+                  formOpen={formOpen}
+                  formTravelers={formTravelers}
+                  submitting={submitting}
+                  currencies={currencyOptions}
+                  onSortOrderChange={setExpenseSortOrder}
+                  onSubmit={submitExpense}
+                  onCancel={() => resetForm()}
+                  onFormChange={setForm}
+                  onEdit={startEditing}
+                  onDelete={removeExpense}
+                />
+              </>
+            ) : null}
+          </div>
+
+        </div>
+      </main>
+
+      <nav className="stitch-bottom-nav" aria-label="Mobile navigation">
+        {mobileNavItems.map((item) => (
+          <a
+            key={item.href}
+            className={`stitch-bottom-link ${item.active ? "stitch-bottom-link--active" : ""}`}
+            href={item.href}
           >
-            {loading ? t("budget.retrying") : t("common.retry")}
-          </button>
-        </div>
-      ) : null}
-
-      {notice ? (
-        <p role="status" aria-live="polite" className="budget-inline-status budget-inline-status--success">
-          {notice}
-        </p>
-      ) : null}
-
-      {loading ? (
-        <p role="status" aria-live="polite" className="budget-loading-card">
-          {t("budget.loadingLedger")}
-        </p>
-      ) : null}
-
-      {!loading && displayExpenses.length > 0 ? (
-        <SettlementSection
-          summaries={summaries}
-          travelerNameById={travelerNameById}
-          t={t}
-          showAddForm={formOpen && !editingId}
-          loading={loading}
-          onToggleAddForm={formOpen && !editingId ? () => resetForm() : openAddForm}
-        />
-      ) : null}
-
-      <div className="budget-grid">
-        <div className="budget-main-stack">
-          {formOpen && !editingId ? (
-            <ExpenseForm
-              form={form}
-              travelers={formTravelers}
-              editingId={editingId}
-              submitting={submitting}
-              currencies={currencyOptions}
-              onSubmit={submitExpense}
-              onCancel={() => resetForm()}
-              onChange={setForm}
-              language={language}
-              t={t}
-            />
-          ) : null}
-
-	          {!loading && displayExpenses.length === 0 ? (
-	            <EmptyLedgerState canEdit={canEdit} loading={loading} onAdd={openAddForm} t={t} />
-	          ) : null}
-
-	          {!loading && displayExpenses.length > 0 ? (
-	            <SummarySection summaries={summaries} travelers={orderedTravelers} t={t} />
-	          ) : null}
-
-	          {!loading && displayExpenses.length > 0 ? (
-	            <>
-	              <FilterSection
-	                filtersOpen={filtersOpen}
-	                currencyFilter={currencyFilter}
-	                categoryFilter={categoryFilter}
-	                sourceFilter={sourceFilter}
-	                statusFilter={statusFilter}
-	                currencies={visibleCurrencies}
-	                categories={visibleCategories}
-	                language={language}
-	                t={t}
-	                onToggleFilters={() => setFiltersOpen((current) => !current)}
-	                onCurrencyChange={setCurrencyFilter}
-	                onCategoryChange={setCategoryFilter}
-	                onSourceChange={setSourceFilter}
-	                onStatusChange={setStatusFilter}
-	              />
-
-	              <ExpenseList
-	                expenses={filteredExpenses}
-	                travelerNameById={travelerNameById}
-	                deletingId={deletingId}
-	                canEdit={canEdit}
-	                language={language}
-	                t={t}
-	                editingId={editingId}
-	                form={form}
-	                formOpen={formOpen}
-	                formTravelers={formTravelers}
-	                submitting={submitting}
-	                currencies={currencyOptions}
-	                onSubmit={submitExpense}
-	                onCancel={() => resetForm()}
-	                onFormChange={setForm}
-	                onEdit={startEditing}
-	                onDelete={removeExpense}
-	              />
-	            </>
-	          ) : null}
-	        </div>
-      </div>
+            <MaterialIcon icon={item.icon} fill={item.active} />
+            <span>{item.label}</span>
+          </a>
+        ))}
+      </nav>
     </div>
   );
+}
+
+function getBudgetDesktopNavItems(t: TFunction) {
+  return [
+    { href: "/", icon: "home", label: t("nav.home"), active: false },
+    { href: "/itinerary", icon: "event_note", label: t("nav.plan"), active: false },
+    { href: "/bookings", icon: "confirmation_number", label: t("nav.book"), active: false },
+    { href: "/budget", icon: "payments", label: t("nav.money"), active: true },
+    { href: "/documents", icon: "description", label: t("nav.documents"), active: false },
+    { href: "/packing", icon: "inventory_2", label: t("nav.packing"), active: false },
+    { href: "/settings", icon: "settings", label: t("nav.settings"), active: false }
+  ];
+}
+
+function getBudgetMobileNavItems(t: TFunction) {
+  return [
+    { href: "/", icon: "today", label: t("nav.home"), active: false },
+    { href: "/itinerary", icon: "event_note", label: t("nav.plan"), active: false },
+    { href: "/bookings", icon: "confirmation_number", label: t("nav.book"), active: false },
+    { href: "/budget", icon: "payments", label: t("nav.money"), active: true },
+    { href: "/more", icon: "more_horiz", label: t("nav.more"), active: false }
+  ];
+}
+
+function IconButton({
+  icon,
+  label,
+  onClick,
+  surface = false
+}: {
+  icon: string;
+  label: string;
+  onClick?: () => void;
+  surface?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`stitch-icon-button ${surface ? "stitch-icon-button--surface" : ""}`}
+      aria-label={label}
+    >
+      <MaterialIcon icon={icon} />
+    </button>
+  );
+}
+
+function SosIconButton({
+  countries,
+  label,
+  surface = false
+}: {
+  countries: { code: string; name: string }[];
+  label: string;
+  surface?: boolean;
+}) {
+  return (
+    <EmergencyQuickAccess
+      countries={countries}
+      triggerAriaLabel={label}
+      triggerClassName={`stitch-icon-button ${surface ? "stitch-icon-button--surface" : ""} stitch-icon-button--error`}
+      triggerChildren={<MaterialIcon icon="emergency_home" />}
+    />
+  );
+}
+
+function MaterialIcon({ icon, fill = false }: { icon: string; fill?: boolean }) {
+  return (
+    <span className={`material-symbols-outlined ${fill ? "stitch-icon-fill" : ""}`} aria-hidden="true">
+      {icon}
+    </span>
+  );
+}
+
+function emergencyCountriesForVisual(visual: DestinationVisualIdentity) {
+  const codes = visual.countryCodes.length > 0 ? visual.countryCodes : [visual.countryCode];
+  const names = visual.countryNames.length > 0 ? visual.countryNames : [visual.countryName];
+  const seen = new Set<string>();
+  const countries = codes
+    .map((code, index) => ({
+      code: code.toUpperCase() === "UK" ? "GB" : code.toUpperCase(),
+      name: names[index] ?? code
+    }))
+    .filter((country) => {
+      if (!country.code || country.code === "GENERIC" || seen.has(country.code)) {
+        return false;
+      }
+
+      seen.add(country.code);
+      return true;
+    });
+
+  return countries.length > 0 ? countries : [{ code: "IT", name: "Italy" }];
 }
 
 function EmptyLedgerState({
@@ -519,7 +696,7 @@ function SummarySection({
   }
 
   return (
-    <section className="budget-summary-grid">
+    <section className="budget-summary-grid" id="budget-summary">
       {summaries.map((summary) => (
         <article key={summary.currency} className="budget-ledger-card">
           <div className="budget-ledger-card__header">
@@ -894,12 +1071,14 @@ function ExpenseList({
   canEdit,
   language,
   t,
+  sortOrder,
   editingId,
   form,
   formOpen,
   formTravelers,
   submitting,
   currencies,
+  onSortOrderChange,
   onSubmit,
   onCancel,
   onFormChange,
@@ -912,12 +1091,14 @@ function ExpenseList({
   canEdit: boolean;
   language: ReturnType<typeof useLanguage>["language"];
   t: TFunction;
+  sortOrder: ExpenseSortOrder;
   editingId: string | null;
   form: ExpenseFormState;
   formOpen: boolean;
   formTravelers: Traveler[];
   submitting: boolean;
   currencies: readonly SharedCurrency[];
+  onSortOrderChange: (value: ExpenseSortOrder) => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
   onCancel: () => void;
   onFormChange: (updater: (current: ExpenseFormState) => ExpenseFormState) => void;
@@ -927,8 +1108,28 @@ function ExpenseList({
   return (
     <section className="budget-expense-list">
       <div className="budget-expense-list__header">
-        <h2>{t("budget.expenses.title")}</h2>
-        <p>{t("budget.expenses.visible", { count: expenses.length })}</p>
+        <div className="budget-expense-list__heading">
+          <h2>{t("budget.expenses.title")}</h2>
+          <p>{t("budget.expenses.visible", { count: expenses.length })}</p>
+        </div>
+        <div className="budget-sort-toggle" role="group" aria-label={t("budget.expenses.sortLabel")}>
+          <button
+            type="button"
+            className={sortOrder === "newest" ? "budget-sort-toggle__option budget-sort-toggle__option--active" : "budget-sort-toggle__option"}
+            aria-pressed={sortOrder === "newest"}
+            onClick={() => onSortOrderChange("newest")}
+          >
+            {t("budget.expenses.newestFirst")}
+          </button>
+          <button
+            type="button"
+            className={sortOrder === "oldest" ? "budget-sort-toggle__option budget-sort-toggle__option--active" : "budget-sort-toggle__option"}
+            aria-pressed={sortOrder === "oldest"}
+            onClick={() => onSortOrderChange("oldest")}
+          >
+            {t("budget.expenses.oldestFirst")}
+          </button>
+        </div>
       </div>
       {expenses.length === 0 ? (
         <p className="budget-empty-card">
@@ -1000,30 +1201,33 @@ function ExpenseCard({
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [actionsOpen, setActionsOpen] = useState(false);
   const isMisc = expense.sourceType === "misc";
+  const icon = iconForExpense(expense);
   const splitAmong = expense.splitTravelerIds
     .map((travelerId) => travelerNameById.get(travelerId) ?? travelerId)
     .join(", ");
 
   return (
-    <article className="budget-expense-card">
+    <article className={`budget-expense-card ${actionsOpen ? "budget-expense-card--menu-open" : ""}`}>
       <div className="budget-expense-card__header">
-        <div className="budget-expense-card__title">
-          <div className="budget-expense-card__meta">
-            <p className="cockpit-eyebrow">
-              {sourceTypeLabel(t, expense.sourceType)}
+        <div className="budget-expense-card__lead">
+          <span className={`budget-expense-icon ${expense.settled ? "budget-expense-icon--settled" : ""}`}>
+            <MaterialIcon icon={icon} />
+          </span>
+          <div className="budget-expense-card__title">
+            <div className="budget-expense-card__meta">
+              <p className="cockpit-eyebrow">
+                {sourceTypeLabel(t, expense.sourceType)}
+              </p>
+            </div>
+            <h3>{expense.title}</h3>
+            <p>{formatDisplayDate(expense.expenseDate, language)}</p>
+            <p className="budget-expense-card__amount">
+              {formatMoney(expense.amount, expense.currency)}
             </p>
-            <StatusPill settled={expense.settled} t={t} />
           </div>
-          <h3>{expense.title}</h3>
-          <p>
-            {translateOption(language, expense.category)} - {formatDisplayDate(expense.expenseDate, language)}
-          </p>
         </div>
         <div className="budget-expense-card__side">
-          <p>
-            {formatMoney(expense.amount, expense.currency)}
-          </p>
-          <div>
+          <div className="budget-expense-card__actions">
             <button
               type="button"
               onClick={() => setDetailsOpen((current) => !current)}
@@ -1031,39 +1235,40 @@ function ExpenseCard({
             >
               {detailsOpen ? t("budget.expenses.hideDetails") : t("budget.expenses.details")}
             </button>
-	            {isMisc && canEdit ? (
-	              <>
-	                <button
-	                  type="button"
-	                  onClick={() => setActionsOpen((current) => !current)}
-	                  aria-expanded={actionsOpen}
-	                  aria-label={t("common.moreActions")}
-	                  className="budget-action-button budget-action-button--mini"
-	                >
-	                  {t("common.manage")}
-	                </button>
-	                {actionsOpen ? (
-	                  <div className="budget-expense-actions__menu">
-	                    <button
-	                      type="button"
-	                      onClick={() => onEdit(expense)}
-	                      className="budget-action-button budget-action-button--mini"
-	                    >
-	                      {t("common.edit")}
-	                    </button>
-	                    <button
-	                      type="button"
-	                      onClick={() => void onDelete(expense)}
-	                      disabled={deletingId === expense.id}
-	                      className="budget-action-button budget-action-button--mini budget-action-button--danger"
-	                    >
-	                      {deletingId === expense.id ? t("budget.expenses.deleting") : t("common.delete")}
-	                    </button>
-	                  </div>
-	                ) : null}
-	              </>
-	            ) : null}
+            {isMisc && canEdit ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setActionsOpen((current) => !current)}
+                  aria-expanded={actionsOpen}
+                  aria-label={t("common.moreActions")}
+                  className="budget-action-button budget-action-button--mini"
+                >
+                  {t("common.manage")}
+                </button>
+                {actionsOpen ? (
+                  <div className="budget-expense-actions__menu">
+                    <button
+                      type="button"
+                      onClick={() => onEdit(expense)}
+                      className="budget-action-button budget-action-button--mini"
+                    >
+                      {t("common.edit")}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void onDelete(expense)}
+                      disabled={deletingId === expense.id}
+                      className="budget-action-button budget-action-button--mini budget-action-button--danger"
+                    >
+                      {deletingId === expense.id ? t("budget.expenses.deleting") : t("common.delete")}
+                    </button>
+                  </div>
+                ) : null}
+              </>
+            ) : null}
           </div>
+          <StatusPill settled={expense.settled} t={t} />
         </div>
       </div>
 
@@ -1141,6 +1346,29 @@ function StatusPill({ settled, t }: { settled: boolean; t: TFunction }) {
   );
 }
 
+function iconForExpense(expense: SharedExpense) {
+  if (expense.sourceType === "booking") {
+    return expense.category === "Flight" ? "flight" : "confirmation_number";
+  }
+
+  if (expense.sourceType === "itinerary") {
+    return "event_note";
+  }
+
+  const icons: Partial<Record<ExpenseCategory, string>> = {
+    Accommodation: "hotel",
+    Attraction: "local_activity",
+    Flight: "flight",
+    Food: "restaurant",
+    Insurance: "health_and_safety",
+    Other: "payments",
+    Shopping: "shopping_bag",
+    Transport: "train"
+  };
+
+  return icons[expense.category] ?? "payments";
+}
+
 function sourceTypeLabel(t: TFunction, sourceType: ExpenseSourceType) {
   if (sourceType === "misc") {
     return t("budget.source.misc");
@@ -1155,26 +1383,6 @@ function sourceTypeLabel(t: TFunction, sourceType: ExpenseSourceType) {
 
 function sourceEditPageLabel(t: TFunction, sourceType: ExpenseSourceType) {
   return sourceType === "itinerary" ? t("nav.itinerary") : t("nav.bookings");
-}
-
-function formatBudgetRouteMapTitle(visual: DestinationVisualIdentity) {
-  if (visual.countryNames.length > 1) {
-    return "Multi-country route map";
-  }
-
-  if (visual.countryCode === "GB") {
-    return "UK route map";
-  }
-
-  if (visual.countryCode === "KR") {
-    return "Korea route map";
-  }
-
-  if (visual.countryCode === "GENERIC") {
-    return `${visual.destinationLabel} route map`;
-  }
-
-  return `${visual.countryName.split(/\s+/)[0] || visual.destinationLabel} route map`;
 }
 
 function formatFilterValue(language: ReturnType<typeof useLanguage>["language"], value: string) {

@@ -25,6 +25,7 @@ export default function BudgetPage() {
         destinationVisual={destinationVisual}
         defaultCurrencies={trip.defaultCurrencies}
         tripDateRangeLabel={trip.dateRangeLabel}
+        tripName={trip.name}
         tripRouteLabel={trip.routeLabel}
         tripTravelerCount={trip.travelerCount}
       />
