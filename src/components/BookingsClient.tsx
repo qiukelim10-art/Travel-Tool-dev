@@ -99,6 +99,7 @@ export function BookingsClient({ participants, defaultCurrencies }: BookingsClie
     () => Array.from(new Set([...participants, ...bookings.map((booking) => booking.bookedBy)].filter(Boolean))),
     [bookings, participants]
   );
+  const editingBookingVisible = editingId ? visibleBookings.some((booking) => booking.id === editingId) : false;
   const formParticipants = useMemo(
     () => (participants.includes(form.bookedBy) ? participants : [form.bookedBy, ...participants].filter(Boolean)),
     [form.bookedBy, participants]
@@ -167,7 +168,7 @@ export function BookingsClient({ participants, defaultCurrencies }: BookingsClie
     setFormOpen(true);
     setNotice(null);
     window.setTimeout(() => {
-      bookingFormRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      bookingFormRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
     }, 0);
   }
 
@@ -310,53 +311,40 @@ export function BookingsClient({ participants, defaultCurrencies }: BookingsClie
           </button>
         </div>
 
-        <div className={`bookings-filter-panel ${filtersOpen ? "bookings-filter-panel--open" : ""}`}>
-          <div className="bookings-filter-group">
-            <div className="bookings-filter-group__label">{t("common.category")}</div>
-            <div className="scroll-fade-x bookings-chip-row" role="list" aria-label={t("common.category")}>
-              {(["All", ...bookingCategories] as const).map((category) => (
-                <FilterChip
-                  key={category}
-                  active={categoryFilter === category}
-                  label={translateOption(language, category)}
-                  onClick={() => setCategoryFilter(category as typeof categoryFilter)}
-                />
-              ))}
+        {filtersOpen ? (
+          <div className="bookings-filter-panel bookings-filter-panel--open">
+            <p className="bookings-filter-note">{t("bookings.filters.note")}</p>
+            <div className="bookings-filter-grid">
+              <BookingFilterSelect
+                name="booking-filter-category"
+                label={t("common.category")}
+                value={categoryFilter}
+                options={["All", ...bookingCategories]}
+                formatOption={(option) => translateOption(language, option)}
+                onChange={(value) => setCategoryFilter(value as typeof categoryFilter)}
+              />
+              <BookingFilterSelect
+                name="booking-filter-status"
+                label={t("common.status")}
+                value={statusFilter}
+                options={["All", ...bookingStatuses]}
+                formatOption={(option) => translateOption(language, option)}
+                onChange={(value) => setStatusFilter(value as typeof statusFilter)}
+              />
+              <BookingFilterSelect
+                name="booking-filter-booked-by"
+                label={t("bookings.form.bookedBy")}
+                value={bookedByFilter}
+                options={["All", ...bookingOwnerOptions]}
+                formatOption={(option) => (option === "All" ? translateOption(language, option) : option)}
+                onChange={(value) => setBookedByFilter(value)}
+              />
             </div>
           </div>
-
-          <div className="bookings-filter-row">
-            <div className="bookings-filter-group">
-              <div className="bookings-filter-group__label">{t("common.status")}</div>
-              <div className="scroll-fade-x bookings-chip-row" role="list" aria-label={t("common.status")}>
-                {(["All", ...bookingStatuses] as const).map((status) => (
-                  <FilterChip
-                    key={status}
-                    active={statusFilter === status}
-                    label={translateOption(language, status)}
-                    onClick={() => setStatusFilter(status as typeof statusFilter)}
-                  />
-                ))}
-              </div>
-            </div>
-            <div className="bookings-filter-group">
-              <div className="bookings-filter-group__label">{t("bookings.form.bookedBy")}</div>
-              <div className="scroll-fade-x bookings-chip-row" role="list" aria-label={t("bookings.form.bookedBy")}>
-                {(["All", ...bookingOwnerOptions] as const).map((owner) => (
-                  <FilterChip
-                    key={owner}
-                    active={bookedByFilter === owner}
-                    label={owner === "All" ? translateOption(language, owner) : owner}
-                    onClick={() => setBookedByFilter(owner)}
-                  />
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
+        ) : null}
       </section>
 
-      {formOpen ? (
+      {formOpen && (!editingId || !editingBookingVisible) ? (
         <form
           ref={bookingFormRef}
           onSubmit={submitBooking}
@@ -534,30 +522,187 @@ export function BookingsClient({ participants, defaultCurrencies }: BookingsClie
       ) : null}
 
       {loading ? (
-        <p role="status" aria-live="polite" className="bookings-loading-card">
-          {t("bookings.loading")}
-        </p>
+        <div role="status" aria-live="polite" className="bookings-loading-card">
+          <span>{t("bookings.loading")}</span>
+        </div>
       ) : null}
 
       {!loading && visibleBookings.length === 0 ? (
-        <p className="bookings-empty-card">
-          {t("bookings.empty")}
-        </p>
+        <div className="bookings-empty-card">
+          <p>{t("bookings.empty")}</p>
+        </div>
       ) : null}
 
       {!loading && visibleBookings.length > 0 ? (
         <section className="bookings-list-card" aria-label={t("page.bookings.title")}>
+          <div className="bookings-list-card__header">
+            <div>
+              <p className="cockpit-eyebrow">{t("page.bookings.eyebrow")}</p>
+              <h2>{t("page.bookings.title")}</h2>
+            </div>
+          </div>
           <div className="bookings-card-grid">
             {visibleBookings.map((booking) => (
-              <BookingCard
-                key={booking.id}
-                booking={booking}
-                budgetExpense={budgetExpenseByBooking.get(booking.id)}
-                deletingId={deletingId}
-                canEdit={canEdit}
-                onEdit={startEditing}
-                onDelete={removeBooking}
-              />
+              <div key={booking.id} className="bookings-card-shell">
+                <BookingCard
+                  booking={booking}
+                  budgetExpense={budgetExpenseByBooking.get(booking.id)}
+                  deletingId={deletingId}
+                  canEdit={canEdit}
+                  onEdit={startEditing}
+                  onDelete={removeBooking}
+                />
+                {formOpen && editingId === booking.id ? (
+                  <form
+                    ref={bookingFormRef}
+                    onSubmit={submitBooking}
+                    className="bookings-form bookings-editor-card mobile-safe-form box-border w-full max-w-full min-w-0 overflow-hidden"
+                  >
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-xs font-semibold uppercase tracking-[0.08em] text-terracotta">
+                          {t("bookings.editBooking")}
+                        </p>
+                        <h2 className="mt-1 text-xl font-semibold text-ink">{t("bookings.editTitle")}</h2>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={resetForm}
+                        className="itinerary-action-button itinerary-action-button--ghost max-w-full"
+                      >
+                        {t("bookings.cancelEdit")}
+                      </button>
+                    </div>
+
+                    <div className="mt-4 grid min-w-0 grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+                      <SelectField
+                        name="booking-category"
+                        label={t("common.category")}
+                        value={form.category}
+                        options={bookingCategories}
+                        formatOption={(option) => translateOption(language, option)}
+                        onChange={(value) =>
+                          setForm((current) => ({ ...current, category: value as BookingInput["category"] }))
+                        }
+                      />
+                      <TextField
+                        name="booking-description"
+                        label={t("common.description")}
+                        value={form.description}
+                        onChange={(value) => setForm((current) => ({ ...current, description: value }))}
+                        placeholder={t("bookings.form.descriptionPlaceholder")}
+                      />
+                      <TextField
+                        name="booking-date"
+                        label={t("common.date")}
+                        type="date"
+                        value={form.date}
+                        onChange={(value) => setForm((current) => ({ ...current, date: value }))}
+                      />
+                      <TextField
+                        name="booking-location"
+                        label={t("common.location")}
+                        value={form.location ?? ""}
+                        onChange={(value) => setForm((current) => ({ ...current, location: value }))}
+                        placeholder="Rome"
+                      />
+                      <SelectField
+                        name="booking-booked-by"
+                        label={t("bookings.form.bookedBy")}
+                        value={form.bookedBy}
+                        options={formParticipants}
+                        onChange={(value) =>
+                          setForm((current) =>
+                            ensureBookingBudgetDefaults(
+                              {
+                                ...current,
+                                bookedBy: value,
+                                budgetPaidByTravelerId:
+                                  findTravelerIdByName(value, activeTravelers) ?? current.budgetPaidByTravelerId
+                              },
+                              activeTravelers
+                            )
+                          )
+                        }
+                      />
+                      <TextField
+                        name="booking-amount"
+                        label={t("common.amount")}
+                        type="number"
+                        value={form.amount === null || form.amount === undefined ? "" : String(form.amount)}
+                        onChange={(value) =>
+                          setForm((current) =>
+                            ensureBookingBudgetDefaults(
+                              { ...current, amount: value ? Number(value) : null },
+                              activeTravelers
+                            )
+                          )
+                        }
+                        placeholder="0"
+                      />
+                      <SelectField
+                        name="booking-currency"
+                        label={t("common.currency")}
+                        value={form.currency ?? primaryCurrency}
+                        options={currencyOptions}
+                        onChange={(value) =>
+                          setForm((current) => ({ ...current, currency: value as BookingInput["currency"] }))
+                        }
+                      />
+                      <SelectField
+                        name="booking-status"
+                        label={t("common.status")}
+                        value={form.status}
+                        options={bookingStatuses}
+                        formatOption={(option) => translateOption(language, option)}
+                        onChange={(value) =>
+                          setForm((current) => ({ ...current, status: value as BookingInput["status"] }))
+                        }
+                      />
+                    </div>
+
+                    {hasBudgetAmount(form) ? (
+                      <BookingBudgetSplitSection
+                        form={form}
+                        travelers={activeTravelers}
+                        onChange={(updater) => setForm((current) => updater(current))}
+                      />
+                    ) : (
+                      <p className="bookings-budget-empty">{t("bookings.budget.noAmount")}</p>
+                    )}
+
+                    <label className="mt-3 block w-full max-w-full min-w-0 text-sm font-semibold text-ink">
+                      {t("common.notes")}
+                      <textarea
+                        name="booking-notes"
+                        autoComplete="off"
+                        value={form.notes ?? ""}
+                        onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))}
+                        className="bookings-textarea"
+                        placeholder={t("bookings.form.notesPlaceholder")}
+                      />
+                    </label>
+
+                    <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+                      <button
+                        type="submit"
+                        disabled={submitting}
+                        className="itinerary-action-button itinerary-action-button--primary box-border w-full max-w-full disabled:opacity-60 sm:w-auto"
+                      >
+                        {submitting ? t("common.saving") : t("bookings.saveChanges")}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={resetForm}
+                        disabled={submitting}
+                        className="itinerary-action-button itinerary-action-button--ghost box-border w-full max-w-full disabled:opacity-60 sm:w-auto"
+                      >
+                        {t("bookings.cancelEdit")}
+                      </button>
+                    </div>
+                  </form>
+                ) : null}
+              </div>
             ))}
           </div>
         </section>
@@ -582,43 +727,82 @@ function BookingCard({
   onDelete: (booking: SharedBooking) => Promise<void>;
 }) {
   const { language, t } = useLanguage();
+  const [detailsOpen, setDetailsOpen] = useState(false);
 
   return (
     <article className="bookings-item-card">
       <div className="bookings-item-card__header">
-        <div className="bookings-item-card__title">
-          <p>
-            {translateOption(language, booking.category)}
-          </p>
-          <h3>{booking.description}</h3>
-          <div>
-            <span>{formatDisplayDate(booking.date, language)}</span>
-            <span>{booking.location ?? t("common.tbc")}</span>
+        <div className="bookings-item-card__lead">
+          <span className="bookings-item-icon" aria-hidden="true">
+            <span className="material-symbols-outlined">{bookingCategoryIcon(booking.category)}</span>
+          </span>
+          <div className="bookings-item-card__title">
+            <p>
+              {translateOption(language, booking.category)}
+            </p>
+            <h3>{booking.description}</h3>
+            <div>
+              <span>{formatDisplayDate(booking.date, language)}</span>
+              <span>{booking.location ?? t("common.tbc")}</span>
+            </div>
           </div>
         </div>
         <div className="bookings-item-card__side">
+          <div className="bookings-item-card__actions">
+            <button
+              type="button"
+              onClick={() => setDetailsOpen((current) => !current)}
+              className="itinerary-action-button itinerary-action-button--ghost"
+            >
+              {detailsOpen ? t("common.hideDetails") : t("common.details")}
+            </button>
+            <ActionButtons
+              booking={booking}
+              deletingId={deletingId}
+              canEdit={canEdit}
+              onEdit={onEdit}
+              onDelete={onDelete}
+            />
+          </div>
           <StatusBadge status={booking.status} />
-          <ActionButtons
-            booking={booking}
-            deletingId={deletingId}
-            canEdit={canEdit}
-            onEdit={onEdit}
-            onDelete={onDelete}
-          />
         </div>
       </div>
-      <dl className="bookings-item-card__details">
-        <Field label={t("bookings.form.bookedBy")} value={booking.bookedBy} />
-        <div>
-          <dt>{t("common.amount")}</dt>
-          <dd className="mt-1">
-            <BookingAmount booking={booking} budgetExpense={budgetExpense} />
-          </dd>
-        </div>
-      </dl>
-      {booking.notes ? <p className="bookings-item-card__notes">{booking.notes}</p> : null}
+      {detailsOpen ? (
+        <>
+          <dl className="bookings-item-card__details">
+            <Field label={t("bookings.form.bookedBy")} value={booking.bookedBy} />
+            <div>
+              <dt>{t("common.amount")}</dt>
+              <dd className="mt-1">
+                <BookingAmount booking={booking} budgetExpense={budgetExpense} />
+              </dd>
+            </div>
+          </dl>
+          {booking.notes ? <p className="bookings-item-card__notes">{booking.notes}</p> : null}
+        </>
+      ) : null}
     </article>
   );
+}
+
+function bookingCategoryIcon(category: SharedBooking["category"]) {
+  switch (category) {
+    case "Flight":
+      return "flight";
+    case "Hotel":
+      return "hotel";
+    case "Train":
+      return "train";
+    case "Attraction":
+      return "local_activity";
+    case "Restaurant":
+      return "restaurant";
+    case "Insurance":
+      return "health_and_safety";
+    case "Other":
+    default:
+      return "confirmation_number";
+  }
 }
 
 function BookingAmount({
@@ -760,15 +944,37 @@ function formatDisplayDate(value: string, language: ReturnType<typeof useLanguag
   }).format(date);
 }
 
-function FilterChip({ active, label, onClick }: { active: boolean; label: string; onClick: () => void }) {
+function BookingFilterSelect({
+  name,
+  label,
+  value,
+  options,
+  formatOption,
+  onChange
+}: {
+  name: string;
+  label: string;
+  value: string;
+  options: readonly string[];
+  formatOption?: (option: string) => string;
+  onChange: (value: string) => void;
+}) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`bookings-chip ${active ? "bookings-chip--active" : ""}`}
-    >
-      {label}
-    </button>
+    <label className="bookings-filter-field">
+      <span>{label}</span>
+      <select
+        name={name}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className="bookings-filter-select"
+      >
+        {options.map((option) => (
+          <option key={option} value={option}>
+            {formatOption?.(option) ?? option}
+          </option>
+        ))}
+      </select>
+    </label>
   );
 }
 
@@ -882,7 +1088,10 @@ function ActionButtons({
         <div className="bookings-card-actions__menu">
           <button
             type="button"
-            onClick={() => onEdit(booking)}
+            onClick={() => {
+              setActionsOpen(false);
+              onEdit(booking);
+            }}
             data-edit-required={!canEdit ? "true" : undefined}
             title={!canEdit ? "Private trip access is required to edit bookings." : undefined}
             className="itinerary-action-button itinerary-action-button--ghost"

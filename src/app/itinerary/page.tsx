@@ -602,8 +602,11 @@ export default function ItineraryPage() {
 
   return (
     <div className="stitch-today-page stitch-plan-page">
-      <header className="stitch-top-appbar">
-        <div className="stitch-app-title">{copy.workspace}</div>
+      <header className="stitch-top-appbar stitch-budget-topbar">
+        <div className="stitch-budget-top-title">
+          <h1>{trip.name}</h1>
+          <p>{summaryDetail}</p>
+        </div>
         <div className="stitch-top-actions">
           <IconButton icon="language" label={copy.languageLabel} onClick={toggleLanguage} />
           <SosIconButton countries={sosCountries} label={copy.sosLabel} />
