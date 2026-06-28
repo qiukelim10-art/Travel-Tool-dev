@@ -739,9 +739,6 @@ function DestinationCard({
           alt={imageAlt}
           src={imageSrc}
         />
-        <button type="button" className="stitch-image-edit" aria-label="Edit destination">
-          <MaterialIcon icon="edit" />
-        </button>
       </div>
       <div className="stitch-destination-body">
         <h2>{title}</h2>
