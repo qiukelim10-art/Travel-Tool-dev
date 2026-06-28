@@ -7,10 +7,12 @@ import { TripAccessGate, TripAccessProvider } from "@/lib/access";
 import { LanguageProvider } from "@/lib/i18n";
 
 const publicRoutes = new Set(["/pilot"]);
+const standaloneWorkspaceRoutes = new Set(["/"]);
 
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const isPublicRoute = publicRoutes.has(pathname);
+  const isStandaloneWorkspaceRoute = standaloneWorkspaceRoutes.has(pathname);
 
   return (
     <LanguageProvider>
@@ -19,7 +21,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       ) : (
         <TripAccessProvider>
           <TripAccessGate>
-            <Layout>{children}</Layout>
+            {isStandaloneWorkspaceRoute ? children : <Layout>{children}</Layout>}
           </TripAccessGate>
         </TripAccessProvider>
       )}
