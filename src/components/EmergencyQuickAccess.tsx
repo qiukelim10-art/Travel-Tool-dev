@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { getEmergencyContacts } from "@/data/emergencyContacts";
 import { useLanguage } from "@/lib/i18n";
 
@@ -8,6 +8,9 @@ type EmergencyQuickAccessProps = {
   countryCode?: string;
   countryName?: string;
   countries?: EmergencyCountry[];
+  triggerAriaLabel?: string;
+  triggerChildren?: ReactNode;
+  triggerClassName?: string;
 };
 
 type EmergencyCountry = {
@@ -15,7 +18,14 @@ type EmergencyCountry = {
   name: string;
 };
 
-export function EmergencyQuickAccess({ countries, countryCode, countryName }: EmergencyQuickAccessProps) {
+export function EmergencyQuickAccess({
+  countries,
+  countryCode,
+  countryName,
+  triggerAriaLabel,
+  triggerChildren,
+  triggerClassName
+}: EmergencyQuickAccessProps) {
   const [open, setOpen] = useState(false);
   const { t } = useLanguage();
   const contactGroups = normalizeEmergencyCountries({ countries, countryCode, countryName }).map((country) => ({
@@ -34,59 +44,62 @@ export function EmergencyQuickAccess({ countries, countryCode, countryName }: Em
       <button
         type="button"
         onClick={() => setOpen((current) => !current)}
-        className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm font-bold text-red-700 shadow-soft hover:bg-red-100"
+        className={
+          triggerClassName ??
+          "rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm font-bold text-red-700 shadow-soft hover:bg-red-100"
+        }
         aria-expanded={open}
         aria-controls="emergency-quick-access-panel"
-        aria-label={t("sos.ariaLabel")}
+        aria-label={triggerAriaLabel ?? t("sos.ariaLabel")}
       >
-        {t("sos.button")}
+        {triggerChildren ?? t("sos.button")}
       </button>
 
       {open ? (
-        <div className="fixed inset-0 z-50 flex items-end bg-ink/35 p-3 backdrop-blur-sm sm:items-start sm:justify-end sm:p-6">
+        <div className="stitch-sos-backdrop">
           <section
             id="emergency-quick-access-panel"
-            className="emergency-panel w-full max-w-[22rem] rounded-lg border border-red-200 bg-white p-3 shadow-lg sm:mt-16"
+            className="stitch-card stitch-sos-panel emergency-panel"
             aria-label={t("sos.ariaLabel")}
           >
-            <div className="flex items-start justify-between gap-3">
+            <div className="stitch-sos-heading">
               <div>
-                <h2 className="text-sm font-semibold text-ink">{title}</h2>
-                <p className="mt-1 text-xs leading-5 text-zinc-600">
+                <h2>{title}</h2>
+                <p>
                   {t("sos.description")}
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => setOpen(false)}
-                className="rounded-md px-2 py-1 text-xs font-semibold text-zinc-600 hover:bg-zinc-100"
+                className="stitch-sos-close"
                 aria-label={t("sos.closeAria")}
               >
                 {t("sos.close")}
               </button>
             </div>
 
-            <div className="mt-3 space-y-3">
+            <div className="stitch-sos-list">
               {contactGroups.map(({ contacts, country }) => (
                 <section key={country.code} className="emergency-country-group" aria-label={country.name}>
                   {isMultiCountry ? <h3>{country.name}</h3> : null}
-                  <div className="space-y-2">
+                  <div className="stitch-sos-country-list">
                     {contacts.map((contact) => (
                       <div
                         key={`${country.code}-${contact.id}`}
-                        className="emergency-contact-card rounded-md border border-zinc-200 bg-zinc-50 p-3"
+                        className="stitch-sos-contact emergency-contact-card"
                       >
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="min-w-0">
-                            <p className="text-sm font-semibold text-ink">{contact.label}</p>
-                            <p className="mt-1 text-xs leading-5 text-zinc-600">
+                        <div>
+                          <div>
+                            <p>{contact.label}</p>
+                            <span>
                               {contact.description}
-                            </p>
+                            </span>
                           </div>
                           {contact.number ? (
                             <a
                               href={`tel:${contact.number}`}
-                              className="emergency-call-link shrink-0 rounded-md bg-red-700 px-3 py-2 text-sm font-semibold text-white hover:bg-red-800"
+                              className="stitch-sos-call emergency-call-link"
                             >
                               {t("sos.callNumber", { number: contact.number })}
                             </a>
