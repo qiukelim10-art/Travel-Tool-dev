@@ -79,6 +79,65 @@ const shareTokenHeader = "x-trip-share-token";
 const editorTokenHeader = "x-trip-editor-token";
 const travelerIdHeader = "x-trip-traveler-id";
 
+const accessCopy = {
+  en: {
+    workspace: "Trip Workspace",
+    sanctuary: "Private Sanctuary",
+    privateAccess: "Private access",
+    privateWorkspace: "Private workspace",
+    languageLabel: "Switch to Chinese",
+    languageButton: "中文",
+    loadingTitle: "Loading private trip access",
+    loadingDescription: "Checking the private trip link...",
+    setupTitle: "Create private trip access",
+    setupDescription: "This creates one unguessable private trip link. Anyone with the link can view and edit this workspace.",
+    setupCreating: "Creating...",
+    setupCreate: "Create private access",
+    setupError: "Unable to configure trip access.",
+    readyTitle: "Private access is ready",
+    readyDescription: "Copy this private link now. Anyone with it can open and edit the trip workspace.",
+    privateLinkLabel: "Private trip link",
+    copy: "Copy",
+    continue: "Continue to dashboard",
+    requiredTitle: "Private trip link required",
+    requiredDescription: "Open the private unguessable trip link, or paste its token here.",
+    tokenLabel: "Private trip token",
+    tokenPlaceholder: "Private trip token",
+    tokenMissing: "Paste the private trip token or open the private trip link.",
+    tokenInvalid: "Private trip link is invalid.",
+    checking: "Checking...",
+    openTrip: "Open trip"
+  },
+  zh: {
+    workspace: "行程工作区",
+    sanctuary: "私人协作空间",
+    privateAccess: "私密访问",
+    privateWorkspace: "私人工作区",
+    languageLabel: "切换到英文",
+    languageButton: "EN",
+    loadingTitle: "正在检查私密行程访问",
+    loadingDescription: "正在验证私密行程链接...",
+    setupTitle: "创建私密行程访问",
+    setupDescription: "这会创建一个不可猜测的私密行程链接。持有链接的人可以查看并编辑这个工作区。",
+    setupCreating: "创建中...",
+    setupCreate: "创建私密访问",
+    setupError: "无法配置行程访问。",
+    readyTitle: "私密访问已准备好",
+    readyDescription: "现在复制这个私密链接。持有链接的人可以打开并编辑行程工作区。",
+    privateLinkLabel: "私密行程链接",
+    copy: "复制",
+    continue: "进入工作区",
+    requiredTitle: "需要私密行程链接",
+    requiredDescription: "请打开私密行程链接，或在这里粘贴 token。",
+    tokenLabel: "私密行程 token",
+    tokenPlaceholder: "私密行程 token",
+    tokenMissing: "请粘贴私密行程 token，或打开私密行程链接。",
+    tokenInvalid: "私密行程链接无效。",
+    checking: "检查中...",
+    openTrip: "打开行程"
+  }
+} as const;
+
 export function TripAccessProvider({ children }: { children: ReactNode }) {
   const [configured, setConfigured] = useState(false);
   const [authorized, setAuthorized] = useState(false);
@@ -392,11 +451,13 @@ export function TripAccessProvider({ children }: { children: ReactNode }) {
 
 export function TripAccessGate({ children }: { children: ReactNode }) {
   const access = useTripAccess();
+  const { language } = useLanguage();
+  const copy = accessCopy[language];
   const [setupResult, setSetupResult] = useState<TripAccessSetupResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   if (access.loading) {
-    return <AccessFrame title="Loading private trip access" description="Checking the private trip link..." />;
+    return <AccessFrame title={copy.loadingTitle} description={copy.loadingDescription} />;
   }
 
   if (!access.configured) {
@@ -523,6 +584,8 @@ function AccessSetup({
   onSetup: () => Promise<TripAccessSetupResult>;
   setupResult: TripAccessSetupResult | null;
 }) {
+  const { language } = useLanguage();
+  const copy = accessCopy[language];
   const [submitting, setSubmitting] = useState(false);
 
   async function submitSetup(event: FormEvent<HTMLFormElement>) {
@@ -534,7 +597,7 @@ function AccessSetup({
     try {
       await onSetup();
     } catch (setupError) {
-      onError(setupError instanceof Error ? setupError.message : "Unable to configure trip access.");
+      onError(copy.setupError);
     } finally {
       setSubmitting(false);
     }
@@ -546,36 +609,38 @@ function AccessSetup({
 
   return (
     <AccessFrame
-      title="Create private trip access"
-      description="This creates one unguessable private trip link. Anyone with the link can view and edit this workspace."
+      title={copy.setupTitle}
+      description={copy.setupDescription}
     >
-      <form onSubmit={submitSetup} className="mt-5 grid gap-3">
+      <form onSubmit={submitSetup} className="stitch-access-form">
         <button
           type="submit"
           disabled={submitting}
-          className="rounded-md bg-moss px-3 py-2 text-sm font-semibold text-white disabled:opacity-60"
+          className="stitch-access-button"
         >
-          {submitting ? "Creating..." : "Create private access"}
+          {submitting ? copy.setupCreating : copy.setupCreate}
         </button>
       </form>
-      {error ? <p className="mt-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p> : null}
+      {error ? <p className="stitch-access-status stitch-access-status--error">{error}</p> : null}
     </AccessFrame>
   );
 }
 
 function SetupResult({ result, onContinue }: { result: TripAccessSetupResult; onContinue: () => void }) {
-  const { t } = useLanguage();
+  const { language, t } = useLanguage();
+  const copy = accessCopy[language];
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   return (
     <AccessFrame
-      title="Private access is ready"
-      description="Copy this private link now. Anyone with it can open and edit the trip workspace."
+      title={copy.readyTitle}
+      description={copy.readyDescription}
     >
-      <div className="mt-5 grid gap-3">
+      <div className="stitch-access-form">
         <TokenBox
-          label="Private trip link"
+          copyLabel={copy.copy}
+          label={copy.privateLinkLabel}
           value={result.privateLink}
           onCopy={() =>
             void copyText(
@@ -590,18 +655,20 @@ function SetupResult({ result, onContinue }: { result: TripAccessSetupResult; on
         <button
           type="button"
           onClick={onContinue}
-          className="rounded-md bg-moss px-3 py-2 text-sm font-semibold text-white"
+          className="stitch-access-button"
         >
-          Continue to dashboard
+          {copy.continue}
         </button>
-        {notice ? <p className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">{notice}</p> : null}
-        {error ? <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p> : null}
+        {notice ? <p className="stitch-access-status stitch-access-status--success">{notice}</p> : null}
+        {error ? <p className="stitch-access-status stitch-access-status--error">{error}</p> : null}
       </div>
     </AccessFrame>
   );
 }
 
 function PrivateLinkGate({ onSubmit }: { onSubmit: (token: string) => Promise<void> }) {
+  const { language } = useLanguage();
+  const copy = accessCopy[language];
   const [token, setToken] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -609,7 +676,7 @@ function PrivateLinkGate({ onSubmit }: { onSubmit: (token: string) => Promise<vo
   async function submitToken(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!token.trim()) {
-      setError("Paste the private trip token or open the private trip link.");
+      setError(copy.tokenMissing);
       return;
     }
 
@@ -618,8 +685,8 @@ function PrivateLinkGate({ onSubmit }: { onSubmit: (token: string) => Promise<vo
 
     try {
       await onSubmit(token);
-    } catch (submitError) {
-      setError(submitError instanceof Error ? submitError.message : "Private trip link is invalid.");
+    } catch {
+      setError(copy.tokenInvalid);
     } finally {
       setSubmitting(false);
     }
@@ -627,26 +694,28 @@ function PrivateLinkGate({ onSubmit }: { onSubmit: (token: string) => Promise<vo
 
   return (
     <AccessFrame
-      title="Private trip link required"
-      description="Open the private unguessable trip link, or paste its token here."
+      title={copy.requiredTitle}
+      description={copy.requiredDescription}
     >
-      <form onSubmit={submitToken} className="mt-5 grid gap-3">
+      <form onSubmit={submitToken} className="stitch-access-form">
         <input
           type="password"
+          aria-label={copy.tokenLabel}
+          autoComplete="off"
           value={token}
           onChange={(event) => setToken(event.target.value)}
-          placeholder="Private trip token"
-          className="rounded-md border border-zinc-200 bg-white px-3 py-2 text-base text-zinc-700"
+          placeholder={copy.tokenPlaceholder}
+          className="stitch-access-input"
         />
         <button
           type="submit"
           disabled={submitting}
-          className="rounded-md bg-moss px-3 py-2 text-sm font-semibold text-white disabled:opacity-60"
+          className="stitch-access-button"
         >
-          {submitting ? "Checking..." : "Open trip"}
+          {submitting ? copy.checking : copy.openTrip}
         </button>
       </form>
-      {error ? <p className="mt-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p> : null}
+      {error ? <p className="stitch-access-status stitch-access-status--error">{error}</p> : null}
     </AccessFrame>
   );
 }
@@ -660,34 +729,97 @@ function AccessFrame({
   description: string;
   title: string;
 }) {
+  const { language, toggleLanguage } = useLanguage();
+  const copy = accessCopy[language];
+
   return (
-    <main className="min-h-screen bg-paper px-4 py-10 text-ink">
-      <section className="mx-auto max-w-lg rounded-lg border border-zinc-200 bg-white p-5 shadow-soft">
-        <p className="text-xs font-semibold uppercase tracking-[0.08em] text-terracotta">
-          Italy Trip 2026
-        </p>
-        <h1 className="mt-2 text-2xl font-semibold text-ink">{title}</h1>
-        <p className="mt-2 text-sm leading-6 text-zinc-600">{description}</p>
-        {children}
-      </section>
-    </main>
+    <div className="stitch-today-page stitch-access-page">
+      <header className="stitch-top-appbar stitch-budget-topbar stitch-access-topbar">
+        <div className="stitch-budget-top-title">
+          <h1>{copy.workspace}</h1>
+          <p>{copy.sanctuary}</p>
+        </div>
+        <button
+          type="button"
+          onClick={toggleLanguage}
+          className="stitch-access-language-button"
+          aria-label={copy.languageLabel}
+        >
+          <span className="material-symbols-outlined" aria-hidden="true">language</span>
+          <span>{copy.languageButton}</span>
+        </button>
+      </header>
+
+      <nav className="stitch-side-nav" aria-label={copy.privateAccess}>
+        <div className="stitch-side-brand">
+          <strong>{copy.workspace}</strong>
+          <span>{copy.sanctuary}</span>
+        </div>
+        <div className="stitch-side-links">
+          <div className="stitch-side-link stitch-side-link--active">
+            <span className="material-symbols-outlined" aria-hidden="true">lock</span>
+            <span>{copy.privateAccess}</span>
+          </div>
+        </div>
+      </nav>
+
+      <main className="stitch-main-canvas stitch-access-main">
+        <section className="stitch-trip-heading stitch-access-heading" aria-label={copy.privateWorkspace}>
+          <div>
+            <h1>{copy.workspace}</h1>
+            <p>{copy.sanctuary}</p>
+          </div>
+          <div className="stitch-desktop-actions">
+            <button
+              type="button"
+              onClick={toggleLanguage}
+              className="stitch-access-language-button stitch-access-language-button--surface"
+              aria-label={copy.languageLabel}
+            >
+              <span className="material-symbols-outlined" aria-hidden="true">language</span>
+              <span>{copy.languageButton}</span>
+            </button>
+          </div>
+        </section>
+
+        <section className="stitch-card stitch-access-card" aria-labelledby="access-title">
+          <div className="stitch-access-icon" aria-hidden="true">
+            <span className="material-symbols-outlined">lock</span>
+          </div>
+          <p className="cockpit-eyebrow stitch-access-eyebrow">{copy.privateWorkspace}</p>
+          <h1 id="access-title">{title}</h1>
+          <p>{description}</p>
+          {children}
+        </section>
+      </main>
+    </div>
   );
 }
 
-function TokenBox({ label, onCopy, value }: { label: string; onCopy: () => void; value: string }) {
+function TokenBox({
+  copyLabel,
+  label,
+  onCopy,
+  value
+}: {
+  copyLabel: string;
+  label: string;
+  onCopy: () => void;
+  value: string;
+}) {
   return (
-    <div className="rounded-md border border-zinc-200 bg-zinc-50 p-3">
-      <div className="flex items-center justify-between gap-3">
-        <p className="text-sm font-semibold text-ink">{label}</p>
+    <div className="stitch-access-token-box">
+      <div>
+        <p>{label}</p>
         <button
           type="button"
           onClick={onCopy}
-          className="shrink-0 rounded-md border border-zinc-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-ink"
+          className="stitch-access-button stitch-access-button--secondary"
         >
-          Copy
+          {copyLabel}
         </button>
       </div>
-      <p className="mt-2 break-all rounded-md bg-white px-3 py-2 text-xs leading-5 text-zinc-700">{value}</p>
+      <p>{value}</p>
     </div>
   );
 }
