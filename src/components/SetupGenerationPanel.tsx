@@ -55,6 +55,7 @@ type SetupFormState = {
   endDate: string;
   timezone: string;
   routeText: string;
+  generationRouteStops: string[];
   overnightText: string;
   dayTripText: string;
   travelerCount: number;
@@ -89,7 +90,16 @@ const copy = {
     routeEmpty: "No route stops yet.",
     routePlaceholder: "Shanghai -> Hangzhou -> Suzhou",
     routeHelp: "Use arrows, commas, slash, semicolons, or line breaks. Examples: Shanghai, Tokyo, Seoul, Osaka -> Kyoto -> Nara.",
-    routeDerivedHelp: "Generated from the Route stops section above. Edit route stops there to change this route.",
+    routeDerivedHelp: "Generated from the starter route stops above. These stops feed the regenerated workspace location content.",
+    routeStopEditor: "Starter route stops",
+    routeStopEditorHelp:
+      "Used only for this starter generation. Editing these stops does not change the Trip Settings route stops above until generation is run.",
+    routeStopName: "Route stop {index}",
+    routeStopPlaceholder: "City name",
+    addRouteStop: "Add route stop",
+    removeRouteStop: "Remove",
+    moveRouteStopUp: "Up",
+    moveRouteStopDown: "Down",
     overnightCities: "Overnight cities",
     overnightPlaceholder: "Osaka -> Kyoto",
     overnightHelp: "Leave blank to use route cities as overnight stops, except day trip cities.",
@@ -137,10 +147,36 @@ const copy = {
     previewSplitOn: "shared expense splitting fields enabled",
     previewSplitOff: "light money planning without emphasizing settlements",
     impactTitle: "Confirm generation",
+    previewTripSummary: "Trip summary",
+    previewTripSetup: "Trip setup",
+    previewWillCreate: "Will create",
+    previewDuration: "Duration",
+    previewRoute: "Route",
+    previewOvernightChip: "{count} overnight cities",
+    previewDayTripChip: "{count} day trips",
+    previewSeasonChip: "{value} season",
+    previewSeasonalPackingChip: "Seasonal packing included",
+    previewEmergencyLabel: "Emergency",
+    previewBudgetLabel: "Budget",
+    previewSplittingLabel: "Expense splitting",
+    previewEnabled: "Enabled",
+    previewLight: "Light",
+    splittingEnabledStatus: "Shared splitting enabled",
+    splittingDisabledStatus: "Light money planning",
+    edit: "Edit",
     impact:
-      "This will regenerate the starter workspace based on your setup. Existing starter checklists, booking checklist, packing list, documents checklist, reminders, itinerary shell, budget category plan, and expense ledger will be replaced.",
-    confirm: "I understand this will replace the current active workspace starter content.",
-    run: "Generate starter workspace",
+      "Regenerating will replace existing starter-generated content.",
+    impactReplaceTitle: "Will be replaced:",
+    replaceStarterChecklists: "Starter checklists",
+    replaceBookingChecklist: "Booking checklist",
+    replacePackingList: "Packing list",
+    replaceDocuments: "Documents",
+    replaceReminders: "Reminders",
+    replaceItinerary: "Itinerary shell",
+    replaceBudget: "Budget categories",
+    replaceExpenseLedger: "Expense ledger",
+    confirm: "I understand this will replace current starter content.",
+    run: "Regenerate starter workspace",
     running: "Generating...",
     loading: "Loading current trip settings before generation...",
     disabled: "Private trip access is required to run setup generation.",
@@ -182,9 +218,12 @@ const copy = {
     titleDashboard: "先用引导式模板生成",
     titleGate: "先设置这个 trip workspace",
     titleSettings: "引导式模板生成",
-    descriptionDashboard: "先选择目的地模板、路线、日期、成员、行程偏好、交通、住宿、行李、分账和币种，再生成 workspace 初始内容。",
-    descriptionGate: "先回答这些 starter 问题。生成完成后，系统会带你进入已经套用目的地模板和规划默认值的首页。",
-    descriptionSettings: "基于当前行程基础信息、成员、路线和目的地规则模板，重新生成安全的 starter workspace。",
+    descriptionDashboard:
+      "先选择目的地模板、路线、日期、成员、行程偏好、交通、住宿、行李、分账和币种，再生成 workspace 初始内容。",
+    descriptionGate:
+      "先回答这些 starter 问题。生成完成后，系统会带你进入已经套用目的地模板和规划默认值的首页。",
+    descriptionSettings:
+      "基于当前行程基础信息、成员、路线和目的地规则模板，重新生成安全的 starter workspace。",
     basics: "行程基础",
     template: "目的地模板",
     tripName: "行程名称",
@@ -193,7 +232,16 @@ const copy = {
     routeEmpty: "还没有路线城市。",
     routePlaceholder: "上海 -> 杭州 -> 苏州",
     routeHelp: "支持箭头、逗号、斜杠、分号、顿号或换行。例如：上海、东京、首尔、大阪 -> 京都 -> 奈良。",
-    routeDerivedHelp: "这里会根据上方 Route stops 自动生成。需要修改路线时，请编辑上方路线城市。",
+    routeDerivedHelp: "这里根据上方 starter route stops 生成，并会用于重新生成后的 location 内容。",
+    routeStopEditor: "Starter route stops",
+    routeStopEditorHelp:
+      "这里只影响本次 starter generation。编辑这些 stop 不会直接修改上方 Trip Settings 的 Route stops，直到你运行生成。",
+    routeStopName: "Route stop {index}",
+    routeStopPlaceholder: "城市名称",
+    addRouteStop: "添加 route stop",
+    removeRouteStop: "删除",
+    moveRouteStopUp: "上移",
+    moveRouteStopDown: "下移",
     overnightCities: "过夜城市",
     overnightPlaceholder: "大阪 -> 京都",
     overnightHelp: "留空时会按路线城市生成住宿，但会排除当天往返城市。",
@@ -241,10 +289,35 @@ const copy = {
     previewSplitOn: "启用 paid by / split between 分账字段",
     previewSplitOff: "轻量预算规划，不强调结算建议",
     impactTitle: "确认生成",
-    impact:
-      "这会根据你的设置重新生成 starter workspace。现有的 starter checklist、booking checklist、packing list、documents checklist、reminders、itinerary shell、预算分类计划和费用账本会被替换。",
-    confirm: "我确认要替换当前 active workspace 的 starter 内容。",
-    run: "生成 starter workspace",
+    previewTripSummary: "行程摘要",
+    previewTripSetup: "行程设置",
+    previewWillCreate: "将生成",
+    previewDuration: "时长",
+    previewRoute: "路线",
+    previewOvernightChip: "{count} 个过夜城市",
+    previewDayTripChip: "{count} 个当天往返",
+    previewSeasonChip: "{value} 季节",
+    previewSeasonalPackingChip: "包含季节 packing",
+    previewEmergencyLabel: "Emergency",
+    previewBudgetLabel: "预算",
+    previewSplittingLabel: "分账",
+    previewEnabled: "启用",
+    previewLight: "轻量",
+    splittingEnabledStatus: "已启用共同分账",
+    splittingDisabledStatus: "轻量预算规划",
+    edit: "编辑",
+    impact: "重新生成会替换现有 starter-generated 内容。",
+    impactReplaceTitle: "将被替换：",
+    replaceStarterChecklists: "Starter checklists",
+    replaceBookingChecklist: "Booking checklist",
+    replacePackingList: "Packing list",
+    replaceDocuments: "Documents",
+    replaceReminders: "Reminders",
+    replaceItinerary: "Itinerary shell",
+    replaceBudget: "预算分类",
+    replaceExpenseLedger: "费用账本",
+    confirm: "我理解这会替换当前 starter 内容。",
+    run: "重新生成 starter workspace",
     running: "生成中...",
     loading: "正在读取当前行程设置，读取完成后才能生成模板。",
     disabled: "需要有效 private link 才能运行模板生成。",
@@ -305,7 +378,6 @@ export function SetupGenerationPanel({
   const title = surface === "gate" ? labels.titleGate : surface === "dashboard" ? labels.titleDashboard : labels.titleSettings;
   const description =
     surface === "gate" ? labels.descriptionGate : surface === "dashboard" ? labels.descriptionDashboard : labels.descriptionSettings;
-  const derivedRouteText = useMemo(() => buildRouteTextFromBase(base), [base]);
 
   useEffect(() => {
     if (!loadingBase && !initializedFromBase) {
@@ -313,16 +385,6 @@ export function SetupGenerationPanel({
       setInitializedFromBase(true);
     }
   }, [base, initializedFromBase, loadingBase, surface]);
-
-  useEffect(() => {
-    if (surface !== "settings" || loadingBase || !initializedFromBase) {
-      return;
-    }
-
-    setForm((current) =>
-      current.routeText === derivedRouteText ? current : { ...current, routeText: derivedRouteText }
-    );
-  }, [derivedRouteText, initializedFromBase, loadingBase, surface]);
 
   const generationInput = useMemo(() => buildGenerationInput(form), [form]);
   const formValidationError = useMemo(() => validateSetupForm(form, labels), [form, labels]);
@@ -390,25 +452,62 @@ export function SetupGenerationPanel({
   function updateTemplate(value: string) {
     const nextTemplate = value as SetupTemplateId;
     const option = getSetupTemplateOption(nextTemplate);
-    setForm((current) => ({
-      ...current,
-      template: nextTemplate,
-      destination: option.defaultDestination,
-      routeText: surface === "settings" ? derivedRouteText : option.defaultCities.join(" -> "),
-      overnightText: "",
-      dayTripText: "",
-      timezone: option.defaultTimezone,
-      mainCurrency: recommendedCurrenciesForTemplate(nextTemplate)[0],
-      additionalCurrencies: recommendedCurrenciesForTemplate(nextTemplate).slice(1)
-    }));
+    setForm((current) => {
+      const nextRouteStops = surface === "settings" ? current.generationRouteStops : [];
+      return {
+        ...current,
+        template: nextTemplate,
+        destination: option.defaultDestination,
+        routeText: surface === "settings" ? formatGenerationRouteText(nextRouteStops) : option.defaultCities.join(" -> "),
+        generationRouteStops: nextRouteStops,
+        overnightText: "",
+        dayTripText: "",
+        timezone: option.defaultTimezone,
+        mainCurrency: recommendedCurrenciesForTemplate(nextTemplate)[0],
+        additionalCurrencies: recommendedCurrenciesForTemplate(nextTemplate).slice(1)
+      };
+    });
   }
+
+  function updateGenerationRouteStop(index: number, value: string) {
+    setForm((current) => {
+      const nextStops = editableGenerationRouteStops(current.generationRouteStops);
+      nextStops[index] = value;
+      return withGenerationRouteStops(current, nextStops);
+    });
+  }
+
+  function addGenerationRouteStop() {
+    setForm((current) => withGenerationRouteStops(current, [...editableGenerationRouteStops(current.generationRouteStops), ""]));
+  }
+
+  function removeGenerationRouteStop(index: number) {
+    setForm((current) => {
+      const nextStops = editableGenerationRouteStops(current.generationRouteStops).filter((_, stopIndex) => stopIndex !== index);
+      return withGenerationRouteStops(current, nextStops.length > 0 ? nextStops : [""]);
+    });
+  }
+
+  function moveGenerationRouteStop(index: number, direction: -1 | 1) {
+    setForm((current) => {
+      const nextIndex = index + direction;
+      const nextStops = editableGenerationRouteStops(current.generationRouteStops);
+      if (nextIndex < 0 || nextIndex >= nextStops.length) {
+        return current;
+      }
+      [nextStops[index], nextStops[nextIndex]] = [nextStops[nextIndex], nextStops[index]];
+      return withGenerationRouteStops(current, nextStops);
+    });
+  }
+
+  const generationRouteStopRows = editableGenerationRouteStops(form.generationRouteStops);
 
   return (
     <section
       className={
         surface === "gate"
-          ? "rounded-lg border border-zinc-200 bg-white p-5 shadow-soft sm:p-6"
-          : "rounded-lg border border-zinc-200 bg-white p-4 shadow-soft"
+          ? "setup-generation-panel rounded-lg border border-zinc-200 bg-white p-5 shadow-soft sm:p-6"
+          : "setup-generation-panel rounded-lg border border-zinc-200 bg-white p-4 shadow-soft"
       }
     >
       <div className="flex flex-col gap-2">
@@ -476,11 +575,74 @@ export function SetupGenerationPanel({
           </div>
           {surface === "settings" ? (
             <div className="mt-3 block text-sm font-semibold text-ink">
-              <span>{labels.route}</span>
-              <p className="mt-2 rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-base font-normal text-zinc-700 sm:text-sm">
-                {form.routeText || labels.routeEmpty}
-              </p>
-              <span className="mt-1 block text-xs font-normal leading-5 text-zinc-500">{labels.routeDerivedHelp}</span>
+              <div className="rounded-xl border border-emerald-100 bg-emerald-50/40 px-3 py-3">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <p className="text-sm font-semibold text-emerald-950">{labels.routeStopEditor}</p>
+                    <p className="mt-1 text-xs font-normal leading-5 text-emerald-900/70">{labels.routeStopEditorHelp}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={addGenerationRouteStop}
+                    disabled={generationRouteStopRows.length >= 8}
+                    className="rounded-full border border-emerald-200 bg-white px-3 py-1.5 text-xs font-semibold text-emerald-900 disabled:cursor-not-allowed disabled:text-zinc-400"
+                  >
+                    {labels.addRouteStop}
+                  </button>
+                </div>
+                <div className="mt-3 grid gap-2">
+                  {generationRouteStopRows.map((stop, index) => (
+                    <div
+                      key={index}
+                      className="grid gap-2 rounded-xl border border-emerald-100 bg-white/90 p-2 sm:grid-cols-[minmax(0,1fr)_auto]"
+                    >
+                      <label className="block text-xs font-semibold text-emerald-900/75">
+                        <span className="sr-only">{labels.routeStopName.replace("{index}", String(index + 1))}</span>
+                        <input
+                          name={`${surface}-setup-generation-route-stop-${index + 1}`}
+                          value={stop}
+                          onChange={(event) => updateGenerationRouteStop(index, event.target.value)}
+                          placeholder={labels.routeStopPlaceholder}
+                          className="block min-h-11 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-base font-semibold text-ink shadow-[0_1px_0_rgba(0,0,0,0.03)] sm:text-sm"
+                        />
+                      </label>
+                      <div className="flex flex-wrap items-end gap-2 sm:justify-end">
+                        <button
+                          type="button"
+                          onClick={() => moveGenerationRouteStop(index, -1)}
+                          disabled={index === 0}
+                          className="rounded-full border border-zinc-200 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-700 disabled:cursor-not-allowed disabled:bg-zinc-50 disabled:text-zinc-400"
+                        >
+                          {labels.moveRouteStopUp}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => moveGenerationRouteStop(index, 1)}
+                          disabled={index === generationRouteStopRows.length - 1}
+                          className="rounded-full border border-zinc-200 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-700 disabled:cursor-not-allowed disabled:bg-zinc-50 disabled:text-zinc-400"
+                        >
+                          {labels.moveRouteStopDown}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => removeGenerationRouteStop(index)}
+                          disabled={generationRouteStopRows.length <= 1}
+                          className="rounded-full border border-red-100 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 disabled:cursor-not-allowed disabled:border-zinc-200 disabled:bg-white disabled:text-zinc-400"
+                        >
+                          {labels.removeRouteStop}
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="mt-3">
+                <span>{labels.route}</span>
+                <p className="mt-2 rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-base font-normal text-zinc-700 sm:text-sm">
+                  {form.routeText || labels.routeEmpty}
+                </p>
+                <span className="mt-1 block text-xs font-normal leading-5 text-zinc-500">{labels.routeDerivedHelp}</span>
+              </div>
             </div>
           ) : (
             <label className="mt-3 block text-sm font-semibold text-ink">
@@ -526,8 +688,8 @@ export function SetupGenerationPanel({
 
         <fieldset className="rounded-md border border-zinc-200 p-3">
           <legend className="px-1 text-sm font-semibold text-ink">{labels.travelers}</legend>
-          <div className="grid gap-3 md:grid-cols-2">
-            <NumberField
+          <div className="rounded-xl border border-zinc-100 bg-white">
+            <TravelerCountRow
               name={`${surface}-setup-traveler-count`}
               label={labels.travelerCount}
               value={form.travelerCount}
@@ -541,13 +703,16 @@ export function SetupGenerationPanel({
                 }))
               }
             />
-          </div>
-          <div className="mt-3 grid gap-3 md:grid-cols-2">
+            <div className="border-t border-zinc-100 px-3 py-2 text-xs font-semibold uppercase tracking-[0.08em] text-zinc-500">
+              {labels.travelers}
+            </div>
             {Array.from({ length: form.travelerCount }, (_, index) => (
-              <TextField
+              <TravelerNameRow
                 key={index}
                 name={`${surface}-setup-traveler-${index + 1}`}
                 label={labels.travelerName.replace("{index}", String(index + 1))}
+                index={index}
+                editLabel={labels.edit}
                 value={form.travelerNames[index] ?? ""}
                 onChange={(value) =>
                   setForm((current) => {
@@ -559,13 +724,12 @@ export function SetupGenerationPanel({
               />
             ))}
           </div>
-          <p className="mt-2 text-xs leading-5 text-zinc-500">{labels.travelerHint}</p>
         </fieldset>
 
         <fieldset className="rounded-md border border-zinc-200 p-3">
           <legend className="px-1 text-sm font-semibold text-ink">{labels.preferences}</legend>
-          <div className="grid gap-3 md:grid-cols-2">
-            <SelectField
+          <div className="overflow-hidden rounded-xl border border-zinc-100 bg-white">
+            <CompactSelectRow
               name={`${surface}-setup-trip-style`}
               label={labels.tripStyle}
               value={form.tripStyle}
@@ -573,7 +737,7 @@ export function SetupGenerationPanel({
               optionLabels={setupTripStyleLabels(labels)}
               onChange={(value) => setForm((current) => ({ ...current, tripStyle: value as SetupTripStyle }))}
             />
-            <SelectField
+            <CompactSelectRow
               name={`${surface}-setup-transport`}
               label={labels.transport}
               value={form.transportMode}
@@ -581,7 +745,7 @@ export function SetupGenerationPanel({
               optionLabels={setupTransportLabels(labels)}
               onChange={(value) => setForm((current) => ({ ...current, transportMode: value as SetupTransportMode }))}
             />
-            <SelectField
+            <CompactSelectRow
               name={`${surface}-setup-accommodation`}
               label={labels.accommodation}
               value={form.accommodationMode}
@@ -589,7 +753,7 @@ export function SetupGenerationPanel({
               optionLabels={setupAccommodationLabels(labels)}
               onChange={(value) => setForm((current) => ({ ...current, accommodationMode: value as SetupAccommodationMode }))}
             />
-            <SelectField
+            <CompactSelectRow
               name={`${surface}-setup-luggage`}
               label={labels.luggage}
               value={form.luggageMode}
@@ -602,19 +766,16 @@ export function SetupGenerationPanel({
 
         <fieldset className="rounded-md border border-zinc-200 p-3">
           <legend className="px-1 text-sm font-semibold text-ink">{labels.budget}</legend>
-          <div className="grid gap-3 md:grid-cols-2">
-            <SelectField
+          <div className="overflow-hidden rounded-xl border border-zinc-100 bg-white">
+            <SplittingToggleRow
               name={`${surface}-setup-expense-splitting`}
               label={labels.expenseSplitting}
-              value={form.expenseSplittingEnabled ? "yes" : "no"}
-              options={["yes", "no"]}
-              optionLabels={new Map([
-                ["yes", labels.expenseSplittingYes],
-                ["no", labels.expenseSplittingNo]
-              ])}
-              onChange={(value) => setForm((current) => ({ ...current, expenseSplittingEnabled: value === "yes" }))}
+              checked={form.expenseSplittingEnabled}
+              onLabel={labels.splittingEnabledStatus}
+              offLabel={labels.splittingDisabledStatus}
+              onChange={(checked) => setForm((current) => ({ ...current, expenseSplittingEnabled: checked }))}
             />
-            <SelectField
+            <CompactSelectRow
               name={`${surface}-setup-main-currency`}
               label={labels.mainCurrency}
               value={form.mainCurrency}
@@ -639,15 +800,32 @@ export function SetupGenerationPanel({
 
       <PreviewBox labels={labels} preview={preview} />
 
-      <div className="mt-4 rounded-md border border-amber-200 bg-amber-50 px-3 py-2">
-        <p className="text-sm font-semibold text-amber-900">{labels.impactTitle}</p>
-        <p className="mt-1 text-sm leading-6 text-amber-800">{labels.impact}</p>
-        <label className="mt-3 flex gap-2 text-sm font-semibold text-amber-900">
+      <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-3 py-3">
+        <div className="flex items-start gap-2">
+          <span className="mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-amber-200 text-xs font-semibold text-amber-900">
+            !
+          </span>
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-amber-950">{labels.impactTitle}</p>
+            <p className="mt-1 text-sm leading-5 text-amber-900">{labels.impact}</p>
+          </div>
+        </div>
+        <div className="mt-3">
+          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-amber-900/75">{labels.impactReplaceTitle}</p>
+          <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
+            {replacementImpactItems(labels).map((item) => (
+              <span key={item} className="rounded-full border border-amber-200 bg-white/75 px-3 py-1.5 text-xs font-semibold text-amber-950">
+                {item}
+              </span>
+            ))}
+          </div>
+        </div>
+        <label className="mt-3 flex min-h-11 cursor-pointer items-center gap-2 rounded-lg border border-amber-200 bg-white/60 px-3 py-2 text-sm font-semibold text-amber-950">
           <input
             type="checkbox"
             checked={confirmed}
             onChange={(event) => setConfirmed(event.target.checked)}
-            className="mt-1 h-4 w-4 shrink-0 rounded border-amber-300"
+            className="h-4 w-4 shrink-0 rounded border-amber-300"
           />
           <span>{labels.confirm}</span>
         </label>
@@ -678,7 +856,7 @@ export function SetupGenerationPanel({
         type="button"
         onClick={() => void runSetupGeneration()}
         disabled={!canRunGeneration}
-        className="mt-4 w-full rounded-md bg-moss px-3 py-2 text-base font-semibold text-white disabled:cursor-not-allowed disabled:bg-zinc-300 disabled:text-zinc-600 sm:w-auto sm:text-sm"
+        className="mt-3 w-full rounded-md bg-amber-800 px-3 py-2.5 text-base font-semibold text-white shadow-[0_1px_0_rgba(0,0,0,0.08)] hover:bg-amber-900 disabled:cursor-not-allowed disabled:bg-zinc-300 disabled:text-zinc-600 disabled:shadow-none sm:w-auto sm:text-sm"
       >
         {submitting ? labels.running : labels.run}
       </button>
@@ -691,7 +869,9 @@ function buildInitialForm(base: SetupGenerationBase, surface: SetupGenerationPan
   const currencies = base.defaultCurrencies.length > 0 ? base.defaultCurrencies : recommendedCurrenciesForTemplate(template);
   const travelerCount = clampTravelerCount(base.travelerNames.length || 4);
   const templateOption = getSetupTemplateOption(template);
-  const routeText = buildRouteTextFromBase(base);
+  const routeTextFromBase = buildRouteTextFromBase(base);
+  const generationRouteStops = surface === "settings" ? parseRouteText(routeTextFromBase) : [];
+  const routeText = routeTextFromBase || (surface === "settings" ? "" : templateOption.defaultCities.join(" -> "));
 
   return {
     template,
@@ -700,7 +880,8 @@ function buildInitialForm(base: SetupGenerationBase, surface: SetupGenerationPan
     startDate: base.startDate ?? "",
     endDate: base.endDate ?? "",
     timezone: base.timezone || templateOption.defaultTimezone,
-    routeText: routeText || (surface === "settings" ? "" : templateOption.defaultCities.join(" -> ")),
+    routeText,
+    generationRouteStops,
     overnightText: "",
     dayTripText: "",
     travelerCount,
@@ -724,6 +905,30 @@ function buildRouteTextFromBase(base: SetupGenerationBase) {
   return routeCities.join(" -> ");
 }
 
+function editableGenerationRouteStops(routeStops: string[]) {
+  return routeStops.length > 0 ? routeStops.slice() : [""];
+}
+
+function withGenerationRouteStops(form: SetupFormState, routeStops: string[]): SetupFormState {
+  const nextStops = routeStops.length > 0 ? routeStops : [""];
+  return {
+    ...form,
+    generationRouteStops: nextStops,
+    routeText: formatGenerationRouteText(nextStops)
+  };
+}
+
+function formatGenerationRouteText(routeStops: string[]) {
+  return routeStops.map((stop) => stop.trim()).filter(Boolean).join(" -> ");
+}
+
+function routeCitiesForGeneration(form: SetupFormState) {
+  const routeStopCities = Array.from(
+    new Set(form.generationRouteStops.map((stop) => stop.trim()).filter(Boolean))
+  ).slice(0, 8);
+  return routeStopCities.length > 0 ? routeStopCities : parseRouteText(form.routeText);
+}
+
 function buildGenerationInput(form: SetupFormState): SetupGenerationInput {
   return {
     templateId: form.template,
@@ -735,7 +940,7 @@ function buildGenerationInput(form: SetupFormState): SetupGenerationInput {
     defaultCurrencies: Array.from(new Set([form.mainCurrency, ...form.additionalCurrencies])),
     travelerCount: form.travelerCount,
     travelerNames: normalizeTravelerNames(form.travelerNames, form.travelerCount),
-    routeCities: parseRouteText(form.routeText),
+    routeCities: routeCitiesForGeneration(form),
     overnightCities: parseRouteText(form.overnightText),
     dayTripCities: parseRouteText(form.dayTripText),
     tripStyle: form.tripStyle,
@@ -856,39 +1061,107 @@ function PreviewBox({
   const previewStartDate = settings.startDate ?? "";
   const previewEndDate = settings.endDate ?? "";
   const duration = getDurationInfo(previewStartDate, previewEndDate);
-  const items = [
-    labels.previewDates
-      .replace("{start}", formatIsoDate(previewStartDate))
-      .replace("{end}", formatIsoDate(previewEndDate))
-      .replace("{duration}", formatDurationLabel(duration, labels)),
-    labels.previewRouteCities.replace("{value}", summary.routeCities.length > 0 ? summary.routeCities.join(" · ") : "-"),
-    labels.previewRouteLegs.replace("{value}", summary.routeLegs.length > 0 ? summary.routeLegs.join("; ") : "-"),
-    labels.previewOvernights.replace("{count}", String(summary.overnightCityCount)),
-    labels.previewDayTrips.replace("{count}", String(summary.dayTripCityCount)),
-    labels.previewSeason
-      .replace("{value}", summary.seasonLabel)
-      .replace("{flag}", summary.seasonalPackingIncluded ? labels.flagYes : labels.flagNo),
-    labels.previewPacking.replace("{count}", String(summary.packingCount)),
-    labels.previewDocuments.replace("{count}", String(summary.documentCount)),
-    labels.previewBookings.replace("{count}", String(summary.bookingCount)),
-    labels.previewReminders.replace("{count}", String(summary.reminderCount)),
-    labels.previewItinerary.replace("{count}", String(summary.itineraryDayCount)),
-    labels.previewEmergency,
-    labels.previewMoney.replace("{count}", String(summary.budgetCategoryCount)),
-    summary.expenseSplittingEnabled ? labels.previewSplitOn : labels.previewSplitOff
+  const routeLabel = summary.routeCities.length > 0 ? summary.routeCities.map(formatCityLabel).join(" → ") : "-";
+  const summaryRows = [
+    {
+      label: labels.previewDates.replace(": {start} to {end} ({duration})", "").replace("日期：{start} 至 {end}（{duration}）", ""),
+      value: `${formatIsoDate(previewStartDate)} → ${formatIsoDate(previewEndDate)}`
+    },
+    { label: labels.previewDuration, value: formatDurationLabel(duration, labels) },
+    { label: labels.previewRoute, value: routeLabel }
+  ];
+  const setupChips = [
+    labels.previewOvernightChip.replace("{count}", String(summary.overnightCityCount)),
+    labels.previewDayTripChip.replace("{count}", String(summary.dayTripCityCount)),
+    labels.previewSeasonChip.replace("{value}", compactSeasonLabel(summary.seasonLabel)),
+    summary.seasonalPackingIncluded ? labels.previewSeasonalPackingChip : labels.previewSeason.replace("{value}", summary.seasonLabel).replace("{flag}", labels.flagNo)
+  ];
+  const generatedItems = [
+    { label: compactPreviewCountLabel(labels.previewPacking), value: `${summary.packingCount} items` },
+    { label: compactPreviewCountLabel(labels.previewDocuments), value: `${summary.documentCount} items` },
+    { label: compactPreviewCountLabel(labels.previewBookings), value: `${summary.bookingCount} items` },
+    { label: compactPreviewCountLabel(labels.previewReminders), value: String(summary.reminderCount) },
+    { label: compactPreviewCountLabel(labels.previewItinerary), value: `${summary.itineraryDayCount} shell days` },
+    { label: labels.previewEmergencyLabel, value: "1 card" },
+    { label: labels.previewBudgetLabel, value: `${summary.budgetCategoryCount} categories` },
+    {
+      label: labels.previewSplittingLabel,
+      value: summary.expenseSplittingEnabled ? labels.previewEnabled : labels.previewLight
+    }
   ];
 
   return (
-    <div className="mt-4 rounded-md border border-sky/70 bg-sky/25 px-3 py-3">
-      <p className="text-sm font-semibold text-ink">{labels.previewTitle}</p>
-      <p className="mt-1 text-sm text-zinc-600">{labels.previewIntro}</p>
-      <ul className="mt-2 grid gap-1 text-sm leading-6 text-zinc-700 sm:grid-cols-2">
-        {items.map((item) => (
-          <li key={item}>- {item}</li>
-        ))}
-      </ul>
+    <div className="mt-4 rounded-xl border border-sky/70 bg-sky/25 px-3 py-3">
+      <div className="flex flex-col gap-1">
+        <p className="text-sm font-semibold text-ink">{labels.previewTitle}</p>
+        <p className="text-sm text-zinc-600">{labels.previewIntro}</p>
+      </div>
+      <div className="mt-3 rounded-lg border border-white/70 bg-white/65">
+        <p className="border-b border-zinc-100 px-3 py-2 text-xs font-semibold uppercase tracking-[0.08em] text-zinc-500">
+          {labels.previewTripSummary}
+        </p>
+        <div className="divide-y divide-zinc-100">
+          {summaryRows.map((row) => (
+            <div key={row.label} className="grid min-h-11 grid-cols-[5.7rem_minmax(0,1fr)] items-start gap-3 px-3 py-2 text-sm">
+              <span className="text-zinc-500">{row.label}</span>
+              <span className="min-w-0 break-words font-semibold leading-5 text-ink">{row.value}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="mt-3">
+        <p className="text-xs font-semibold uppercase tracking-[0.08em] text-zinc-500">{labels.previewTripSetup}</p>
+        <div className="mt-2 grid grid-cols-2 gap-2">
+          {setupChips.map((chip) => (
+            <span key={chip} className="min-h-9 rounded-full border border-white/70 bg-white/75 px-3 py-2 text-xs font-semibold text-zinc-700">
+              {chip}
+            </span>
+          ))}
+        </div>
+      </div>
+      <div className="mt-3">
+        <p className="text-xs font-semibold uppercase tracking-[0.08em] text-zinc-500">{labels.previewWillCreate}</p>
+        <div className="mt-2 grid grid-cols-2 gap-2">
+          {generatedItems.map((item) => (
+            <div key={item.label} className="rounded-lg border border-white/70 bg-white/75 px-3 py-2">
+              <p className="break-words text-xs font-semibold leading-4 text-zinc-500">{item.label}</p>
+              <p className="mt-0.5 break-words text-sm font-semibold leading-5 text-ink">{item.value}</p>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
+}
+
+function compactPreviewCountLabel(value: string) {
+  return value
+    .replace("{count}", "")
+    .trim();
+}
+
+function formatCityLabel(value: string) {
+  return value
+    .split(/(\s+|-)/)
+    .map((part) => (/^[a-z]/.test(part) ? part.charAt(0).toUpperCase() + part.slice(1) : part))
+    .join("");
+}
+
+function compactSeasonLabel(value: string) {
+  return formatCityLabel(value.split(/\s+in\s+/i)[0] || value);
+}
+
+function replacementImpactItems(labels: Labels) {
+  return [
+    labels.replaceStarterChecklists,
+    labels.replaceBookingChecklist,
+    labels.replacePackingList,
+    labels.replaceDocuments,
+    labels.replaceReminders,
+    labels.replaceItinerary,
+    labels.replaceBudget,
+    labels.replaceExpenseLedger
+  ];
 }
 
 function setupTemplateLabels(labels: Labels) {
@@ -967,7 +1240,7 @@ function TextField({
   );
 }
 
-function NumberField({
+function TravelerCountRow({
   name,
   label,
   value,
@@ -982,18 +1255,78 @@ function NumberField({
   max: number;
   onChange: (value: number) => void;
 }) {
+  const canDecrease = value > min;
+  const canIncrease = value < max;
   return (
-    <label className="block text-sm font-semibold text-ink">
-      {label}
+    <div className="grid min-h-12 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-3 py-2">
+      <label htmlFor={name} className="min-w-0 text-sm font-semibold text-zinc-600">
+        {label}
+      </label>
+      <div className="inline-flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => onChange(clampTravelerCount(value - 1))}
+          disabled={!canDecrease}
+          aria-label={`${label} -`}
+          className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-zinc-200 bg-zinc-50 text-base font-semibold text-ink disabled:cursor-not-allowed disabled:text-zinc-300"
+        >
+          -
+        </button>
+        <input
+          id={name}
+          type="number"
+          name={name}
+          value={value}
+          min={min}
+          max={max}
+          onChange={(event) => onChange(clampTravelerCount(Number(event.target.value)))}
+          className="h-9 w-11 rounded-full border border-zinc-200 bg-white text-center text-sm font-semibold text-ink [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+        />
+        <button
+          type="button"
+          onClick={() => onChange(clampTravelerCount(value + 1))}
+          disabled={!canIncrease}
+          aria-label={`${label} +`}
+          className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-zinc-200 bg-zinc-50 text-base font-semibold text-ink disabled:cursor-not-allowed disabled:text-zinc-300"
+        >
+          +
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function TravelerNameRow({
+  name,
+  label,
+  index,
+  value,
+  editLabel,
+  onChange
+}: {
+  name: string;
+  label: string;
+  index: number;
+  value: string;
+  editLabel: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <label className="grid min-h-12 cursor-text grid-cols-[1.75rem_minmax(0,1fr)_auto] items-center gap-2 border-t border-zinc-100 px-3 py-2">
+      <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-zinc-100 text-xs font-semibold text-zinc-600">
+        {index + 1}
+      </span>
+      <span className="sr-only">{label}</span>
       <input
-        type="number"
         name={name}
         value={value}
-        min={min}
-        max={max}
-        onChange={(event) => onChange(clampTravelerCount(Number(event.target.value)))}
-        className="mt-2 block w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-base text-zinc-700 sm:text-sm"
+        aria-label={label}
+        onChange={(event) => onChange(event.target.value)}
+        className="min-w-0 border-0 bg-transparent px-0 py-1 text-sm font-semibold text-ink outline-none placeholder:text-zinc-400"
       />
+      <span className="text-xs font-semibold text-moss" aria-hidden="true">
+        {editLabel}
+      </span>
     </label>
   );
 }
@@ -1032,6 +1365,80 @@ function SelectField({
   );
 }
 
+function CompactSelectRow({
+  name,
+  label,
+  value,
+  options,
+  optionLabels,
+  onChange
+}: {
+  name: string;
+  label: string;
+  value: string;
+  options: readonly string[];
+  optionLabels?: Map<string, string>;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <label className="relative grid min-h-12 cursor-pointer grid-cols-[minmax(7.5rem,0.85fr)_minmax(0,1fr)_auto] items-center gap-3 border-t border-zinc-100 px-3 py-2 first:border-t-0">
+      <span className="min-w-0 text-sm font-semibold text-zinc-600">{label}</span>
+      <span className="pointer-events-none min-w-0 break-words text-right text-sm font-semibold leading-5 text-ink">
+        {optionLabels?.get(value) ?? value}
+      </span>
+      <span className="pointer-events-none text-zinc-400" aria-hidden="true">
+        &gt;
+      </span>
+      <select
+        name={name}
+        value={value}
+        aria-label={label}
+        onChange={(event) => onChange(event.target.value)}
+        className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+      >
+        {options.map((option) => (
+          <option key={option} value={option}>
+            {optionLabels?.get(option) ?? option}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
+function SplittingToggleRow({
+  name,
+  label,
+  checked,
+  onLabel,
+  offLabel,
+  onChange
+}: {
+  name: string;
+  label: string;
+  checked: boolean;
+  onLabel: string;
+  offLabel: string;
+  onChange: (checked: boolean) => void;
+}) {
+  return (
+    <label className="grid min-h-12 cursor-pointer grid-cols-[minmax(7.5rem,0.85fr)_minmax(0,1fr)_auto] items-center gap-3 px-3 py-2">
+      <span className="min-w-0 text-sm font-semibold text-zinc-600">{label}</span>
+      <span className="min-w-0 break-words text-right text-sm font-semibold leading-5 text-ink">{checked ? onLabel : offLabel}</span>
+      <input
+        name={name}
+        type="checkbox"
+        checked={checked}
+        onChange={(event) => onChange(event.target.checked)}
+        className="peer sr-only"
+      />
+      <span className="relative h-6 w-11 rounded-full bg-zinc-200 transition peer-checked:bg-moss peer-checked:[&>span]:translate-x-5">
+        <span className="absolute left-1 top-1 h-4 w-4 rounded-full bg-white shadow-sm transition" />
+      </span>
+    </label>
+  );
+}
+
 function CurrencyChecklist({
   label,
   mainCurrency,
@@ -1045,27 +1452,38 @@ function CurrencyChecklist({
 }) {
   const selected = new Set(values);
   return (
-    <fieldset className="mt-3 rounded-md border border-zinc-100 p-3">
+    <fieldset className="mt-3 rounded-xl border border-zinc-100 bg-white p-3">
       <legend className="px-1 text-sm font-semibold text-ink">{label}</legend>
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
+      <div className="mt-1 grid grid-cols-3 gap-2 sm:grid-cols-4">
         {bookingCurrencies
           .filter((currency) => currency !== mainCurrency)
-          .map((currency) => (
-            <label key={currency} className="flex items-center gap-2 rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-700">
-              <input
-                type="checkbox"
-                checked={selected.has(currency)}
-                onChange={(event) => {
-                  const next = event.target.checked
-                    ? Array.from(new Set([...values, currency]))
-                    : values.filter((value) => value !== currency);
-                  onChange(next);
-                }}
-                className="h-4 w-4 shrink-0 rounded border-zinc-300"
-              />
-              <span>{currency}</span>
-            </label>
-          ))}
+          .map((currency) => {
+            const isSelected = selected.has(currency);
+            return (
+              <label
+                key={currency}
+                className={[
+                  "flex min-h-10 cursor-pointer items-center justify-center rounded-full border px-2 text-sm font-semibold transition",
+                  isSelected
+                    ? "border-moss bg-moss text-white shadow-[0_1px_0_rgba(0,0,0,0.08)]"
+                    : "border-zinc-200 bg-zinc-50 text-zinc-700 hover:border-zinc-300"
+                ].join(" ")}
+              >
+                <input
+                  type="checkbox"
+                  checked={isSelected}
+                  onChange={(event) => {
+                    const next = event.target.checked
+                      ? Array.from(new Set([...values, currency]))
+                      : values.filter((value) => value !== currency);
+                    onChange(next.filter((value) => value !== mainCurrency));
+                  }}
+                  className="sr-only"
+                />
+                <span>{currency}</span>
+              </label>
+            );
+          })}
       </div>
     </fieldset>
   );

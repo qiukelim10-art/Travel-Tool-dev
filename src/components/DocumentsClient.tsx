@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import type { Traveler } from "@/data/tripData";
 import { useTripAccess } from "@/lib/access";
 import { useLanguage } from "@/lib/i18n";
@@ -33,24 +33,18 @@ type ProtectedFilter = "All" | "Protected" | "Open";
 
 const requestTimeoutMs = 10000;
 
-const travelerStatusClass: Record<DocumentTravelerStatus, string> = {
-  required: "bg-amber-100 text-amber-800 ring-amber-200",
-  saved: "bg-emerald-100 text-emerald-800 ring-emerald-200",
-  not_needed: "bg-zinc-100 text-zinc-700 ring-zinc-200"
-};
-
 const priorityClass: Record<DocumentPriority, string> = {
   High: "bg-red-100 text-red-800 ring-red-200",
   Medium: "bg-amber-100 text-amber-800 ring-amber-200",
   Low: "bg-zinc-100 text-zinc-700 ring-zinc-200"
 };
 
-const statusClass: Record<DocumentStatus, string> = {
-  Needed: "bg-amber-100 text-amber-800 ring-amber-200",
-  Saved: "bg-sky-100 text-sky-800 ring-sky-200",
-  Printed: "bg-indigo-100 text-indigo-800 ring-indigo-200",
-  Ready: "bg-emerald-100 text-emerald-800 ring-emerald-200",
-  "Not needed": "bg-zinc-100 text-zinc-700 ring-zinc-200"
+const statusToneClass: Record<DocumentStatus, string> = {
+  Needed: "documents-status-pill--attention",
+  Saved: "documents-status-pill--saved",
+  Printed: "documents-status-pill--ready",
+  Ready: "documents-status-pill--ready",
+  "Not needed": "documents-status-pill--muted"
 };
 
 function orderTravelers(travelers: Traveler[]) {
@@ -368,114 +362,113 @@ export function DocumentsClient({ travelers: initialTravelers }: DocumentsClient
         </div>
       </section>
 
-      <section className="documents-journal-grid">
-        <div className="documents-main-stack">
-          <section className="documents-control-card">
-            <div className="documents-control-card__header">
-              <div className="min-w-0">
-                <p className="cockpit-eyebrow">{t("documents.checklist")}</p>
-	                <h2>
-	                  {t("documents.visibleSummary", { visible: visibleDocuments.length, total: documents.length })}
-	                </h2>
-	                <p>{t("documents.controlHint")}</p>
-              </div>
-              <button
-                type="button"
-                onClick={formOpen ? () => resetForm() : openAddForm}
-                disabled={loading || !canEdit}
-                className="documents-action-button documents-action-button--primary disabled:opacity-60"
-              >
-                {formOpen ? t("documents.closeForm") : t("documents.addItem")}
-              </button>
+      <section className="documents-main-stack">
+        <section className="documents-control-card stitch-card">
+          <div className="documents-control-card__header">
+            <div className="min-w-0">
+              <p className="cockpit-eyebrow">{t("documents.checklist")}</p>
+              <h2>
+                {t("documents.visibleSummary", { visible: visibleDocuments.length, total: documents.length })}
+              </h2>
+              <p>{t("documents.controlHint")}</p>
             </div>
-
-            <div className="documents-stats-strip">
-              <CompactStat label={t("documents.summary.total")} value={String(documents.length)} />
-              <CompactStat label={t("documents.summary.highPriority")} value={String(highPriorityCount)} />
-              <CompactStat label={t("documents.summary.readySaved")} value={String(readySavedCount)} />
-              <CompactStat
-                label={t("documents.summary.protectedLinks")}
-                value={String(protectedCount)}
-                warm={protectedCount > 0}
-              />
-            </div>
-
-            <FilterSection
-              filtersOpen={filtersOpen}
-              categoryFilter={categoryFilter}
-              priorityFilter={priorityFilter}
-              statusFilter={statusFilter}
-              protectedFilter={protectedFilter}
-              onToggleFilters={() => setFiltersOpen((current) => !current)}
-              onCategoryChange={setCategoryFilter}
-              onPriorityChange={setPriorityFilter}
-              onStatusChange={setStatusFilter}
-              onProtectedChange={setProtectedFilter}
-            />
-          </section>
-
-          {formOpen ? (
-            <DocumentForm
-              form={form}
-              travelers={activeTravelers}
-              editingId={editingId}
-              submitting={submitting}
-              onSubmit={submitDocument}
-              onCancel={() => resetForm()}
-              onChange={setForm}
-              onTravelerStatusChange={changeTravelerStatus}
-            />
-          ) : null}
-
-          {error ? (
-            <div
-              role="alert"
-              className="documents-inline-status documents-inline-status--error"
+            <button
+              type="button"
+              onClick={formOpen ? () => resetForm() : openAddForm}
+              disabled={loading || !canEdit}
+              className="documents-action-button documents-action-button--primary disabled:opacity-60"
             >
-              <p>{error}</p>
-              <button
-                type="button"
-                onClick={() => void loadDocuments()}
-                disabled={loading}
-                className="documents-action-button documents-action-button--danger disabled:opacity-60"
-              >
-                {loading ? t("common.retrying") : t("common.retry")}
-              </button>
-            </div>
-          ) : null}
+              {formOpen ? t("documents.closeForm") : t("documents.addItem")}
+            </button>
+          </div>
 
-          {notice ? (
-            <p
-              role="status"
-              aria-live="polite"
-              className="documents-inline-status documents-inline-status--success"
+          <div className="documents-stats-strip">
+            <CompactStat label={t("documents.summary.total")} value={String(documents.length)} />
+            <CompactStat label={t("documents.summary.highPriority")} value={String(highPriorityCount)} />
+            <CompactStat label={t("documents.summary.readySaved")} value={String(readySavedCount)} />
+            <CompactStat
+              label={t("documents.summary.protectedLinks")}
+              value={String(protectedCount)}
+              warm={protectedCount > 0}
+            />
+          </div>
+
+          <FilterSection
+            filtersOpen={filtersOpen}
+            categoryFilter={categoryFilter}
+            priorityFilter={priorityFilter}
+            statusFilter={statusFilter}
+            protectedFilter={protectedFilter}
+            onToggleFilters={() => setFiltersOpen((current) => !current)}
+            onCategoryChange={setCategoryFilter}
+            onPriorityChange={setPriorityFilter}
+            onStatusChange={setStatusFilter}
+            onProtectedChange={setProtectedFilter}
+          />
+        </section>
+
+        {formOpen && !editingId ? (
+          <DocumentForm
+            form={form}
+            travelers={activeTravelers}
+            editingId={editingId}
+            submitting={submitting}
+            onSubmit={submitDocument}
+            onCancel={() => resetForm()}
+            onChange={setForm}
+            onTravelerStatusChange={changeTravelerStatus}
+          />
+        ) : null}
+
+        {error ? (
+          <div
+            role="alert"
+            className="documents-inline-status documents-inline-status--error"
+          >
+            <p>{error}</p>
+            <button
+              type="button"
+              onClick={() => void loadDocuments()}
+              disabled={loading}
+              className="documents-action-button documents-action-button--danger disabled:opacity-60"
             >
-              {notice}
-            </p>
-          ) : null}
+              {loading ? t("common.retrying") : t("common.retry")}
+            </button>
+          </div>
+        ) : null}
 
-          {loading ? (
-            <p role="status" aria-live="polite" className="documents-loading-card">
-              {t("documents.loading")}
-            </p>
-          ) : null}
+        {notice ? (
+          <p
+            role="status"
+            aria-live="polite"
+            className="documents-inline-status documents-inline-status--success"
+          >
+            {notice}
+          </p>
+        ) : null}
 
-          {!loading && documents.length === 0 ? (
-            <p className="documents-empty-card">
-              {t("documents.empty")}
-            </p>
-          ) : null}
+        {loading ? (
+          <p role="status" aria-live="polite" className="documents-loading-card">
+            {t("documents.loading")}
+          </p>
+        ) : null}
 
-          {!loading && documents.length > 0 && visibleDocuments.length === 0 ? (
-            <p className="documents-empty-card">
-              {t("documents.emptyFiltered")}
-            </p>
-          ) : null}
+        {!loading && documents.length === 0 ? (
+          <p className="documents-empty-card">
+            {t("documents.empty")}
+          </p>
+        ) : null}
 
-          <section className="documents-list">
-            {visibleDocuments.map((document) => (
+        {!loading && documents.length > 0 && visibleDocuments.length === 0 ? (
+          <p className="documents-empty-card">
+            {t("documents.emptyFiltered")}
+          </p>
+        ) : null}
+
+        <section className="documents-list" aria-label={t("documents.checklist")}>
+          {visibleDocuments.map((document) => (
+            <Fragment key={document.id}>
               <DocumentCard
-                key={document.id}
                 document={document}
                 deletingId={deletingId}
                 unlockingId={unlockingId}
@@ -489,28 +482,21 @@ export function DocumentsClient({ travelers: initialTravelers }: DocumentsClient
                 onEdit={startEditing}
                 onDelete={removeDocument}
               />
-            ))}
-          </section>
-        </div>
-
-        <aside className="documents-side-rail" aria-label={t("documents.mastheadOverview")}>
-          <section className="documents-rail-card">
-	            <p className="cockpit-eyebrow">{t("documents.filters.linkAccess")}</p>
-	            <h3>{t("documents.protected")}</h3>
-	            <p>{t("documents.linkAccessHint")}</p>
-          </section>
-          <section className="documents-rail-card">
-            <p className="cockpit-eyebrow">{t("documents.form.travelerStatuses")}</p>
-            <h3>{t("documents.checklist")}</h3>
-            <div className="documents-rail-statuses">
-              {documentTravelerStatuses.map((status) => (
-                <span key={status} className={travelerStatusClass[status]}>
-                  {translateOption(language, status)}
-                </span>
-              ))}
-            </div>
-          </section>
-        </aside>
+              {formOpen && editingId === document.id ? (
+                <DocumentForm
+                  form={form}
+                  travelers={activeTravelers}
+                  editingId={editingId}
+                  submitting={submitting}
+                  onSubmit={submitDocument}
+                  onCancel={() => resetForm()}
+                  onChange={setForm}
+                  onTravelerStatusChange={changeTravelerStatus}
+                />
+              ) : null}
+            </Fragment>
+          ))}
+        </section>
       </section>
     </div>
   );
@@ -745,7 +731,7 @@ function FilterSection({
               `${t("common.priority")}: ${translateOption(language, priorityFilter)}`,
               `${t("common.status")}: ${translateOption(language, statusFilter)}`,
               `${t("documents.filters.linkAccess")}: ${translateOption(language, protectedFilter)}`
-            ].join(" · ")}
+            ].join(" / ")}
           </p>
         </div>
         <button
@@ -822,111 +808,178 @@ function DocumentCard({
 }) {
   const { language, t } = useLanguage();
   const folderUrl = document.externalUrl ?? unlockedUrl ?? null;
+  const [detailsOpen, setDetailsOpen] = useState(false);
   const [actionsOpen, setActionsOpen] = useState(false);
+  const actionsRef = useRef<HTMLDivElement | null>(null);
+  const lockedFolder = !folderUrl && document.requiresPasscode && document.hasExternalUrl;
+  const canAddLink = !folderUrl && !lockedFolder && canEdit;
+
+  useEffect(() => {
+    if (!actionsOpen) {
+      return;
+    }
+
+    function handlePointerDown(event: PointerEvent) {
+      if (actionsRef.current?.contains(event.target as Node)) {
+        return;
+      }
+
+      setActionsOpen(false);
+    }
+
+    window.addEventListener("pointerdown", handlePointerDown);
+    return () => window.removeEventListener("pointerdown", handlePointerDown);
+  }, [actionsOpen]);
 
   return (
-    <article className="documents-item-card">
+    <article className={`documents-item-card ${actionsOpen ? "documents-item-card--menu-open" : ""}`}>
       <div className="documents-item-card__header">
-        <div className="documents-item-card__copy">
-          <div className="documents-badge-row">
-            <span className={`documents-badge ${priorityClass[document.priority]}`}>
-              {translateOption(language, document.priority)}
-            </span>
-            <span className={`documents-badge ${statusClass[document.status]}`}>
-              {translateOption(language, document.status)}
-            </span>
-            {document.requiresPasscode ? (
-              <span className="documents-badge bg-red-100 text-red-800 ring-1 ring-red-200">
-                {t("documents.protected")}
+        <div className="documents-item-card__lead">
+          <div className="documents-item-card__copy">
+            <div className="documents-badge-row">
+              <span className={`documents-badge ${priorityClass[document.priority]}`}>
+                {translateOption(language, document.priority)}
               </span>
-            ) : null}
-          </div>
-          <h3>{document.title}</h3>
-          <p>{translateOption(language, document.category)}</p>
-        </div>
-        {canEdit ? (
+              {document.requiresPasscode ? (
+                <span className="documents-badge documents-badge--protected">
+                  {t("documents.protected")}
+                </span>
+              ) : null}
+            </div>
+            <h3>{document.title}</h3>
+            <p>{translateOption(language, document.category)}</p>
+	          </div>
+	        </div>
+        <div className="documents-item-card__side" ref={actionsRef}>
           <div className="documents-card-actions">
             <button
               type="button"
               onClick={() => setActionsOpen((current) => !current)}
               aria-expanded={actionsOpen}
-              className="documents-action-button documents-action-button--ghost"
+              aria-haspopup="menu"
+              aria-label={t("common.moreActions")}
+              className="documents-action-button documents-action-button--ghost documents-more-button"
             >
-              {t("common.manage")}
+              <span className="material-symbols-outlined" aria-hidden="true">
+                more_horiz
+              </span>
             </button>
+
             {actionsOpen ? (
-              <div className="documents-card-actions__menu">
+              <div className="documents-card-actions__menu" role="menu">
                 <button
                   type="button"
-                  onClick={() => onEdit(document)}
+                  onClick={() => {
+                    setDetailsOpen((current) => !current);
+                    setActionsOpen(false);
+                  }}
+                  role="menuitem"
                   className="documents-action-button documents-action-button--ghost"
                 >
-                  {t("common.edit")}
+                  {detailsOpen ? t("common.hideDetails") : t("common.details")}
                 </button>
-                <button
-                  type="button"
-                  onClick={() => void onDelete(document)}
-                  disabled={deletingId === document.id}
-                  className="documents-action-button documents-action-button--danger disabled:opacity-60"
-                >
-                  {deletingId === document.id ? t("common.deleting") : t("common.delete")}
-                </button>
+
+                {canEdit ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActionsOpen(false);
+                      onEdit(document);
+                    }}
+                    role="menuitem"
+                    className="documents-action-button documents-action-button--ghost"
+                  >
+                    {t("common.manage")}
+                  </button>
+                ) : null}
+
+                {folderUrl ? (
+                  <a
+                    href={folderUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    onClick={() => setActionsOpen(false)}
+                    role="menuitem"
+                    className="documents-action-button documents-action-button--primary"
+                  >
+                    {t("documents.openFolder")}
+                  </a>
+                ) : canAddLink ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActionsOpen(false);
+                      onEdit(document);
+                    }}
+                    role="menuitem"
+                    className="documents-action-button documents-action-button--primary"
+                  >
+                    {t("documents.addLink")}
+                  </button>
+                ) : null}
+
+                {canEdit ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActionsOpen(false);
+                      void onDelete(document);
+                    }}
+                    disabled={deletingId === document.id}
+                    role="menuitem"
+                    className="documents-action-button documents-action-button--danger disabled:opacity-60"
+                  >
+                    {deletingId === document.id ? t("common.deleting") : t("common.delete")}
+                  </button>
+                ) : null}
               </div>
             ) : null}
           </div>
-        ) : null}
-      </div>
+        </div>
+	      </div>
 
-      {document.notes ? <p className="documents-item-card__notes">{document.notes}</p> : null}
+	      {detailsOpen ? (
+	        <div className="documents-item-card__details">
+	          <span className={`documents-status-pill ${statusToneClass[document.status]}`}>
+	            {translateOption(language, document.status)}
+	          </span>
 
-      <div className="documents-folder-access">
-        {folderUrl ? (
-          <a
-            href={folderUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="documents-action-button documents-action-button--primary"
-          >
-            {t("documents.openFolder")}
-          </a>
-        ) : document.requiresPasscode && document.hasExternalUrl ? (
-          <div className="documents-unlock-grid">
-            <input
-              type="password"
-              name={`document-${document.id}-unlock-code`}
-              autoComplete="off"
-              value={passcodeValue}
-              onChange={(event) => onPasscodeChange(event.target.value)}
-              placeholder={t("documents.form.accessCode")}
-              className="documents-unlock-input"
-            />
-            <button
-              type="button"
-              onClick={() => void onUnlock(document)}
-              disabled={unlockingId === document.id}
-              className="documents-action-button documents-action-button--ghost disabled:opacity-60"
-            >
-              {unlockingId === document.id ? t("documents.unlocking") : t("documents.unlockFolder")}
-            </button>
-          </div>
-        ) : (
-          <div className="documents-folder-empty">
-            <p>{t("documents.noFolder")}</p>
-            {canEdit ? (
-              <button
-                type="button"
-                onClick={() => onEdit(document)}
-                className="documents-action-button documents-action-button--primary"
-              >
-                {t("documents.addLink")}
-              </button>
-            ) : null}
-          </div>
-        )}
-      </div>
-    </article>
-  );
-}
+	          {document.notes ? <p className="documents-item-card__notes">{document.notes}</p> : null}
+
+	          {!folderUrl ? (
+	            <div className="documents-folder-access">
+	              {lockedFolder ? (
+	                <div className="documents-unlock-grid">
+	                  <input
+	                    type="password"
+	                    name={`document-${document.id}-unlock-code`}
+	                    autoComplete="off"
+	                    value={passcodeValue}
+	                    onChange={(event) => onPasscodeChange(event.target.value)}
+	                    placeholder={t("documents.form.accessCode")}
+	                    className="documents-unlock-input"
+	                  />
+	                  <button
+	                    type="button"
+	                    onClick={() => void onUnlock(document)}
+	                    disabled={unlockingId === document.id}
+	                    className="documents-action-button documents-action-button--ghost disabled:opacity-60"
+	                  >
+	                    {unlockingId === document.id ? t("documents.unlocking") : t("documents.unlockFolder")}
+	                  </button>
+	                </div>
+	              ) : (
+	                <div className="documents-folder-empty">
+	                  <p>{t("documents.noFolder")}</p>
+	                </div>
+	              )}
+	            </div>
+	          ) : null}
+	        </div>
+	      ) : null}
+	    </article>
+	  );
+	}
 
 function TextField({
   name,

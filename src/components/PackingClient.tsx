@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, type FormEvent, type KeyboardEvent } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 import type { Traveler } from "@/data/tripData";
 import { useTripAccess } from "@/lib/access";
 import { useLanguage } from "@/lib/i18n";
@@ -34,15 +34,9 @@ const statusClass: Record<PackingTravelerStatus, string> = {
 };
 
 const priorityClass: Record<PackingPriority, string> = {
-  High: "bg-red-100 text-red-800 ring-red-200",
-  Medium: "bg-amber-100 text-amber-800 ring-amber-200",
-  Low: "bg-zinc-100 text-zinc-700 ring-zinc-200"
-};
-
-const overallClass: Record<OverallStatus, string> = {
-  Pending: "bg-amber-100 text-amber-800 ring-amber-200",
-  Completed: "bg-emerald-100 text-emerald-800 ring-emerald-200",
-  "Not assigned": "bg-zinc-100 text-zinc-700 ring-zinc-200"
+  High: "packing-badge--priority-high",
+  Medium: "packing-badge--priority-medium",
+  Low: "packing-badge--priority-low"
 };
 
 function handleStatusMenuKeyboard(event: KeyboardEvent<HTMLDivElement>) {
@@ -432,13 +426,138 @@ export function PackingClient({ travelers }: PackingClientProps) {
     }
   }
 
+  function renderPackingForm() {
+    return (
+      <form
+        onSubmit={submitPackingItem}
+        className="packing-form packing-editor-card mobile-safe-form box-border w-full max-w-full min-w-0 overflow-hidden"
+      >
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-xs font-semibold uppercase tracking-[0.08em] text-terracotta">
+              {editingId ? t("packing.editItem") : t("packing.addItemEyebrow")}
+            </p>
+            <h2 className="mt-1 text-xl font-semibold text-ink">
+              {editingId ? t("packing.editTitle") : t("packing.addTitle")}
+            </h2>
+          </div>
+          <button
+            type="button"
+            onClick={resetForm}
+            className="itinerary-action-button itinerary-action-button--ghost max-w-full"
+          >
+            {t("common.cancel")}
+          </button>
+        </div>
+
+        <div className="mt-4 grid min-w-0 gap-3 md:grid-cols-2">
+          <TextField
+            name="packing-item-name"
+            label={t("packing.form.itemName")}
+            value={form.name}
+            onChange={(value) => setForm((current) => ({ ...current, name: value }))}
+            placeholder={t("packing.form.itemPlaceholder")}
+          />
+          <SelectField
+            name="packing-category"
+            label={t("common.category")}
+            value={form.category}
+            options={packingCategories}
+            getOptionLabel={(value) => translateOption(language, value)}
+            onChange={(value) => changeCategory(value as PackingCategory)}
+          />
+          <SelectField
+            name="packing-priority"
+            label={t("common.priority")}
+            value={form.priority}
+            options={packingPriorities}
+            getOptionLabel={(value) => translateOption(language, value)}
+            onChange={(value) => setForm((current) => ({ ...current, priority: value as PackingPriority }))}
+          />
+          <TextField
+            name="packing-quantity"
+            label={t("common.quantity")}
+            type="number"
+            value={form.quantity === null || form.quantity === undefined ? "" : String(form.quantity)}
+            onChange={(value) =>
+              setForm((current) => ({ ...current, quantity: value ? Number(value) : null }))
+            }
+            placeholder="1"
+          />
+          <TextField
+            name="packing-sort-order"
+            label={t("common.sortOrder")}
+            type="number"
+            value={String(form.sortOrder ?? 0)}
+            onChange={(value) => setForm((current) => ({ ...current, sortOrder: value ? Number(value) : 0 }))}
+            placeholder="0"
+          />
+        </div>
+
+        <label className="mt-3 block text-sm font-semibold text-ink">
+          {t("common.notes")}
+          <textarea
+            name="packing-notes"
+            autoComplete="off"
+            value={form.notes ?? ""}
+            onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))}
+            className="packing-textarea"
+            placeholder={t("packing.form.notesPlaceholder")}
+          />
+        </label>
+
+        <div className="packing-traveler-matrix">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold text-ink">{t("packing.form.travelerStatuses")}</p>
+              <p className="mt-1 text-xs text-zinc-500">
+                {t("packing.form.travelerStatusHint")}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={applyCategoryDefault}
+              className="itinerary-action-button itinerary-action-button--ghost packing-small-action"
+            >
+              {t("packing.form.applyDefault")}
+            </button>
+          </div>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {activeTravelers.map((traveler) => (
+              <SelectField
+                key={traveler.id}
+                name={`packing-traveler-${traveler.id}-status`}
+                label={traveler.name}
+                value={
+                  form.statuses.find((status) => status.travelerId === traveler.id)?.status ??
+                  "required"
+                }
+                options={packingTravelerStatuses}
+                onChange={(value) => changeTravelerStatus(traveler.id, value as PackingTravelerStatus)}
+                getOptionLabel={(value) => translateOption(language, value)}
+              />
+            ))}
+          </div>
+        </div>
+
+        <button
+          type="submit"
+          disabled={submitting}
+          className="itinerary-action-button itinerary-action-button--primary mt-4 box-border w-full max-w-full disabled:opacity-60 sm:w-auto"
+        >
+          {submitting ? t("common.saving") : editingId ? t("bookings.saveChanges") : t("packing.addButton")}
+        </button>
+      </form>
+    );
+  }
+
   return (
     <div className="packing-workspace">
 	    <section className="packing-stats-strip" aria-label={t("page.packing.title")}>
-	        <PackingStat label={t("packing.summary.total")} value={String(items.length)} />
-	        <PackingStat label={t("packing.summary.highPriority")} value={String(highPriorityCount)} warm={highPriorityCount > 0} />
-	        <PackingStat label={t("packing.summary.packedProgress")} value={t("packing.summary.packedValue", { packed: packedPeopleItems, total: requiredPeopleItems })} />
-	        <PackingStat label={t("packing.summary.requiredPeopleItems")} value={String(requiredPeopleItems)} />
+	        <PackingStat icon="inventory_2" label={t("packing.summary.total")} value={String(items.length)} />
+	        <PackingStat icon="priority_high" label={t("packing.summary.highPriority")} value={String(highPriorityCount)} warm={highPriorityCount > 0} />
+	        <PackingStat icon="task_alt" label={t("packing.summary.packedProgress")} value={t("packing.summary.packedValue", { packed: packedPeopleItems, total: requiredPeopleItems })} />
+	        <PackingStat icon="groups" label={t("packing.summary.requiredPeopleItems")} value={String(requiredPeopleItems)} />
 	      </section>
 
       <section className="packing-control-card" aria-label={t("page.packing.title")}>
@@ -449,7 +568,8 @@ export function PackingClient({ travelers }: PackingClientProps) {
             disabled={!canEdit}
             className="itinerary-action-button itinerary-action-button--primary disabled:opacity-60"
           >
-            {t("packing.addItem")}
+            <MaterialIcon icon="add" />
+            <span>{t("packing.addItem")}</span>
           </button>
         </div>
         <div className="packing-filter-summary">
@@ -492,128 +612,7 @@ export function PackingClient({ travelers }: PackingClientProps) {
         </div>
       </section>
 
-      {formOpen ? (
-        <form
-          onSubmit={submitPackingItem}
-          className="packing-form packing-editor-card mobile-safe-form box-border w-full max-w-full min-w-0 overflow-hidden"
-        >
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div className="min-w-0">
-              <p className="text-xs font-semibold uppercase tracking-[0.08em] text-terracotta">
-                {editingId ? t("packing.editItem") : t("packing.addItemEyebrow")}
-              </p>
-              <h2 className="mt-1 text-xl font-semibold text-ink">
-                {editingId ? t("packing.editTitle") : t("packing.addTitle")}
-              </h2>
-            </div>
-            <button
-              type="button"
-              onClick={resetForm}
-              className="itinerary-action-button itinerary-action-button--ghost max-w-full"
-            >
-              {t("common.cancel")}
-            </button>
-          </div>
-
-          <div className="mt-4 grid min-w-0 gap-3 md:grid-cols-2">
-            <TextField
-              name="packing-item-name"
-              label={t("packing.form.itemName")}
-              value={form.name}
-              onChange={(value) => setForm((current) => ({ ...current, name: value }))}
-              placeholder={t("packing.form.itemPlaceholder")}
-            />
-            <SelectField
-              name="packing-category"
-              label={t("common.category")}
-              value={form.category}
-              options={packingCategories}
-              getOptionLabel={(value) => translateOption(language, value)}
-              onChange={(value) => changeCategory(value as PackingCategory)}
-            />
-            <SelectField
-              name="packing-priority"
-              label={t("common.priority")}
-              value={form.priority}
-              options={packingPriorities}
-              getOptionLabel={(value) => translateOption(language, value)}
-              onChange={(value) => setForm((current) => ({ ...current, priority: value as PackingPriority }))}
-            />
-            <TextField
-              name="packing-quantity"
-              label={t("common.quantity")}
-              type="number"
-              value={form.quantity === null || form.quantity === undefined ? "" : String(form.quantity)}
-              onChange={(value) =>
-                setForm((current) => ({ ...current, quantity: value ? Number(value) : null }))
-              }
-              placeholder="1"
-            />
-            <TextField
-              name="packing-sort-order"
-              label={t("common.sortOrder")}
-              type="number"
-              value={String(form.sortOrder ?? 0)}
-              onChange={(value) => setForm((current) => ({ ...current, sortOrder: value ? Number(value) : 0 }))}
-              placeholder="0"
-            />
-          </div>
-
-          <label className="mt-3 block text-sm font-semibold text-ink">
-            {t("common.notes")}
-            <textarea
-              name="packing-notes"
-              autoComplete="off"
-              value={form.notes ?? ""}
-              onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))}
-              className="packing-textarea"
-              placeholder={t("packing.form.notesPlaceholder")}
-            />
-          </label>
-
-          <div className="packing-traveler-matrix">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <p className="text-sm font-semibold text-ink">{t("packing.form.travelerStatuses")}</p>
-                <p className="mt-1 text-xs text-zinc-500">
-                  {t("packing.form.travelerStatusHint")}
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={applyCategoryDefault}
-                className="itinerary-action-button itinerary-action-button--ghost packing-small-action"
-              >
-                {t("packing.form.applyDefault")}
-              </button>
-            </div>
-            <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              {activeTravelers.map((traveler) => (
-                <SelectField
-                  key={traveler.id}
-                  name={`packing-traveler-${traveler.id}-status`}
-                  label={traveler.name}
-                  value={
-                    form.statuses.find((status) => status.travelerId === traveler.id)?.status ??
-                    "required"
-                  }
-                  options={packingTravelerStatuses}
-                  onChange={(value) => changeTravelerStatus(traveler.id, value as PackingTravelerStatus)}
-                  getOptionLabel={(value) => translateOption(language, value)}
-                />
-              ))}
-            </div>
-          </div>
-
-          <button
-            type="submit"
-            disabled={submitting}
-            className="itinerary-action-button itinerary-action-button--primary mt-4 box-border w-full max-w-full disabled:opacity-60 sm:w-auto"
-          >
-            {submitting ? t("common.saving") : editingId ? t("bookings.saveChanges") : t("packing.addButton")}
-          </button>
-        </form>
-      ) : null}
+      {formOpen && !editingId ? renderPackingForm() : null}
 
       {error ? (
         <div
@@ -644,36 +643,42 @@ export function PackingClient({ travelers }: PackingClientProps) {
         </p>
       ) : null}
 
-      <section className="packing-category-list" aria-label={t("page.packing.title")}>
-        {groupedItems.map((group) => (
-          <section key={group.category} className="packing-category-section route-line">
-            <div className="packing-category-section__header">
-              <span className="route-dot" />
-              <div>
-                <p>{t("common.category")}</p>
-                <h2>{translateOption(language, group.category)}</h2>
+      {groupedItems.length > 0 ? (
+        <section className="packing-category-list" aria-label={t("page.packing.title")}>
+          {groupedItems.map((group) => (
+            <section key={group.category} className="packing-category-section">
+              <div className="packing-category-section__header">
+                <span className="packing-category-section__icon" aria-hidden="true">
+                  <MaterialIcon icon={packingCategoryIcon(group.category)} />
+                </span>
+                <div>
+                  <p>{t("common.category")}</p>
+                  <h3>{translateOption(language, group.category)}</h3>
+                </div>
+                <span>{group.items.length}</span>
               </div>
-              <span>{group.items.length}</span>
-            </div>
-            <div className="packing-category-section__cards">
-              {group.items.map((item) => (
-                <PackingItemCard
-                  key={item.id}
-                  item={item}
-                  deletingId={deletingId}
-                  statusUpdatingId={statusUpdatingId}
-                  canEdit={canEdit}
-                  selectedTravelerId={selectedTravelerId}
-                  travelerNameById={travelerNameById}
-                  onEdit={startEditing}
-                  onDelete={removeItem}
-                  onStatusChange={updateTravelerStatus}
-                />
-              ))}
-            </div>
-          </section>
-        ))}
-      </section>
+              <div className="packing-category-section__cards">
+                {group.items.map((item) => (
+                  <Fragment key={item.id}>
+                    <PackingItemCard
+                      item={item}
+                      deletingId={deletingId}
+                      statusUpdatingId={statusUpdatingId}
+                      canEdit={canEdit}
+                      selectedTravelerId={selectedTravelerId}
+                      travelerNameById={travelerNameById}
+                      onEdit={startEditing}
+                      onDelete={removeItem}
+                      onStatusChange={updateTravelerStatus}
+                    />
+                    {formOpen && editingId === item.id ? renderPackingForm() : null}
+                  </Fragment>
+                ))}
+              </div>
+            </section>
+          ))}
+        </section>
+      ) : null}
     </div>
   );
 }
@@ -704,85 +709,145 @@ function PackingItemCard({
   ) => Promise<void>;
 }) {
   const { language, t } = useLanguage();
+  const [detailsOpen, setDetailsOpen] = useState(false);
   const [actionsOpen, setActionsOpen] = useState(false);
-  const overallStatus = getOverallStatus(item);
+  const actionsRef = useRef<HTMLDivElement | null>(null);
   const travelerNames = item.statuses.map((status) => travelerNameById.get(status.travelerId) ?? status.travelerId);
 
+  useEffect(() => {
+    if (!actionsOpen) {
+      return;
+    }
+
+    function handlePointerDown(event: PointerEvent) {
+      if (actionsRef.current?.contains(event.target as Node)) {
+        return;
+      }
+
+      setActionsOpen(false);
+    }
+
+    window.addEventListener("pointerdown", handlePointerDown);
+    return () => window.removeEventListener("pointerdown", handlePointerDown);
+  }, [actionsOpen]);
+
+  function toggleDetails() {
+    setDetailsOpen((current) => !current);
+  }
+
+  function handleCardBodyKeyDown(event: KeyboardEvent<HTMLDivElement>) {
+    if (event.key !== "Enter" && event.key !== " ") {
+      return;
+    }
+
+    event.preventDefault();
+    toggleDetails();
+  }
+
   return (
-    <article className="packing-item-card">
+    <article className={`packing-item-card ${actionsOpen ? "packing-item-card--menu-open" : ""}`}>
       <div className="packing-item-card__header">
-        <div className="packing-item-card__title">
-          <div className="packing-badge-row">
-            <span className={`packing-badge ${priorityClass[item.priority]}`}>
-              {translateOption(language, item.priority)}
-            </span>
-            <span className={`packing-badge ${overallClass[overallStatus]}`}>
-              {translateOption(language, overallStatus)}
-            </span>
-            <span className="packing-badge packing-badge--category">
-              {translateOption(language, item.category)}
-            </span>
-          </div>
-          <h3>{item.name}</h3>
-          {item.quantity !== null ? (
-            <p>
-              {t("common.quantity")}: {item.quantity}
-            </p>
-          ) : null}
-        </div>
-        {canEdit ? (
-        <div className="packing-card-actions">
-          <button
-            type="button"
-            onClick={() => setActionsOpen((current) => !current)}
-            aria-expanded={actionsOpen}
-            aria-label={t("common.moreActions")}
-            className="itinerary-action-button itinerary-action-button--ghost"
-          >
-            {t("common.manage")}
-          </button>
-          {actionsOpen ? (
-            <div className="packing-card-actions__menu">
-              <button
-                type="button"
-                onClick={() => onEdit(item)}
-                className="itinerary-action-button itinerary-action-button--ghost"
-              >
-                {t("common.edit")}
-              </button>
-              <button
-                type="button"
-                onClick={() => void onDelete(item)}
-                disabled={deletingId === item.id}
-                className="itinerary-action-button itinerary-action-button--danger disabled:opacity-60"
-              >
-                {deletingId === item.id ? t("common.deleting") : t("common.delete")}
-              </button>
+        <div
+          className="packing-item-card__lead"
+          role="button"
+          tabIndex={0}
+          aria-expanded={detailsOpen}
+          onClick={toggleDetails}
+          onKeyDown={handleCardBodyKeyDown}
+        >
+          <div className="packing-item-card__title">
+            <p>{translateOption(language, item.category)}</p>
+            <h3>{item.name}</h3>
+            <div className="packing-item-card__meta">
+              <span className={`packing-badge ${priorityClass[item.priority]}`}>
+                {translateOption(language, item.priority)}
+              </span>
+              {item.quantity !== null ? (
+                <span>
+                  {t("common.quantity")}: {item.quantity}
+                </span>
+              ) : null}
             </div>
-          ) : null}
+          </div>
         </div>
-        ) : null}
+        <div className="packing-item-card__side" ref={actionsRef}>
+          <div className="packing-card-actions">
+            <button
+              type="button"
+              onClick={() => setActionsOpen((current) => !current)}
+              aria-expanded={actionsOpen}
+              aria-haspopup="menu"
+              aria-label={t("common.moreActions")}
+              className="itinerary-action-button itinerary-action-button--ghost packing-more-button"
+            >
+              <MaterialIcon icon="more_horiz" />
+            </button>
+            {actionsOpen ? (
+              <div className="packing-card-actions__menu" role="menu">
+                <button
+                  type="button"
+                  onClick={() => {
+                    toggleDetails();
+                    setActionsOpen(false);
+                  }}
+                  role="menuitem"
+                  className="itinerary-action-button itinerary-action-button--ghost"
+                >
+                  {detailsOpen ? t("common.hideDetails") : t("common.details")}
+                </button>
+
+                {canEdit ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActionsOpen(false);
+                        onEdit(item);
+                      }}
+                      role="menuitem"
+                      className="itinerary-action-button itinerary-action-button--ghost"
+                    >
+                      {t("common.manage")}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void onDelete(item)}
+                      disabled={deletingId === item.id}
+                      role="menuitem"
+                      className="itinerary-action-button itinerary-action-button--danger disabled:opacity-60"
+                    >
+                      {deletingId === item.id ? t("common.deleting") : t("common.delete")}
+                    </button>
+                  </>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
+        </div>
       </div>
 
-      {item.notes ? <p className="packing-item-card__notes">{item.notes}</p> : null}
-
-      <div className="packing-traveler-grid">
-        {item.statuses.map((status) => {
-          const travelerName = travelerNameById.get(status.travelerId) ?? status.travelerId;
-          const canUpdateStatus = canEdit || status.travelerId === selectedTravelerId;
-          return (
-	            <TravelerStatusButton
-	              key={status.travelerId}
-	              travelerName={travelerName}
-	              travelerLabel={shortTravelerName(travelerName, travelerNames)}
-	              status={status.status}
-              disabled={!canUpdateStatus || statusUpdatingId === `${item.id}:${status.travelerId}`}
-              saving={statusUpdatingId === `${item.id}:${status.travelerId}`}
-              onStatusChange={(nextStatus) => void onStatusChange(item, status.travelerId, nextStatus)}
-            />
-          );
-        })}
-      </div>
+      {detailsOpen ? (
+        <div className="packing-item-card__details">
+          {item.notes ? <p className="packing-item-card__notes">{item.notes}</p> : null}
+          <div className="packing-traveler-grid">
+            {item.statuses.map((status) => {
+              const travelerName = travelerNameById.get(status.travelerId) ?? status.travelerId;
+              const canUpdateStatus = canEdit || status.travelerId === selectedTravelerId;
+              return (
+                <TravelerStatusButton
+                  key={status.travelerId}
+                  travelerName={travelerName}
+                  travelerLabel={shortTravelerName(travelerName, travelerNames)}
+                  status={status.status}
+                  disabled={!canUpdateStatus || statusUpdatingId === `${item.id}:${status.travelerId}`}
+                  saving={statusUpdatingId === `${item.id}:${status.travelerId}`}
+                  onStatusChange={(nextStatus) => void onStatusChange(item, status.travelerId, nextStatus)}
+                />
+              );
+            })}
+          </div>
+        </div>
+      ) : null}
     </article>
   );
 }
@@ -871,11 +936,57 @@ function packingTravelerStatusLabel(
   return language === "zh" ? "需要带" : "Need";
 }
 
-function PackingStat({ label, value, warm = false }: { label: string; value: string; warm?: boolean }) {
+function packingCategoryIcon(category: PackingCategory) {
+  switch (category) {
+    case "Documents":
+      return "description";
+    case "Clothes":
+      return "checkroom";
+    case "Toiletries":
+    case "Personal Care":
+      return "soap";
+    case "Electronics":
+      return "devices";
+    case "Medicine":
+      return "medical_services";
+    case "Travel Essentials":
+      return "luggage";
+    case "Shared Items":
+      return "groups";
+    case "Other":
+    default:
+      return "luggage";
+  }
+}
+
+function MaterialIcon({ icon, fill = false }: { icon: string; fill?: boolean }) {
+  return (
+    <span className={`material-symbols-outlined ${fill ? "stitch-icon-fill" : ""}`} aria-hidden="true">
+      {icon}
+    </span>
+  );
+}
+
+function PackingStat({
+  icon,
+  label,
+  value,
+  warm = false
+}: {
+  icon: string;
+  label: string;
+  value: string;
+  warm?: boolean;
+}) {
   return (
     <div className={`packing-stat ${warm ? "packing-stat--warm" : ""}`}>
-      <p>{label}</p>
-      <strong>{value}</strong>
+      <span className="packing-stat__icon" aria-hidden="true">
+        <MaterialIcon icon={icon} />
+      </span>
+      <div>
+        <p>{label}</p>
+        <strong>{value}</strong>
+      </div>
     </div>
   );
 }
@@ -891,7 +1002,7 @@ function formatPackingFilterSummary(
     `${t("common.category")}: ${translateOption(language, category)}`,
     `${t("common.priority")}: ${translateOption(language, priority)}`,
     `${t("common.status")}: ${translateOption(language, status)}`
-  ].join(" · ");
+  ].join(" / ");
 }
 
 function FilterChipGroup({

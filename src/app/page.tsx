@@ -19,6 +19,8 @@ import { useTripSettingsView, type TripSettingsRouteStopView, type TripSettingsV
 const destinationImage =
   "https://lh3.googleusercontent.com/aida-public/AB6AXuA73oKwav7wqr2-QdGzU4FCTO_3e_EFxaDRy4eVmLmzuVr79UCTV5f03drhT8Ye3fkPbk9GeajlszwevFesXaIw6R3RcwAqi8ze8b8zBCcxXFASjyFKYGQapw7xZxdwYSth-UbTggS6UN-80U-5jopSvAN7qwGUN-oabqJMqQGVJspgC3QI8sc8fPbNejBWQLx7FWIeitHLWEFuf8EitcbpLkZeSjvQ2iW2UcLv9Vwdj2HAUaH65vR0BCeGNK1hTeS_vF1DUGvotTbg";
 const itineraryRequestTimeoutMs = 12000;
+const tripQueryParam = "trip";
+const tripShareTokenStorageKey = "trip-dashboard-share-token";
 const tripShareTokenHeader = "x-trip-share-token";
 
 type ItineraryApiResponse = {
@@ -225,11 +227,34 @@ const todayCopy = {
   }
 } as const satisfies Record<Language, Record<string, string>>;
 
+function readDashboardShareToken(contextShareToken: string) {
+  if (contextShareToken) {
+    return contextShareToken;
+  }
+
+  if (typeof window === "undefined") {
+    return "";
+  }
+
+  try {
+    const url = new URL(window.location.href);
+    const urlToken = url.searchParams.get(tripQueryParam)?.trim();
+    if (urlToken) {
+      return urlToken;
+    }
+
+    return window.localStorage.getItem(tripShareTokenStorageKey) || "";
+  } catch {
+    return window.localStorage.getItem(tripShareTokenStorageKey) || "";
+  }
+}
+
 export default function DashboardPage() {
   const { language, toggleLanguage } = useLanguage();
   const { mode, shareToken } = useTripAccess();
   const { trip } = useTripSettingsView();
   const canEdit = mode === "editor";
+  const requestShareToken = readDashboardShareToken(shareToken);
   const [itineraryItems, setItineraryItems] = useState<SharedItineraryItem[]>([]);
   const [itineraryLoading, setItineraryLoading] = useState(true);
   const [itineraryError, setItineraryError] = useState<string | null>(null);
@@ -283,6 +308,13 @@ export default function DashboardPage() {
   );
 
   useEffect(() => {
+    if (!requestShareToken) {
+      setItineraryItems([]);
+      setItineraryError(null);
+      setItineraryLoading(false);
+      return;
+    }
+
     const controller = new AbortController();
     const timeoutId = window.setTimeout(() => controller.abort(), itineraryRequestTimeoutMs);
 
@@ -293,7 +325,7 @@ export default function DashboardPage() {
       try {
         const response = await fetch("/api/itinerary", {
           cache: "no-store",
-          headers: shareToken ? { [tripShareTokenHeader]: shareToken } : undefined,
+          headers: { [tripShareTokenHeader]: requestShareToken },
           signal: controller.signal
         });
         const data = (await response.json()) as ItineraryApiResponse;
@@ -322,9 +354,16 @@ export default function DashboardPage() {
       window.clearTimeout(timeoutId);
       controller.abort();
     };
-  }, [copy.nextUpError, shareToken]);
+  }, [copy.nextUpError, requestShareToken]);
 
   useEffect(() => {
+    if (!requestShareToken) {
+      setBookings([]);
+      setBookingsError(null);
+      setBookingsLoading(false);
+      return;
+    }
+
     const controller = new AbortController();
     const timeoutId = window.setTimeout(() => controller.abort(), itineraryRequestTimeoutMs);
 
@@ -335,7 +374,7 @@ export default function DashboardPage() {
       try {
         const response = await fetch("/api/bookings", {
           cache: "no-store",
-          headers: shareToken ? { [tripShareTokenHeader]: shareToken } : undefined,
+          headers: { [tripShareTokenHeader]: requestShareToken },
           signal: controller.signal
         });
         const data = (await response.json()) as BookingsApiResponse;
@@ -364,9 +403,16 @@ export default function DashboardPage() {
       window.clearTimeout(timeoutId);
       controller.abort();
     };
-  }, [copy.bookingsError, shareToken]);
+  }, [copy.bookingsError, requestShareToken]);
 
   useEffect(() => {
+    if (!requestShareToken) {
+      setSharedReminders([]);
+      setRemindersError(null);
+      setRemindersLoading(false);
+      return;
+    }
+
     const controller = new AbortController();
     const timeoutId = window.setTimeout(() => controller.abort(), itineraryRequestTimeoutMs);
 
@@ -377,7 +423,7 @@ export default function DashboardPage() {
       try {
         const response = await fetch("/api/reminders", {
           cache: "no-store",
-          headers: shareToken ? { [tripShareTokenHeader]: shareToken } : undefined,
+          headers: { [tripShareTokenHeader]: requestShareToken },
           signal: controller.signal
         });
         const data = (await response.json()) as RemindersApiResponse;
@@ -406,9 +452,16 @@ export default function DashboardPage() {
       window.clearTimeout(timeoutId);
       controller.abort();
     };
-  }, [copy.reminderError, shareToken]);
+  }, [copy.reminderError, requestShareToken]);
 
   useEffect(() => {
+    if (!requestShareToken) {
+      setExpenses([]);
+      setExpensesError(null);
+      setExpensesLoading(false);
+      return;
+    }
+
     const controller = new AbortController();
     const timeoutId = window.setTimeout(() => controller.abort(), itineraryRequestTimeoutMs);
 
@@ -419,7 +472,7 @@ export default function DashboardPage() {
       try {
         const response = await fetch("/api/expenses", {
           cache: "no-store",
-          headers: shareToken ? { [tripShareTokenHeader]: shareToken } : undefined,
+          headers: { [tripShareTokenHeader]: requestShareToken },
           signal: controller.signal
         });
         const data = (await response.json()) as ExpensesApiResponse;
@@ -448,9 +501,16 @@ export default function DashboardPage() {
       window.clearTimeout(timeoutId);
       controller.abort();
     };
-  }, [copy.moneySummaryError, shareToken]);
+  }, [copy.moneySummaryError, requestShareToken]);
 
   useEffect(() => {
+    if (!requestShareToken) {
+      setDocuments([]);
+      setDocumentsError(null);
+      setDocumentsLoading(false);
+      return;
+    }
+
     const controller = new AbortController();
     const timeoutId = window.setTimeout(() => controller.abort(), itineraryRequestTimeoutMs);
 
@@ -461,7 +521,7 @@ export default function DashboardPage() {
       try {
         const response = await fetch("/api/documents", {
           cache: "no-store",
-          headers: shareToken ? { [tripShareTokenHeader]: shareToken } : undefined,
+          headers: { [tripShareTokenHeader]: requestShareToken },
           signal: controller.signal
         });
         const data = (await response.json()) as DocumentsApiResponse;
@@ -490,7 +550,7 @@ export default function DashboardPage() {
       window.clearTimeout(timeoutId);
       controller.abort();
     };
-  }, [copy.documentsSummaryError, shareToken]);
+  }, [copy.documentsSummaryError, requestShareToken]);
 
   function resetReminderForm() {
     setEditingReminderId(null);
@@ -519,7 +579,7 @@ export default function DashboardPage() {
   async function submitReminder(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    if (!canEdit) {
+    if (!canEdit || !requestShareToken) {
       setRemindersError(copy.reminderError);
       return;
     }
@@ -543,7 +603,7 @@ export default function DashboardPage() {
         method: editingReminderId ? "PATCH" : "POST",
         headers: {
           "Content-Type": "application/json",
-          ...(shareToken ? { [tripShareTokenHeader]: shareToken } : {})
+          [tripShareTokenHeader]: requestShareToken
         },
         body: JSON.stringify(input)
       });
@@ -563,7 +623,7 @@ export default function DashboardPage() {
   }
 
   async function completeReminder(reminder: SharedReminder) {
-    if (!canEdit) {
+    if (!canEdit || !requestShareToken) {
       setRemindersError(copy.reminderError);
       return;
     }
@@ -574,7 +634,7 @@ export default function DashboardPage() {
     try {
       const response = await fetch(`/api/reminders/${reminder.id}`, {
         method: "DELETE",
-        headers: shareToken ? { [tripShareTokenHeader]: shareToken } : undefined
+        headers: { [tripShareTokenHeader]: requestShareToken }
       });
       const data = (await response.json()) as RemindersApiResponse;
 

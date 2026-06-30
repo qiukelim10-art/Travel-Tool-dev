@@ -8,6 +8,19 @@ const config: Config = {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        sans: [
+          "Inter",
+          "system-ui",
+          "-apple-system",
+          "BlinkMacSystemFont",
+          "\"Segoe UI\"",
+          "\"PingFang SC\"",
+          "\"Hiragino Sans GB\"",
+          "\"Microsoft YaHei\"",
+          "sans-serif"
+        ]
+      },
       colors: {
         ink: "#24302f",
         paper: "#f7f4ec",

@@ -1,11 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { EmergencyQuickAccess } from "@/components/EmergencyQuickAccess";
 import { SetupGenerationPanel } from "@/components/SetupGenerationPanel";
 import { useTripAccess } from "@/lib/access";
+import { getDestinationVisualIdentity } from "@/lib/destinationVisuals";
 import { useLanguage } from "@/lib/i18n";
 import { bookingCurrencies, type TripSettingsInput, type TripSettingsResponse } from "@/lib/sharedDataTypes";
-import { publishTripSettings } from "@/lib/useTripSettings";
+import { publishTripSettings, useTripSettingsView } from "@/lib/useTripSettings";
 
 type SettingsForm = TripSettingsInput;
 
@@ -113,10 +115,26 @@ const copy = {
 type SettingsLabels = (typeof copy)[keyof typeof copy];
 
 export default function SettingsPage() {
-  const { language } = useLanguage();
+  const { language, t, toggleLanguage } = useLanguage();
   const { mode } = useTripAccess();
+  const { trip: shellTrip } = useTripSettingsView({ genericFallback: true });
   const canEdit = mode === "editor";
   const labels = copy[language];
+  const destinationVisual = useMemo(
+    () =>
+      getDestinationVisualIdentity({
+        destination: shellTrip.destination,
+        routeCities: shellTrip.routeCities,
+        routeLabel: shellTrip.routeLabel,
+        routeStops: shellTrip.routeStops,
+        tripName: shellTrip.name
+      }),
+    [shellTrip.destination, shellTrip.name, shellTrip.routeCities, shellTrip.routeLabel, shellTrip.routeStops]
+  );
+  const sosCountries = emergencyCountriesForVisual(destinationVisual);
+  const tripDetail = [shellTrip.dateRangeLabel, shellTrip.routeLabel].filter(Boolean).join(" · ");
+  const desktopNavItems = getSettingsDesktopNavItems(t);
+  const mobileNavItems = getSettingsMobileNavItems(t);
   const [form, setForm] = useState<SettingsForm | null>(null);
   const [savedSnapshot, setSavedSnapshot] = useState("");
   const [loading, setLoading] = useState(true);
@@ -228,18 +246,43 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="settings-workspace">
+    <div className="stitch-today-page stitch-settings-page">
+      <header className="stitch-top-appbar stitch-settings-topbar stitch-budget-topbar">
+        <div className="stitch-budget-top-title">
+          <h1>{shellTrip.name}</h1>
+          <p>{tripDetail}</p>
+        </div>
+        <div className="stitch-top-actions">
+          <IconButton icon="language" label={t("language.label")} onClick={toggleLanguage} />
+          <SosIconButton countries={sosCountries} label={t("sos.ariaLabel")} />
+        </div>
+      </header>
+
+      <nav className="stitch-side-nav" aria-label={labels.title}>
+        <div className="stitch-side-brand">
+          <strong>Trip Workspace</strong>
+          <span>{labels.eyebrow}</span>
+        </div>
+        <div className="stitch-side-links">
+          {desktopNavItems.map((item) => (
+            <a
+              key={item.href}
+              className={`stitch-side-link ${item.active ? "stitch-side-link--active" : ""}`}
+              href={item.href}
+            >
+              <MaterialIcon icon={item.icon} fill={item.active} />
+              <span>{item.label}</span>
+            </a>
+          ))}
+        </div>
+      </nav>
+
+      <main className="stitch-main-canvas stitch-settings-main">
+        <div className="settings-workspace">
       <section className="settings-masthead" aria-labelledby="settings-page-title">
         <p className="cockpit-eyebrow">{labels.eyebrow}</p>
         <h1 id="settings-page-title">{labels.title}</h1>
         <p>{labels.description}</p>
-        {form ? (
-          <div className="settings-chip-row" aria-label={labels.title}>
-            <span>{form.trip.name}</span>
-            <span>{form.trip.destination}</span>
-            <span>{form.trip.defaultCurrencies.join(" / ")}</span>
-          </div>
-        ) : null}
       </section>
 
       {loading ? (
@@ -287,18 +330,25 @@ export default function SettingsPage() {
             </summary>
             <fieldset className="settings-currency-grid">
               <legend className="sr-only">{labels.defaultCurrencies}</legend>
-              {bookingCurrencies.map((currency) => (
-                <label key={currency} className="settings-check-pill">
-                  <input
-                    type="checkbox"
-                    name="default-currencies"
-                    checked={form.trip.defaultCurrencies.includes(currency)}
-                    onChange={(event) => toggleCurrency(form, setForm, currency, event.target.checked)}
-                    className="h-4 w-4 rounded border-zinc-300"
-                  />
-                  {currency}
-                </label>
-              ))}
+              {bookingCurrencies.map((currency) => {
+                const selected = form.trip.defaultCurrencies.includes(currency);
+
+                return (
+                  <label
+                    key={currency}
+                    className={`settings-currency-chip ${selected ? "settings-currency-chip--selected" : ""}`}
+                  >
+                    <input
+                      type="checkbox"
+                      name="default-currencies"
+                      checked={selected}
+                      onChange={(event) => toggleCurrency(form, setForm, currency, event.target.checked)}
+                      className="settings-currency-chip__input"
+                    />
+                    <span>{currency}</span>
+                  </label>
+                );
+              })}
             </fieldset>
             <div className="settings-field-grid">
               <TextField name="trip-timezone" label={labels.timezone} value={form.trip.timezone} autoComplete="off" onChange={(value) => updateTrip(form, setForm, { timezone: value })} />
@@ -320,9 +370,6 @@ export default function SettingsPage() {
               <span>{labels.travelers}</span>
             </summary>
             <div className="settings-card__header settings-card__header--inline">
-              <div>
-                <p>{labels.activeHint}</p>
-              </div>
               <button type="button" onClick={() => addTraveler(form, setForm)} className="settings-action-button settings-action-button--primary">
                 {labels.addTraveler}
               </button>
@@ -339,7 +386,7 @@ export default function SettingsPage() {
                     onChange={(value) => updateTraveler(form, setForm, index, { displayName: value })}
                   />
                   <div className="settings-list-actions">
-                    <label className="settings-check-pill">
+                    <label className="settings-check-pill settings-active-toggle">
                       <input
                         type="checkbox"
                         name={`traveler-${index}-active`}
@@ -349,12 +396,14 @@ export default function SettingsPage() {
                       />
                       {traveler.isActive ? labels.active : labels.inactive}
                     </label>
-                    <OrderButtons
-                      index={index}
-                      length={form.travelers.length}
-                      onMove={(direction) => moveTraveler(form, setForm, index, direction)}
-                      labels={labels}
-                    />
+                    <div className="settings-order-buttons">
+                      <OrderButtons
+                        index={index}
+                        length={form.travelers.length}
+                        onMove={(direction) => moveTraveler(form, setForm, index, direction)}
+                        labels={labels}
+                      />
+                    </div>
                     {!traveler.id ? (
                       <button type="button" onClick={() => removeNewTraveler(form, setForm, index)} className="settings-action-button settings-action-button--danger">
                         {labels.remove}
@@ -407,10 +456,6 @@ export default function SettingsPage() {
             <summary>
               <span>{labels.advanced}</span>
             </summary>
-            <div className="settings-advanced-copy">
-              <h2>{labels.regenerate}</h2>
-              <p>{labels.regenerateDescription}</p>
-            </div>
             <SetupGenerationPanel
               surface="settings"
               base={formToSetupGenerationBase(form)}
@@ -442,6 +487,21 @@ export default function SettingsPage() {
           </div>
         </form>
       ) : null}
+        </div>
+      </main>
+
+      <nav className="stitch-bottom-nav" aria-label={labels.title}>
+        {mobileNavItems.map((item) => (
+          <a
+            key={item.href}
+            className={`stitch-bottom-link ${item.active ? "stitch-bottom-link--active" : ""}`}
+            href={item.href}
+          >
+            <MaterialIcon icon={item.icon} fill={item.active} />
+            <span>{item.label}</span>
+          </a>
+        ))}
+      </nav>
     </div>
   );
 }
@@ -754,4 +814,96 @@ function TextField({
       />
     </label>
   );
+}
+
+function getSettingsDesktopNavItems(t: ReturnType<typeof useLanguage>["t"]) {
+  return [
+    { href: "/", icon: "home", label: t("nav.home"), active: false },
+    { href: "/itinerary", icon: "event_note", label: t("nav.plan"), active: false },
+    { href: "/bookings", icon: "confirmation_number", label: t("nav.book"), active: false },
+    { href: "/budget", icon: "payments", label: t("nav.money"), active: false },
+    { href: "/documents", icon: "description", label: t("nav.documents"), active: false },
+    { href: "/packing", icon: "inventory_2", label: t("nav.packing"), active: false },
+    { href: "/settings", icon: "settings", label: t("nav.settings"), active: true }
+  ];
+}
+
+function getSettingsMobileNavItems(t: ReturnType<typeof useLanguage>["t"]) {
+  return [
+    { href: "/", icon: "today", label: t("nav.home"), active: false },
+    { href: "/itinerary", icon: "event_note", label: t("nav.plan"), active: false },
+    { href: "/bookings", icon: "confirmation_number", label: t("nav.book"), active: false },
+    { href: "/budget", icon: "payments", label: t("nav.money"), active: false },
+    { href: "/more", icon: "more_horiz", label: t("nav.more"), active: true }
+  ];
+}
+
+function IconButton({
+  icon,
+  label,
+  onClick,
+  surface = false
+}: {
+  icon: string;
+  label: string;
+  onClick?: () => void;
+  surface?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`stitch-icon-button ${surface ? "stitch-icon-button--surface" : ""}`}
+      aria-label={label}
+    >
+      <MaterialIcon icon={icon} />
+    </button>
+  );
+}
+
+function SosIconButton({
+  countries,
+  label,
+  surface = false
+}: {
+  countries: { code: string; name: string }[];
+  label: string;
+  surface?: boolean;
+}) {
+  return (
+    <EmergencyQuickAccess
+      countries={countries}
+      triggerAriaLabel={label}
+      triggerClassName={`stitch-icon-button ${surface ? "stitch-icon-button--surface" : ""} stitch-icon-button--error`}
+      triggerChildren={<MaterialIcon icon="emergency_home" />}
+    />
+  );
+}
+
+function MaterialIcon({ icon, fill = false }: { icon: string; fill?: boolean }) {
+  return (
+    <span className={`material-symbols-outlined ${fill ? "stitch-icon-fill" : ""}`} aria-hidden="true">
+      {icon}
+    </span>
+  );
+}
+
+function emergencyCountriesForVisual(visual: ReturnType<typeof getDestinationVisualIdentity>) {
+  const codes = visual.countryCodes.length > 0 ? visual.countryCodes : [visual.countryCode];
+  const names = visual.countryNames.length > 0 ? visual.countryNames : [visual.countryName];
+  const seen = new Set<string>();
+
+  return codes
+    .map((code, index) => ({
+      code: code.toUpperCase(),
+      name: names[index] ?? code
+    }))
+    .filter((country) => {
+      if (!country.code || seen.has(country.code)) {
+        return false;
+      }
+
+      seen.add(country.code);
+      return true;
+    });
 }
