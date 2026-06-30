@@ -46,7 +46,7 @@ export function EmergencyQuickAccess({
         onClick={() => setOpen((current) => !current)}
         className={
           triggerClassName ??
-          "rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm font-bold text-red-700 shadow-soft hover:bg-red-100"
+          "rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700 shadow-soft hover:bg-red-100"
         }
         aria-expanded={open}
         aria-controls="emergency-quick-access-panel"
