@@ -20,14 +20,17 @@ import {
 import { useTripSettingsView, type TripSettingsRouteStopView, type TripSettingsView } from "@/lib/useTripSettings";
 import type { Traveler } from "@/data/tripData";
 
-const destinationImage =
-  "https://lh3.googleusercontent.com/aida-public/AB6AXuA73oKwav7wqr2-QdGzU4FCTO_3e_EFxaDRy4eVmLmzuVr79UCTV5f03drhT8Ye3fkPbk9GeajlszwevFesXaIw6R3RcwAqi8ze8b8zBCcxXFASjyFKYGQapw7xZxdwYSth-UbTggS6UN-80U-5jopSvAN7qwGUN-oabqJMqQGVJspgC3QI8sc8fPbNejBWQLx7FWIeitHLWEFuf8EitcbpLkZeSjvQ2iW2UcLv9Vwdj2HAUaH65vR0BCeGNK1hTeS_vF1DUGvotTbg";
 const requestTimeoutMs = 10000;
+const routeStopImageBaseUrl = "https://commons.wikimedia.org/wiki/Special:FilePath/";
 
 type RouteStopVisual = {
   alt: string;
   image: string;
 };
+
+function routeStopImage(fileName: string) {
+  return `${routeStopImageBaseUrl}${encodeURIComponent(fileName)}?width=1200`;
+}
 
 type PlanStop = {
   key: string;
@@ -97,8 +100,8 @@ const itineraryIconKeys = itineraryIconOptions.map((option) => option.key) as It
 const defaultItineraryIconOption = itineraryIconOptions[0]!;
 
 const fallbackRouteStopVisual: RouteStopVisual = {
-  alt: "Aegean Sea view from Santorini with whitewashed buildings and a blue dome.",
-  image: destinationImage
+  alt: "The Colosseum in Rome, Italy.",
+  image: routeStopImage("Colosseum_in_Rome,_Italy_-_April_2007.jpg")
 };
 
 const routeStopVisuals: Record<string, RouteStopVisual> = {
@@ -114,11 +117,42 @@ const routeStopVisuals: Record<string, RouteStopVisual> = {
     alt: "Big Ben and the Elizabeth Tower in London.",
     image: "https://upload.wikimedia.org/wikipedia/commons/f/f7/Big_Ben_Elizabeth_Tower_London_2023_01.jpg"
   },
+  florence: {
+    alt: "Florence Cathedral seen from Piazzale Michelangelo.",
+    image: routeStopImage("2024_04_Florence_Duomo_from_Piazzale_Michelangelo_6869.jpg")
+  },
+  firenze: {
+    alt: "Florence Cathedral seen from Piazzale Michelangelo.",
+    image: routeStopImage("2024_04_Florence_Duomo_from_Piazzale_Michelangelo_6869.jpg")
+  },
+  italy: fallbackRouteStopVisual,
+  italia: fallbackRouteStopVisual,
+  milan: {
+    alt: "Milan Cathedral from Piazza del Duomo.",
+    image: routeStopImage("Milan_Cathedral_from_Piazza_del_Duomo.jpg")
+  },
+  milano: {
+    alt: "Milan Cathedral from Piazza del Duomo.",
+    image: routeStopImage("Milan_Cathedral_from_Piazza_del_Duomo.jpg")
+  },
   mykonos: {
     alt: "The windmills of Mykonos.",
     image: "https://upload.wikimedia.org/wikipedia/commons/2/2d/Windmills_of_Mykonos.jpg"
   },
-  santorini: fallbackRouteStopVisual,
+  rome: fallbackRouteStopVisual,
+  roma: fallbackRouteStopVisual,
+  santorini: {
+    alt: "Three blue domes in Oia, Santorini.",
+    image: routeStopImage("1000_Three_domes_of_Oia_in_Santorini_Photo_by_Giles_Laurent.jpg")
+  },
+  venice: {
+    alt: "The Grand Canal and Rialto Bridge in Venice.",
+    image: routeStopImage("Panorama_of_Canal_Grande_and_Ponte_di_Rialto,_Venice_-_September_2017.jpg")
+  },
+  venezia: {
+    alt: "The Grand Canal and Rialto Bridge in Venice.",
+    image: routeStopImage("Panorama_of_Canal_Grande_and_Ponte_di_Rialto,_Venice_-_September_2017.jpg")
+  },
   vienna: {
     alt: "St. Stephen's Cathedral in Vienna.",
     image: "https://upload.wikimedia.org/wikipedia/commons/e/e3/Spire_Cathedral_St_Stephen_Vienna_Wien_Steffl_1.jpg"
