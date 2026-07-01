@@ -2,15 +2,15 @@
 
 ## Final Product Shape
 
-The long-term product is a mobile-first, ready-to-use, per-trip paid Group Trip Command Center.
+The long-term product is a mobile-first, ready-to-use Group Trip Command Center that can create one private workspace per trip.
 
 It is not just a private Italy trip page. Italy Trip 2026 is the first reference workspace and prototype for a repeatable product pattern.
 
 ## Product Promise
 
-Pay once. Pick your destination, travelers, and trip style. Get a mobile-ready private trip workspace with editable packing lists, document checklists, booking checklists, budget categories, reminders, itinerary shell, and emergency info.
+Request a free early-access workspace. Share destination, travelers, and trip style. Get a mobile-ready private trip workspace with editable packing lists, document checklists, booking checklists, budget categories, reminders, itinerary shell, and emergency info.
 
-The paid output should never feel like an empty dashboard. After setup, the planner should receive a prepopulated workspace that is ready to edit and share with the group.
+The output should never feel like an empty dashboard. After setup, the planner should receive a prepopulated workspace that is ready to edit and share with the group.
 
 ## First ICP
 
@@ -27,7 +27,7 @@ The first version should focus on:
 - Multi-booking or admin-heavy trips
 - One planner responsible for organizing details and sharing one link with the group
 
-Travelers are users, but the planner is the buyer.
+Travelers are users, and the planner is the first contact/operator-facing user.
 
 ## First Version Product Model
 
@@ -168,25 +168,22 @@ Anyone with the private link can edit the workspace, so the link should only be 
 
 ## Commercial Model
 
-The long-term business model is per-trip one-time payment, not subscription-first.
+The current product direction is free early access, not paid pilot.
 
-Early validation price:
+Do not promise permanent unlimited free service, but do not charge users in the next pilot slice.
 
-- SGD 4.90 per trip workspace
-- Early access / pilot price only
-- Not a permanent standard price
+Current pilot model:
 
-Future regular pricing can be validated later, likely around SGD 9-19 per workspace depending on template quality, access control, safety, and user feedback.
+- Free early-access workspace request
+- Manual operator review before workspace creation
+- Email as the required contact channel
+- WhatsApp as an optional contact channel
+- No in-app form in the first `/pilot` revision
+- No payment, checkout, billing, subscription, invoice, refund, or manual payment flow
 
-The current stage should use Free Demo / Manual Pilot. Do not implement payment, checkout, billing, or subscription infrastructure yet.
+Future monetization can be revisited only after the product proves repeatable usage, workspace quality, operational safety, and clear demand. Possible future options can include paid templates, hosted workspace tiers, sponsorship, donation, or other models, but none of them are current implementation scope.
 
-Suggested pilot refund rule:
-
-```text
-7-day refund if workspace setup fails, has technical issues, or is not useful enough for the planner.
-```
-
-Pilot refunds can be handled manually.
+The current stage should use Free Early Access / Manual Invite Pilot. Do not implement payment, checkout, billing, refund, or subscription infrastructure.
 
 ## Workspace Lifecycle
 
@@ -347,7 +344,7 @@ Target pilot signals:
 - At least two travelers open the workspace
 - The group uses at least three modules before or during the trip
 - Planner says it is easier than Google Sheets plus group chat
-- Planner says they would pay SGD 4.90 now, and potentially SGD 9-19 for a stronger version later
+- Planner would recommend it to another trip organizer or request another workspace for a future trip
 
 ## Current Italy Trip Implementation Conflicts
 
@@ -356,24 +353,21 @@ The current implementation already has useful foundations: Dashboard, Itinerary,
 Known gaps against this product vision:
 
 - The project is still a single trip instance, not a repeatable workspace product.
-- Some business tables still assume the single active trip and do not have trip_id/workspace_id.
+- Business tables now have `trip_id` scoping, but the app still exposes only the current `active-trip` workspace.
 - The live workspace uses private-link access, but it still has no per-user accounts, roles, or audit trail.
 - There is no workspace lifecycle/archive model.
+- There is no operator-only workflow yet for creating independent invite-based pilot workspaces.
 
 Near-term development should avoid making the single-trip assumption worse. New or substantially changed data structures should start moving toward workspace_id/trip_id compatibility, while avoiding a full multi-trip SaaS dashboard for now.
 
 ## Suggested Next Product Decision Before Coding
 
-Before building new features, choose the first implementation slice:
+The next implementation sequence is:
 
-1. Access control first: private link workspace boundary
-2. Setup/template first: guided setup and rule-based prefilled workspace
-3. Pilot offer first: lightweight public offer page and manual onboarding path
+1. Free invite pilot page: update `/pilot` to explain free early access, fit criteria, service boundaries, manual review, email contact, and optional WhatsApp.
+2. Operator workspace creation: design a manual creation path for independent trip workspaces so new users do not land in the current Italy `active-trip`.
+3. Safe setup generation for new workspaces: allow setup generation only after a workspace has its own `trip_id` and private token, and do not run it against production `active-trip` by default.
 
-Recommended order:
+Do not build public self-serve creation yet.
 
-1. Access control first
-2. Product vision/pilot offer page
-3. Setup/template generation
-
-This reduces privacy risk before any real trip data or pilot users are invited.
+This keeps the free pilot useful while preventing accidental replacement of the existing Italy workspace.

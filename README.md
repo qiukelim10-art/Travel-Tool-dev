@@ -11,7 +11,7 @@ The project has evolved from a static travel dashboard into an access-gated shar
 - Stack: Next.js, React, TypeScript, MySQL, Tailwind CSS
 - Production hosting: Vercel Hobby + Aiven Free MySQL
 - Access model: private-link full editing for trusted travelers; unauthenticated workspace API requests should return 401
-- Latest work: route-stop-driven Today/Plan destination images now cover Milan, Venice, Florence, Rome, Italy, and Italian aliases; the first-entry setup UI has been polished for the current Stitch workspace style and mobile layout
+- Latest product decision: the next pilot direction is free early access with manual invite-based workspace creation, not paid pilot. Update `/pilot` first, then design operator-only creation for independent trip workspaces.
 
 ## Key Routes
 
@@ -41,3 +41,5 @@ npm run dev
 - Keep sensitive trip data out of the repo: no passport numbers, payment card details, full confirmations, private document files, passcodes, or private trip links.
 - Use `REAL_DATA_ENTRY_GUIDE.md` and `REAL_DATA_CHECKLIST.md` when replacing placeholders with safe real trip summaries.
 - Do not run production setup generation against the current `active-trip` unless the user explicitly approves the destructive replacement.
+- Do not use production `active-trip` as an outside pilot/demo workspace. New pilot users need independent `trip_id`/token-bound workspaces before setup generation is applied.
+- Do not add payment, checkout, billing, refund, manual-payment, or paid-pilot copy for the next pilot slice.

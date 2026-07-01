@@ -2,9 +2,10 @@
 
 ## Project Status
 
-- Long-term product direction is now documented in `PRODUCT_VISION.md`: Italy Trip 2026 is the first reference workspace/prototype for a mobile-first, ready-to-use, per-trip paid Group Trip Command Center.
-- A polished public `/pilot` bilingual manual pilot sales page now exists locally on `codex/pilot-offer-page`; it is sanitized, Chinese-first on first visit, workspace-led rather than first-person service-led, framed around benefits for the whole trip group, and has not been deployed to production.
-- First target customer is the Singapore/Malaysia outbound small-group trip planner organizing 2-8 person, 5-14 day Europe/Japan/Korea trips; travelers use the shared link, but the planner is the buyer.
+- Long-term product direction is now documented in `PRODUCT_VISION.md`: Italy Trip 2026 is the first reference workspace/prototype for a mobile-first, ready-to-use Group Trip Command Center that can create one private workspace per trip.
+- The current 2026-07-01 product pivot is free early access with manual invite-based workspace creation. Do not use SGD 4.90 paid pilot, payment, checkout, refund, or manual-payment language for the next pilot slice.
+- A polished public `/pilot` bilingual manual pilot page exists locally on `codex/pilot-offer-page`; it is sanitized, Chinese-first on first visit, workspace-led rather than first-person service-led, framed around benefits for the whole trip group, and has not been deployed to production. Its old paid/manual-pilot positioning is now stale and should be updated before use.
+- First target customer is the Singapore/Malaysia outbound small-group trip planner organizing 2-8 person, 3-14 day China/Japan/Korea or generic international trips; travelers use the shared link, and the planner is the first operator-facing contact.
 - The project is a private, mobile-first Italy trip dashboard for 4 travellers in October 2026.
 - `codex/public-vercel-deploy` has a zero-cost production deployment path on Vercel Hobby + Aiven Free MySQL; the live URL is `https://italy-trip-2026-cyan.vercel.app`.
 - The user will gradually provide real trip information to replace placeholder data.
@@ -37,7 +38,7 @@
 - All Templates Context-Aware Engine v1 is merged to `master` and deployed: setup generation derives route cities, route legs, overnight cities, day trip cities, duration, season, accommodation, luggage, transport, and currencies, then applies that context across China city, China multi-city, Japan, Korea, and Generic templates.
 - The second-round Universal Travel Cockpit UI polish was committed on `codex/ui-skill-research` and merged into `master`; final build/lint, desktop/LAN page/API checks, and mobile no-horizontal-overflow QA passed before merge.
 - Workspace boundary foundation is merged to `master` and deployed to production in `dpl_4XGZ3zk2jB839zLgicMBthR13oDu`: existing business tables now receive `trip_id`, active-trip CRUD/setup reset is scoped by `trip_id`, setup-generated internal business row IDs use UUIDs, five-template smoke confirmed `other-trip` sentinel rows are preserved, and user review confirmed Dashboard/Bookings/Budget/Packing/Documents/phone loading are fixed.
-- `PRODUCT_LAUNCH_PLAN.md` now defines the roadmap from current deployed prototype to product launch; the immediate next priority is a UI design refresh before deeper product feature work.
+- `PRODUCT_LAUNCH_PLAN.md` now defines the roadmap from current deployed prototype to free invite-based pilot launch; the immediate next priority is updating `/pilot`, then designing operator-only creation for independent trip workspaces.
 - `UI_SHELL_TODAY_AUDIT.md` now captures the first UI redesign branch scope: Travel Journal skin, Cockpit interaction, Shell + Today first, shadcn as a phased target, and no business behavior changes in the first implementation slice.
 - `codex/ui-shell-today-journal-cockpit` now has the corrected Shell + Today implementation pass aligned to the supplied mobile/desktop travel-journal cockpit references: app-like shell, serif trip masthead, clearer ticket/map Today card, compact access controls, floating mobile nav, route-preserving CTAs, local SVG `TripRouteMap` rendering for supported countries from current trip settings, and follow-up browser-comment fixes for title sizing, duplicate attention content, reminders styling, brand display, nav icons, 2560px width alignment, and 390px mobile overflow.
 - The latest Shell + Today browser-comment pass refines the route map into a vintage postcard illustration: muted parchment card, real local SVG country assets for Japan/Korea/Italy, small circular destination dots, dashed route support, reusable `TripPostmark`, non-stretched SOS rail, and matching top-nav/access/content width.
@@ -64,13 +65,15 @@
 
 ## Highest Priority Task
 
-- Work from fresh user-identified production or local review issues only. The recent route-stop destination image mismatch and starter setup mobile UI follow-up are already addressed on `master`.
-- Preserve existing access control, APIs, database schema, setup-generation payloads, payment scope, and user-entered data behavior unless the user explicitly asks for a functional change.
+- Update `/pilot` into a free early-access request page before inviting outside users: email required, WhatsApp optional, manual review/manual reply, no form submission, no payment, no checkout, no refund copy, no clickable demo workspace, and no production deploy until reviewed.
+- After `/pilot`, design an operator-only creation path for independent trip workspaces so new users do not land in the current Italy `active-trip`.
+- Preserve existing access control, APIs, database schema, setup-generation payloads, and user-entered data behavior unless the user explicitly asks for a functional change.
 - Do not run setup generation against production `active-trip` without explicit destructive approval; it replaces existing workspace content even though rows are scoped by `trip_id`.
+- Do not use production `active-trip` as a pilot/demo workspace for outside users. New pilot users need independent `trip_id`/token-bound workspaces before setup generation is applied.
 - If a local review link is needed, re-check current LAN IP, port, page HTTP status, `/api/health`, and `/api/access/status` before sharing. Do not write local private `?trip=` tokens into repo files.
 - Keep the live site on zero-cost Vercel Hobby + Aiven Free MySQL. If production APIs show database unavailable or DNS failures, check whether Aiven powered off before changing Vercel env vars.
 - The live site is stable for now; the user and travel group can enter safe real trip summaries through the UI using `REAL_DATA_ENTRY_GUIDE.md` and `REAL_DATA_CHECKLIST.md`.
-- Review `/pilot` or old branch-specific work only if the user explicitly resumes it. Do not deploy, push, or broaden old review branches automatically.
+- Review old branch-specific `/pilot` work carefully before reuse because its paid/manual-pilot positioning is stale under the free invite-based pivot. Do not deploy, push, or broaden old review branches automatically.
 - Keep sensitive documents, passport numbers, payment details, passcodes, private links, insurance files, and full booking confirmations out of the repo.
 
 ## Key Known Issue
@@ -88,7 +91,7 @@
 ## Important Architecture Note
 
 - `/pilot` is the only current public route bypass in `AppShell`; private workspace pages continue to use `TripAccessProvider` and `TripAccessGate`. `/`, `/itinerary`, `/bookings`, `/budget`, `/documents`, `/more`, `/settings`, and `/packing` are standalone Stitch workspace routes that render their own shell instead of the legacy `Layout`; other private workspace pages still use `Layout`. Pilot sales copy stays local to `src/app/pilot/PilotOfferClient.tsx`, not in the private workspace i18n dictionary.
-- Product direction is one paid workspace per trip, but the first implementation should not jump to a full multi-trip SaaS dashboard. When adding or substantially changing business data structures, avoid deepening the single active-trip assumption and prefer workspace_id/trip_id-compatible design.
+- Product direction is one private workspace per trip under free early access for now. The first implementation should not jump to a full public self-serve SaaS dashboard. When adding or substantially changing business data structures, avoid deepening the single active-trip assumption and prefer workspace_id/trip_id-compatible design.
 - The private trip link is a convenience boundary, not high-security storage. Treat the workspace as lightweight coordination, not a secure vault, and keep sensitive personal documents, passport scans, payment details, private passcodes, and confidential identity information out of the product.
 - First-version workspace generation should be guided setup plus rule-based templates for China city general, China multi-city, Japan, Korea, and Generic international trip fallback. Do not add AI dependency or paid API dependency for workspace generation.
 - In the merged workspace-boundary branch, `/api/setup-generation` resets only `active-trip` scoped rows because reminders, bookings, itinerary, expenses, packing, and documents now have `trip_id`; keep the mutation private-link-gated and clearly confirmed in `/settings`, and still do not run it on production active-trip while existing production data should be preserved.
@@ -98,7 +101,7 @@
 - Japan general emergency placeholders currently live in generated trip notes, document checklist, and reminders; there is still no separate editable emergency-card generation table.
 - All Templates Context-Aware Engine v1 keeps setup generation rule-based and schema-light: derived context controls route legs, overnight accommodation, day trip return planning, season labels, and seasonal packing across all templates, while budget categories remain generated notes/summary labels and `expenses` stays empty.
 - `useTripSettingsView` sends the private share token from URL/localStorage on `/api/trip-settings` so first-load private-link pages can initialize from current active trip settings even before the access provider fetch wrapper is ready.
-- Pilot commercial model is SGD 4.90 early access per trip workspace through Free Demo / Manual Pilot first; do not build payment, checkout, billing, or subscription infrastructure yet.
+- Pilot model is free early access through manual invite-based creation first; do not build payment, checkout, billing, refund, manual-payment, or subscription infrastructure.
 - API routes should not return raw infrastructure errors to the UI. Database/DNS/connection failures should be logged server-side and returned as generic user-facing API errors.
 - Deployment prep now supports hosted MySQL configuration with `MYSQL_SSL=true` and can skip runtime schema creation/seed on managed databases with `MYSQL_MANAGED_SCHEMA=true`; local development still defaults to automatic local schema setup.
 - Vercel serverless functions require `mysql2/promise` to be statically imported so the dependency is bundled; avoid dynamic `eval("require")` for this runtime dependency.

@@ -1,5 +1,13 @@
 # Decisions
 
+## 2026-07-01
+
+- Supersede the 2026-06-18 paid pilot assumption: the current product direction is free early access, not SGD 4.90 paid early access. Do not build payment, checkout, billing, subscription, refund, or manual payment flows for the next pilot slice.
+- First public growth step should be a free invite-based `/pilot` page. It should ask interested planners to contact the operator by email, with WhatsApp optional, and clearly say workspace creation is manually reviewed instead of instant self-serve.
+- Keep first workspace creation operator-controlled. Do not open public self-serve creation until multi-workspace isolation, safe trip_id/token assignment, abuse handling, deletion/recovery, and operational support are designed.
+- Do not run setup generation against production `active-trip` for pilots unless the user explicitly approves replacing the existing production Italy workspace. New pilot workspaces must be independent from the current Italy workspace before generation is applied.
+- Keep the product boundary narrow: the service creates and organizes a trip workspace only. It does not provide travel planning, booking, visa, insurance, legal, or payment advice, and it must not collect sensitive documents, passport numbers, payment details, private passcodes, or full confirmations.
+
 ## 2026-06-27
 
 - Supersede the earlier viewer/editor/passcode access model for the active workspace: a valid private trip link or token is now the single collaboration boundary, and every authorized user can edit all workspace data. Keep legacy hashed editor-token fields/functions only for compatibility, not for normal user flow.
@@ -30,11 +38,11 @@
 
 ## 2026-06-18
 
-- Treat Italy Trip 2026 as the first reference workspace/prototype for a mobile-first, ready-to-use, per-trip paid Group Trip Command Center, not only as a one-off private trip page.
-- First ICP: Singapore/Malaysia outbound small-group trip planners organizing 2-8 person, 5-14 day Europe/Japan/Korea trips; the planner is the buyer and travelers are link users.
+- Superseded on 2026-07-01: the earlier product framing was a mobile-first, ready-to-use, per-trip paid Group Trip Command Center. The current direction is free early access with manual invite-based workspace creation.
+- Superseded in scope on 2026-07-01: the earlier ICP was Singapore/Malaysia outbound planners organizing 2-8 person, 5-14 day Europe/Japan/Korea trips. Current first fit is 2-8 person, 3-14 day China/Japan/Korea trips plus a generic international fallback; the planner is the first contact and travelers are link users.
 - First product version should use guided setup plus rule-based templates, not AI generation or manual custom service.
 - Superseded on 2026-06-27: the first access model had been private unguessable trip link plus viewer/editor/passcode split, but the current active workspace model is private-link access with edit rights for every authorized user.
-- Pilot commercial model should be SGD 4.90 early access per trip workspace, handled through Free Demo / Manual Pilot first; do not build payment or checkout yet.
+- Superseded on 2026-07-01: the earlier pilot commercial model was SGD 4.90 early access per trip workspace. The current pilot model is free early access; do not build payment, checkout, billing, refund, or manual-payment flow.
 - Workspace lifecycle should be active until trip end date plus 60 days, then archived/read-only; do not promise permanent storage.
 - The private trip link is for convenience, not high-security storage. Documents and sensitive fields must stay metadata/checklist only with contextual safety hints; do not upload or store passport scans, passport numbers, payment card details, insurance certificates, full confirmation PDFs, private passcodes, or confidential identity information.
 

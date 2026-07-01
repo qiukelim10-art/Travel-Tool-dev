@@ -1,45 +1,39 @@
 # Product Launch Plan
 
-Last updated: 2026-06-24
+Last updated: 2026-07-01
 
 ## Purpose
 
 This document defines the path from the current deployed Italy Trip 2026 prototype to a launchable Group Trip Command Center product.
 
-The immediate decision is to pause deeper feature work and redesign the UI first. The UI pass should make the product feel like a clear, mobile-first trip command center before adding more product machinery.
+The current product decision is to make the next pilot free, manually reviewed, and invite-based. The immediate product work should update the public `/pilot` page, then create a safe operator-only path for independent trip workspaces so new users do not land in the current Italy `active-trip`.
 
 ## Current Baseline
 
 The product is live in production:
 
 - Production URL: `https://italy-trip-2026-cyan.vercel.app`
-- Current deployment: `dpl_4XGZ3zk2jB839zLgicMBthR13oDu`
+- Current deployment: production is live on Vercel; check Vercel for the latest deployment id before release work
 - Hosting: Vercel Hobby
 - Database: Aiven Free MySQL
-- Access model: private trip link, viewer mode, editor mode, edit passcode, owner recovery token
+- Access model: private trip link/token with full editing for authorized users
 - Current workspace: single active trip, `active-trip`
 - Business tables now have `trip_id` scoping
-- Production protected workspace counts:
-  - Reminders: 11
-  - Bookings: 14
-  - Itinerary: 11
-  - Expenses: 0
-  - Packing: 16
-  - Documents: 11
+- `/pilot` exists as the public route bypass, but its old paid/manual-pilot positioning must be updated before it is used for free early access.
+- Setup generation still replaces starter workspace content for the target trip. Do not run it against production `active-trip` unless the user explicitly approves replacing existing Italy workspace content.
 
-Current push blocker:
+Current git status:
 
-- This local checkout has no configured git remote.
-- Vercel deploy works because `.vercel/project.json` is linked.
-- Git push requires adding a remote first.
+- `master` tracks GitHub `origin/main` at `https://github.com/qiukelim10-art/Travel-Tool-dev.git`.
+- Release work should still verify branch, remote, build, lint, production status, and private-link behavior before push/deploy.
 
 ## Product North Star
 
-The final product is a mobile-first, ready-to-use, per-trip paid Group Trip Command Center.
+The final product is a mobile-first, ready-to-use Group Trip Command Center that can create one private workspace per trip.
 
 The product promise:
 
-Pay once, answer a short guided setup, and receive a private mobile workspace that is already useful for the trip group.
+Request a free early-access workspace, answer a short guided setup through the operator flow, and receive a private mobile workspace that is already useful for the trip group.
 
 It should not feel like an empty dashboard. The workspace should be prefilled with practical, editable trip execution content:
 
@@ -59,9 +53,9 @@ First target customer:
 
 - Singapore / Malaysia outbound small-group trip planner
 - 2-8 travelers
-- 3-10 day trips first
+- 3-14 day trips first
 - Japan, Korea, China, or generic international trip
-- Planner buys; travelers use shared link
+- Planner requests the workspace; travelers use the shared private link
 
 Chinese-speaking planners can be the first audience, but the product should keep the existing English / Simplified Chinese UI foundation.
 
@@ -85,9 +79,7 @@ Do not build these yet:
 Keep using:
 
 - Private unguessable trip link
-- Planner edit passcode
-- Viewer mode for low-risk status updates
-- Editor mode for core trip changes
+- Full editing for anyone authorized through the private trip link/token
 - Rule-based templates, not AI
 - Safe document checklist metadata only
 - Empty expense ledger after generation, no fake amounts
@@ -96,13 +88,14 @@ Keep using:
 
 Feature work should pause here.
 
-Next work should be UI design and product experience design.
+Next work should be public pilot positioning and workspace-creation product design.
 
 Reason:
 
-- The technical foundation is now good enough to support a real pilot.
-- More backend work will not help if the product still feels like an internal prototype.
-- The product needs a clearer first impression, stronger mobile hierarchy, and a more coherent command-center design system before inviting more pilot users.
+- The private workspace UI is now substantially polished enough for free pilot discovery.
+- The current public `/pilot` direction still carries old paid-pilot assumptions.
+- The current public link still points users toward a single Italy `active-trip` unless an operator creates independent workspaces safely.
+- Opening fully self-serve creation now would risk confusing users, replacing production data, or creating unsupported workspaces.
 
 ## Phase 1: UI Design Refresh
 
@@ -169,7 +162,7 @@ Do not rename routes as the first UI task unless the route change is clearly wor
 3. Shell and navigation pass
    - Improve mobile top bar and bottom nav.
    - Make the private access toolbar less intrusive.
-   - Make language toggle and traveler identity controls easier to understand.
+   - Make language toggle and private-link access state easier to understand.
    - Keep access behavior unchanged.
 
 4. Today page redesign
@@ -221,7 +214,7 @@ UI refresh is done only when:
 - No horizontal overflow on 390px mobile.
 - All pages still have loading, error, empty, and button feedback states.
 - Private link access still works.
-- Viewer/editor mode behavior is unchanged.
+- Private-link full-editing behavior is unchanged.
 - English/Chinese UI switching still works.
 - User-entered trip content is not auto-translated.
 - `npm run lint` passes.
@@ -293,8 +286,8 @@ Preferred v1:
 
 - Store setup run metadata and generated JSON preview.
 - Do not create new business rows until apply.
-- On apply, create a snapshot summary of current active-trip counts and settings.
-- Apply in one editor-only transaction.
+- On apply, create a snapshot summary of the target trip counts and settings.
+- Apply in one private-link-authorized transaction.
 - Keep a simple setup history list in Settings.
 
 Possible tables:
@@ -315,36 +308,38 @@ Do not build full rollback UI yet unless needed. A manual recovery note is enoug
 ### Acceptance Criteria
 
 - Preview does not mutate current workspace.
-- Apply requires editor mode.
+- Apply requires private-link authorization.
 - Apply requires explicit confirmation.
-- Apply remains scoped to `active-trip`.
+- Apply remains scoped to the intended `trip_id`; for the current single-workspace app this is `active-trip` only with explicit approval.
 - Existing production workspace is not reset during testing.
 - Five template smoke still passes.
 
-## Phase 4: Controlled Pilot Workflow
+## Phase 4: Controlled Free Invite Workflow
 
 ### Goal
 
-Support 3-5 real planner pilots without building full SaaS.
+Support 3-5 real planner pilots without charging users and without building full public self-serve SaaS.
 
 ### Manual Pilot Flow
 
 1. Planner sees public `/pilot`.
-2. Planner contacts operator manually.
-3. Operator creates a starter workspace using guided setup.
-4. Operator verifies preview.
-5. Operator applies generated workspace.
-6. Operator sends private link to planner.
+2. Planner contacts operator by email, with WhatsApp optional.
+3. Operator reviews whether the trip fits the first-version scope.
+4. Operator creates an independent starter workspace after the product has a safe operator-only creation path.
+5. Operator verifies the workspace and private link.
+6. Operator sends the private link to the planner.
 7. Planner edits workspace and shares it with travelers.
 8. Operator collects feedback after setup and after trip usage.
 
 ### Product Requirements
 
-- Keep one active trip in this app until multi-workspace creation is explicitly built.
+- Keep one active trip in this app until operator-only multi-workspace creation is explicitly built.
 - Do not expose real Italy Trip data as public demo.
-- Use sanitized demo workspace content for sales/demo.
-- Keep pilot payment manual.
-- Keep refund/manual support manual.
+- Use sanitized screenshots and module explanation for the first `/pilot` revision.
+- Do not add a clickable demo workspace in the first free pilot revision.
+- Do not charge money, collect payment, mention refunds, or add checkout.
+- Say clearly that workspace creation is manually reviewed and not instant.
+- Do not run setup generation against production `active-trip` for pilot users.
 
 ### Pilot Success Signals
 
@@ -353,8 +348,8 @@ Support 3-5 real planner pilots without building full SaaS.
 - At least two travelers open workspace.
 - Group uses at least three modules.
 - Planner says it beats Google Sheets plus group chat.
-- Planner would pay SGD 4.90 now.
-- Planner can imagine paying SGD 9-19 for stronger quality.
+- Planner would recommend it to another trip organizer.
+- Planner requests another workspace or says they would use it for a future trip.
 
 ## Phase 5: Workspace Lifecycle
 
@@ -436,18 +431,19 @@ Do not log:
 
 Pilot v1 can use server logs and manual feedback before adding third-party analytics.
 
-## Phase 8: Commercial Readiness
+## Phase 8: Free Distribution Readiness
 
 ### Goal
 
-Validate willingness to pay before building payment infrastructure.
+Validate repeatable free usage and operational safety before reconsidering any monetization model.
 
-### Manual Commercial Model
+### Free Early Access Model
 
-- Free demo / manual pilot first
-- SGD 4.90 early access per trip workspace
-- 7-day refund if setup fails, technical issues block use, or planner finds it not useful
-- Manual payment outside app if needed
+- Free early access during the pilot.
+- Manual invite review before workspace creation.
+- Email required, WhatsApp optional.
+- No public self-serve creation yet.
+- No payment or refund handling.
 
 Do not build:
 
@@ -457,7 +453,7 @@ Do not build:
 - Billing dashboard
 - Invoices
 
-Only build payment after the pilot proves repeatable demand.
+Only reconsider monetization after the pilot proves repeatable demand, reliable workspace creation, clear user value, and manageable support load.
 
 ## Phase 9: Launch Readiness
 
@@ -465,83 +461,88 @@ Only build payment after the pilot proves repeatable demand.
 
 The product is ready for a small public launch when:
 
-- UI refresh is complete.
-- Setup preview/history is non-destructive.
+- Public `/pilot` is aligned with free early access, manual review, contact channels, fit criteria, and safety boundaries.
+- Operator-only workspace creation can create independent trip workspaces that do not reuse the current Italy `active-trip`.
+- Setup generation can run only against the intended new workspace and cannot accidentally replace production `active-trip`.
+- UI refresh is complete enough for public pilot users.
+- Setup preview/apply behavior is safe enough for operator use.
 - Production smoke is repeatable.
-- Git remote and backup workflow are fixed.
-- Public `/pilot` page is aligned with final product experience.
-- At least 3 pilot planners complete setup.
-- At least 2 pilots show real group usage.
+- Git remote and backup workflow are verified.
+- At least 3 free pilot planners complete setup.
+- At least 2 free pilots show real group usage.
 - Safety boundaries are visible in Documents, Settings, and onboarding.
 - No known mobile blocker remains.
 
 ## Recommended Sequence From Here
 
-1. UI design refresh
-   - Audit current UI.
-   - Create design direction.
-   - Redesign shell/navigation.
-   - Redesign Today first.
-   - Then Plan, Bookings, Money, Packing, Documents, Settings.
+1. Docs-only decision sync
+   - Record the free invite-based pivot.
+   - Mark old paid pilot assumptions as superseded.
+   - Keep production data and app code unchanged.
 
-2. Production hardening
-   - Configure git remote.
-   - Add smoke script/runbook.
-   - Add backup process.
+2. Free `/pilot` page update
+   - Replace paid copy with free early access.
+   - CTA: request a free workspace by email, with WhatsApp optional.
+   - Say manual review and manual reply, not instant creation.
+   - Explain first-version fit: 2-8 travelers, 3-14 days, one planner, group private link, no sensitive documents.
+   - Explain service boundary: workspace setup/organization only, not booking, travel planning, visa, insurance, or legal advice.
+   - Use sanitized screenshots/module explanation, not a clickable demo workspace.
+   - No form, payment, checkout, refund, backend write, setup generation, or production deploy without review.
 
-3. Non-destructive setup preview/history
-   - Store setup preview.
-   - Add setup history.
-   - Add safe apply flow.
+3. Operator-only workspace creation plan
+   - Define how an operator creates a new `trip_id`, private token, trip settings, travelers, and starter workspace without touching `active-trip`.
+   - Keep public self-serve creation out of scope.
+   - Define recovery/deletion/support steps before inviting more planners.
 
-4. Controlled pilot workflow
-   - Use manual onboarding.
-   - Use private links.
-   - Collect feedback.
+4. Operator creation implementation
+   - Build the smallest operator-only path that can create independent workspaces.
+   - Verify API access, private links, setup generation scope, and no cross-trip data leakage.
 
-5. Template quality expansion
+5. Controlled free invite pilot
+   - Invite 3-5 planners manually.
+   - Collect feedback by email/WhatsApp after setup and after trip usage.
+
+6. Template quality expansion
    - Improve destination-specific generated content based on pilot feedback.
 
-6. Commercial validation
-   - Manual SGD 4.90 pilot.
-   - No payment integration until demand is clear.
-
-7. Launch
-   - Public pilot page.
-   - Sanitized demo workspace.
+7. Launch readiness
+   - Public free early-access page.
+   - Operator playbook.
    - Clear safety boundaries.
    - Repeatable deployment and recovery process.
 
-## Next UI Design Task
+## Next Product Task
 
 The next task should be:
 
 ```text
-Audit and redesign the private workspace UI shell and Today page.
+Update /pilot to a free invite-based early access page.
 ```
 
 Scope:
 
 - No backend changes.
-- No route rename yet.
+- No database/schema changes.
+- No setup generation.
+- No route rename.
 - No payment.
-- No new templates.
+- No checkout, refund, form submission, or billing copy.
+- No clickable demo workspace.
 - No production deploy until desktop and mobile review passes.
 
 Files likely involved:
 
-- `src/components/Layout.tsx`
-- `src/app/page.tsx`
-- Dashboard client components if split from page
+- `src/app/pilot/page.tsx`
+- `src/app/pilot/PilotOfferClient.tsx`
 - `src/app/globals.css`
-- `src/lib/i18n.ts`
-- Shared UI styles/classes already used by Bookings, Budget, Packing, and Documents
+- `public/pilot/*` only if sanitized screenshots need replacement
 
-Verification for that UI task:
+Verification for that product page task:
 
 - `npm run lint`
 - `npm run build`
 - Desktop review URL
 - Phone LAN review URL
+- `/pilot` HTTP 200
+- Unauthenticated private workspace API remains 401
 - Production deploy only after explicit approval
-
