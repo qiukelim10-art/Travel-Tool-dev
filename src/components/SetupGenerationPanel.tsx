@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTripAccess } from "@/lib/access";
 import { useLanguage } from "@/lib/i18n";
 import {
@@ -147,9 +147,11 @@ const copy = {
     previewSplitOn: "shared expense splitting fields enabled",
     previewSplitOff: "light money planning without emphasizing settlements",
     impactTitle: "Confirm generation",
+    impactTitleGate: "Confirm starter generation",
     previewTripSummary: "Trip summary",
     previewTripSetup: "Trip setup",
     previewWillCreate: "Will create",
+    previewDateLabel: "Dates",
     previewDuration: "Duration",
     previewRoute: "Route",
     previewOvernightChip: "{count} overnight cities",
@@ -163,10 +165,22 @@ const copy = {
     previewLight: "Light",
     splittingEnabledStatus: "Shared splitting enabled",
     splittingDisabledStatus: "Light money planning",
+    countItems: "{count} items",
+    countShellDays: "{count} shell days",
+    countCard: "{count} card",
+    countCategories: "{count} categories",
+    summaryRouteStops: "{count} route stops",
+    summaryReminders: "{count} reminders",
+    summaryBookings: "{count} bookings",
+    summaryItinerary: "{count} itinerary items",
+    summaryPacking: "{count} packing items",
+    summaryDocuments: "{count} documents",
     edit: "Edit",
     impact:
       "Regenerating will replace existing starter-generated content.",
+    impactGate: "This will create starter checklists, planning defaults, and the first workspace shell for this trip.",
     impactReplaceTitle: "Will be replaced:",
+    impactCreateTitle: "Will be created:",
     replaceStarterChecklists: "Starter checklists",
     replaceBookingChecklist: "Booking checklist",
     replacePackingList: "Packing list",
@@ -176,7 +190,9 @@ const copy = {
     replaceBudget: "Budget categories",
     replaceExpenseLedger: "Expense ledger",
     confirm: "I understand this will replace current starter content.",
+    confirmGate: "I understand this will create the starter workspace content.",
     run: "Regenerate starter workspace",
+    runGate: "Generate starter workspace",
     running: "Generating...",
     loading: "Loading current trip settings before generation...",
     disabled: "Private trip access is required to run setup generation.",
@@ -289,9 +305,11 @@ const copy = {
     previewSplitOn: "启用 paid by / split between 分账字段",
     previewSplitOff: "轻量预算规划，不强调结算建议",
     impactTitle: "确认生成",
+    impactTitleGate: "确认生成 starter 内容",
     previewTripSummary: "行程摘要",
     previewTripSetup: "行程设置",
     previewWillCreate: "将生成",
+    previewDateLabel: "日期",
     previewDuration: "时长",
     previewRoute: "路线",
     previewOvernightChip: "{count} 个过夜城市",
@@ -305,9 +323,21 @@ const copy = {
     previewLight: "轻量",
     splittingEnabledStatus: "已启用共同分账",
     splittingDisabledStatus: "轻量预算规划",
+    countItems: "{count} 项",
+    countShellDays: "{count} 天框架",
+    countCard: "{count} 张卡片",
+    countCategories: "{count} 个分类",
+    summaryRouteStops: "{count} 个路线 stop",
+    summaryReminders: "{count} 个提醒",
+    summaryBookings: "{count} 个预订清单",
+    summaryItinerary: "{count} 个行程项目",
+    summaryPacking: "{count} 个行李清单",
+    summaryDocuments: "{count} 个文件清单",
     edit: "编辑",
     impact: "重新生成会替换现有 starter-generated 内容。",
+    impactGate: "这会为本次行程创建 starter 清单、默认规划和初始工作区框架。",
     impactReplaceTitle: "将被替换：",
+    impactCreateTitle: "将生成：",
     replaceStarterChecklists: "Starter checklists",
     replaceBookingChecklist: "Booking checklist",
     replacePackingList: "Packing list",
@@ -317,7 +347,9 @@ const copy = {
     replaceBudget: "预算分类",
     replaceExpenseLedger: "费用账本",
     confirm: "我理解这会替换当前 starter 内容。",
+    confirmGate: "我理解这会创建 starter workspace 内容。",
     run: "重新生成 starter workspace",
+    runGate: "生成 starter workspace",
     running: "生成中...",
     loading: "正在读取当前行程设置，读取完成后才能生成模板。",
     disabled: "需要有效 private link 才能运行模板生成。",
@@ -378,6 +410,11 @@ export function SetupGenerationPanel({
   const title = surface === "gate" ? labels.titleGate : surface === "dashboard" ? labels.titleDashboard : labels.titleSettings;
   const description =
     surface === "gate" ? labels.descriptionGate : surface === "dashboard" ? labels.descriptionDashboard : labels.descriptionSettings;
+  const impactTitle = surface === "gate" ? labels.impactTitleGate : labels.impactTitle;
+  const impactDescription = surface === "gate" ? labels.impactGate : labels.impact;
+  const impactItemsTitle = surface === "gate" ? labels.impactCreateTitle : labels.impactReplaceTitle;
+  const confirmationLabel = surface === "gate" ? labels.confirmGate : labels.confirm;
+  const runButtonLabel = surface === "gate" ? labels.runGate : labels.run;
 
   useEffect(() => {
     if (!loadingBase && !initializedFromBase) {
@@ -506,24 +543,25 @@ export function SetupGenerationPanel({
     <section
       className={
         surface === "gate"
-          ? "setup-generation-panel rounded-lg border border-zinc-200 bg-white p-5 shadow-soft sm:p-6"
-          : "setup-generation-panel rounded-lg border border-zinc-200 bg-white p-4 shadow-soft"
+          ? "setup-generation-panel setup-generation-panel--gate rounded-lg border border-zinc-200 bg-white p-5 shadow-soft sm:p-6"
+          : "setup-generation-panel setup-generation-panel--embedded rounded-lg border border-zinc-200 bg-white p-4 shadow-soft"
       }
     >
-      <div className="flex flex-col gap-2">
+      <div className="setup-generation-header flex flex-col gap-2">
         <h2 className="text-lg font-semibold text-ink">{title}</h2>
         <p className="text-sm leading-6 text-zinc-600">{description}</p>
       </div>
 
       {loadingBase ? (
-        <p role="status" aria-live="polite" className="mt-3 rounded-md bg-zinc-50 px-3 py-2 text-sm text-zinc-600">
+        <p role="status" aria-live="polite" className="setup-generation-status setup-generation-status--loading mt-3 rounded-md bg-zinc-50 px-3 py-2 text-sm text-zinc-600">
           {labels.loading}
         </p>
       ) : null}
 
-      <div className="mt-4 space-y-4">
-        <fieldset className="rounded-md border border-zinc-200 p-3">
-          <legend className="px-1 text-sm font-semibold text-ink">{labels.basics}</legend>
+      <div className="setup-generation-form-stack mt-4 space-y-4">
+        <section className="setup-generation-section setup-generation-section--basics">
+          <h3 className="setup-generation-section-header">{labels.basics}</h3>
+          <div className="setup-generation-section-card">
           <div className="grid gap-3 md:grid-cols-2">
             <SelectField
               name={`${surface}-setup-template`}
@@ -684,134 +722,141 @@ export function SetupGenerationPanel({
               <span className="mt-1 block text-xs font-normal leading-5 text-zinc-500">{labels.dayTripHelp}</span>
             </label>
           </div>
-        </fieldset>
+          </div>
+        </section>
 
-        <fieldset className="rounded-md border border-zinc-200 p-3">
-          <legend className="px-1 text-sm font-semibold text-ink">{labels.travelers}</legend>
-          <div className="rounded-xl border border-zinc-100 bg-white">
-            <TravelerCountRow
-              name={`${surface}-setup-traveler-count`}
-              label={labels.travelerCount}
-              value={form.travelerCount}
-              min={1}
-              max={maxTravelers}
-              onChange={(value) =>
-                setForm((current) => ({
-                  ...current,
-                  travelerCount: value,
-                  travelerNames: resizeTravelerNames(current.travelerNames, value)
-                }))
-              }
-            />
-            <div className="border-t border-zinc-100 px-3 py-2 text-xs font-semibold uppercase tracking-[0.08em] text-zinc-500">
-              {labels.travelers}
-            </div>
-            {Array.from({ length: form.travelerCount }, (_, index) => (
-              <TravelerNameRow
-                key={index}
-                name={`${surface}-setup-traveler-${index + 1}`}
-                label={labels.travelerName.replace("{index}", String(index + 1))}
-                index={index}
-                editLabel={labels.edit}
-                value={form.travelerNames[index] ?? ""}
+        <section className="setup-generation-section setup-generation-section--travelers">
+          <h3 className="setup-generation-section-header">{labels.travelers}</h3>
+          <div className="setup-generation-section-card">
+            <div className="setup-generation-inner-card setup-generation-travelers-card rounded-xl border border-zinc-100 bg-white">
+              <TravelerCountRow
+                name={`${surface}-setup-traveler-count`}
+                label={labels.travelerCount}
+                value={form.travelerCount}
+                min={1}
+                max={maxTravelers}
                 onChange={(value) =>
-                  setForm((current) => {
-                    const nextNames = resizeTravelerNames(current.travelerNames, current.travelerCount);
-                    nextNames[index] = value;
-                    return { ...current, travelerNames: nextNames };
-                  })
+                  setForm((current) => ({
+                    ...current,
+                    travelerCount: value,
+                    travelerNames: resizeTravelerNames(current.travelerNames, value)
+                  }))
                 }
               />
-            ))}
+              <div className="setup-generation-list-subheader border-t border-zinc-100 px-3 py-2 text-xs font-semibold uppercase tracking-[0.08em] text-zinc-500">
+                {labels.travelers}
+              </div>
+              {Array.from({ length: form.travelerCount }, (_, index) => (
+                <TravelerNameRow
+                  key={index}
+                  name={`${surface}-setup-traveler-${index + 1}`}
+                  label={labels.travelerName.replace("{index}", String(index + 1))}
+                  index={index}
+                  editLabel={labels.edit}
+                  value={form.travelerNames[index] ?? ""}
+                  onChange={(value) =>
+                    setForm((current) => {
+                      const nextNames = resizeTravelerNames(current.travelerNames, current.travelerCount);
+                      nextNames[index] = value;
+                      return { ...current, travelerNames: nextNames };
+                    })
+                  }
+                />
+              ))}
+            </div>
           </div>
-        </fieldset>
+        </section>
 
-        <fieldset className="rounded-md border border-zinc-200 p-3">
-          <legend className="px-1 text-sm font-semibold text-ink">{labels.preferences}</legend>
-          <div className="overflow-hidden rounded-xl border border-zinc-100 bg-white">
-            <CompactSelectRow
-              name={`${surface}-setup-trip-style`}
-              label={labels.tripStyle}
-              value={form.tripStyle}
-              options={setupTripStyles}
-              optionLabels={setupTripStyleLabels(labels)}
-              onChange={(value) => setForm((current) => ({ ...current, tripStyle: value as SetupTripStyle }))}
-            />
-            <CompactSelectRow
-              name={`${surface}-setup-transport`}
-              label={labels.transport}
-              value={form.transportMode}
-              options={setupTransportModes}
-              optionLabels={setupTransportLabels(labels)}
-              onChange={(value) => setForm((current) => ({ ...current, transportMode: value as SetupTransportMode }))}
-            />
-            <CompactSelectRow
-              name={`${surface}-setup-accommodation`}
-              label={labels.accommodation}
-              value={form.accommodationMode}
-              options={setupAccommodationModes}
-              optionLabels={setupAccommodationLabels(labels)}
-              onChange={(value) => setForm((current) => ({ ...current, accommodationMode: value as SetupAccommodationMode }))}
-            />
-            <CompactSelectRow
-              name={`${surface}-setup-luggage`}
-              label={labels.luggage}
-              value={form.luggageMode}
-              options={setupLuggageModes}
-              optionLabels={setupLuggageLabels(labels)}
-              onChange={(value) => setForm((current) => ({ ...current, luggageMode: value as SetupLuggageMode }))}
-            />
+        <section className="setup-generation-section setup-generation-section--preferences">
+          <h3 className="setup-generation-section-header">{labels.preferences}</h3>
+          <div className="setup-generation-section-card">
+            <div className="setup-generation-inner-card setup-generation-list-card overflow-hidden rounded-xl border border-zinc-100 bg-white">
+              <CompactSelectRow
+                name={`${surface}-setup-trip-style`}
+                label={labels.tripStyle}
+                value={form.tripStyle}
+                options={setupTripStyles}
+                optionLabels={setupTripStyleLabels(labels)}
+                onChange={(value) => setForm((current) => ({ ...current, tripStyle: value as SetupTripStyle }))}
+              />
+              <CompactSelectRow
+                name={`${surface}-setup-transport`}
+                label={labels.transport}
+                value={form.transportMode}
+                options={setupTransportModes}
+                optionLabels={setupTransportLabels(labels)}
+                onChange={(value) => setForm((current) => ({ ...current, transportMode: value as SetupTransportMode }))}
+              />
+              <CompactSelectRow
+                name={`${surface}-setup-accommodation`}
+                label={labels.accommodation}
+                value={form.accommodationMode}
+                options={setupAccommodationModes}
+                optionLabels={setupAccommodationLabels(labels)}
+                onChange={(value) => setForm((current) => ({ ...current, accommodationMode: value as SetupAccommodationMode }))}
+              />
+              <CompactSelectRow
+                name={`${surface}-setup-luggage`}
+                label={labels.luggage}
+                value={form.luggageMode}
+                options={setupLuggageModes}
+                optionLabels={setupLuggageLabels(labels)}
+                onChange={(value) => setForm((current) => ({ ...current, luggageMode: value as SetupLuggageMode }))}
+              />
+            </div>
           </div>
-        </fieldset>
+        </section>
 
-        <fieldset className="rounded-md border border-zinc-200 p-3">
-          <legend className="px-1 text-sm font-semibold text-ink">{labels.budget}</legend>
-          <div className="overflow-hidden rounded-xl border border-zinc-100 bg-white">
-            <SplittingToggleRow
-              name={`${surface}-setup-expense-splitting`}
-              label={labels.expenseSplitting}
-              checked={form.expenseSplittingEnabled}
-              onLabel={labels.splittingEnabledStatus}
-              offLabel={labels.splittingDisabledStatus}
-              onChange={(checked) => setForm((current) => ({ ...current, expenseSplittingEnabled: checked }))}
-            />
-            <CompactSelectRow
-              name={`${surface}-setup-main-currency`}
-              label={labels.mainCurrency}
-              value={form.mainCurrency}
-              options={bookingCurrencies}
-              onChange={(value) =>
-                setForm((current) => ({
-                  ...current,
-                  mainCurrency: value as SharedCurrency,
-                  additionalCurrencies: current.additionalCurrencies.filter((currency) => currency !== value)
-                }))
-              }
+        <section className="setup-generation-section setup-generation-section--budget">
+          <h3 className="setup-generation-section-header">{labels.budget}</h3>
+          <div className="setup-generation-section-card">
+            <div className="setup-generation-inner-card setup-generation-list-card overflow-hidden rounded-xl border border-zinc-100 bg-white">
+              <SplittingToggleRow
+                name={`${surface}-setup-expense-splitting`}
+                label={labels.expenseSplitting}
+                checked={form.expenseSplittingEnabled}
+                onLabel={labels.splittingEnabledStatus}
+                offLabel={labels.splittingDisabledStatus}
+                onChange={(checked) => setForm((current) => ({ ...current, expenseSplittingEnabled: checked }))}
+              />
+              <CompactSelectRow
+                name={`${surface}-setup-main-currency`}
+                label={labels.mainCurrency}
+                value={form.mainCurrency}
+                options={bookingCurrencies}
+                onChange={(value) =>
+                  setForm((current) => ({
+                    ...current,
+                    mainCurrency: value as SharedCurrency,
+                    additionalCurrencies: current.additionalCurrencies.filter((currency) => currency !== value)
+                  }))
+                }
+              />
+            </div>
+            <CurrencyChecklist
+              label={labels.additionalCurrencies}
+              mainCurrency={form.mainCurrency}
+              values={form.additionalCurrencies}
+              onChange={(values) => setForm((current) => ({ ...current, additionalCurrencies: values }))}
             />
           </div>
-          <CurrencyChecklist
-            label={labels.additionalCurrencies}
-            mainCurrency={form.mainCurrency}
-            values={form.additionalCurrencies}
-            onChange={(values) => setForm((current) => ({ ...current, additionalCurrencies: values }))}
-          />
-        </fieldset>
+        </section>
       </div>
 
       <PreviewBox labels={labels} preview={preview} />
 
-      <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-3 py-3">
+      <div className="setup-generation-impact mt-4 rounded-xl border border-amber-200 bg-amber-50 px-3 py-3">
         <div className="flex items-start gap-2">
           <span className="mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-amber-200 text-xs font-semibold text-amber-900">
             !
           </span>
           <div className="min-w-0">
-            <p className="text-sm font-semibold text-amber-950">{labels.impactTitle}</p>
-            <p className="mt-1 text-sm leading-5 text-amber-900">{labels.impact}</p>
+            <p className="text-sm font-semibold text-amber-950">{impactTitle}</p>
+            <p className="mt-1 text-sm leading-5 text-amber-900">{impactDescription}</p>
           </div>
         </div>
         <div className="mt-3">
-          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-amber-900/75">{labels.impactReplaceTitle}</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-amber-900/75">{impactItemsTitle}</p>
           <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
             {replacementImpactItems(labels).map((item) => (
               <span key={item} className="rounded-full border border-amber-200 bg-white/75 px-3 py-1.5 text-xs font-semibold text-amber-950">
@@ -827,12 +872,12 @@ export function SetupGenerationPanel({
             onChange={(event) => setConfirmed(event.target.checked)}
             className="h-4 w-4 shrink-0 rounded border-amber-300"
           />
-          <span>{labels.confirm}</span>
+          <span>{confirmationLabel}</span>
         </label>
       </div>
 
       {error ? (
-        <p role="alert" className="mt-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+        <p role="alert" className="setup-generation-status setup-generation-status--error mt-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
           {error}
         </p>
       ) : null}
@@ -840,14 +885,14 @@ export function SetupGenerationPanel({
         <p
           role="status"
           aria-live="polite"
-          className="mt-3 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800"
+          className="setup-generation-status setup-generation-status--success mt-3 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800"
         >
           {notice}
         </p>
       ) : null}
 
       {!canEdit ? (
-        <p className="mt-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+        <p className="setup-generation-status setup-generation-status--warning mt-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
           {labels.disabled}
         </p>
       ) : null}
@@ -856,9 +901,9 @@ export function SetupGenerationPanel({
         type="button"
         onClick={() => void runSetupGeneration()}
         disabled={!canRunGeneration}
-        className="mt-3 w-full rounded-md bg-amber-800 px-3 py-2.5 text-base font-semibold text-white shadow-[0_1px_0_rgba(0,0,0,0.08)] hover:bg-amber-900 disabled:cursor-not-allowed disabled:bg-zinc-300 disabled:text-zinc-600 disabled:shadow-none sm:w-auto sm:text-sm"
+        className="setup-generation-run-button mt-3 w-full rounded-md bg-amber-800 px-3 py-2.5 text-base font-semibold text-white shadow-[0_1px_0_rgba(0,0,0,0.08)] hover:bg-amber-900 disabled:cursor-not-allowed disabled:bg-zinc-300 disabled:text-zinc-600 disabled:shadow-none sm:w-auto sm:text-sm"
       >
-        {submitting ? labels.running : labels.run}
+        {submitting ? labels.running : runButtonLabel}
       </button>
     </section>
   );
@@ -1037,7 +1082,14 @@ function formatIsoDate(value: string) {
 }
 
 function formatGenerationNotice(summary: SetupGenerationResponse["summary"], labels: Labels) {
-  return `${labels.success} ${labels.summary}: ${summary.routeStopCount} route stops, ${summary.reminderCount} reminders, ${summary.bookingCount} bookings, ${summary.itineraryCount} itinerary items, ${summary.packingCount} packing items, ${summary.documentCount} documents.`;
+  return `${labels.success} ${labels.summary}: ${[
+    labels.summaryRouteStops.replace("{count}", String(summary.routeStopCount)),
+    labels.summaryReminders.replace("{count}", String(summary.reminderCount)),
+    labels.summaryBookings.replace("{count}", String(summary.bookingCount)),
+    labels.summaryItinerary.replace("{count}", String(summary.itineraryCount)),
+    labels.summaryPacking.replace("{count}", String(summary.packingCount)),
+    labels.summaryDocuments.replace("{count}", String(summary.documentCount))
+  ].join(", ")}.`;
 }
 
 function PreviewBox({
@@ -1049,7 +1101,7 @@ function PreviewBox({
 }) {
   if (preview.error || !preview.workspace) {
     return (
-      <div className="mt-4 rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2">
+      <div className="setup-generation-preview setup-generation-preview--error mt-4 rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2">
         <p className="text-sm font-semibold text-ink">{labels.previewTitle}</p>
         <p className="mt-1 text-sm text-zinc-600">{preview.error ?? labels.validationPreview}</p>
       </div>
@@ -1064,7 +1116,7 @@ function PreviewBox({
   const routeLabel = summary.routeCities.length > 0 ? summary.routeCities.map(formatCityLabel).join(" → ") : "-";
   const summaryRows = [
     {
-      label: labels.previewDates.replace(": {start} to {end} ({duration})", "").replace("日期：{start} 至 {end}（{duration}）", ""),
+      label: labels.previewDateLabel,
       value: `${formatIsoDate(previewStartDate)} → ${formatIsoDate(previewEndDate)}`
     },
     { label: labels.previewDuration, value: formatDurationLabel(duration, labels) },
@@ -1077,13 +1129,13 @@ function PreviewBox({
     summary.seasonalPackingIncluded ? labels.previewSeasonalPackingChip : labels.previewSeason.replace("{value}", summary.seasonLabel).replace("{flag}", labels.flagNo)
   ];
   const generatedItems = [
-    { label: compactPreviewCountLabel(labels.previewPacking), value: `${summary.packingCount} items` },
-    { label: compactPreviewCountLabel(labels.previewDocuments), value: `${summary.documentCount} items` },
-    { label: compactPreviewCountLabel(labels.previewBookings), value: `${summary.bookingCount} items` },
+    { label: compactPreviewCountLabel(labels.previewPacking), value: labels.countItems.replace("{count}", String(summary.packingCount)) },
+    { label: compactPreviewCountLabel(labels.previewDocuments), value: labels.countItems.replace("{count}", String(summary.documentCount)) },
+    { label: compactPreviewCountLabel(labels.previewBookings), value: labels.countItems.replace("{count}", String(summary.bookingCount)) },
     { label: compactPreviewCountLabel(labels.previewReminders), value: String(summary.reminderCount) },
-    { label: compactPreviewCountLabel(labels.previewItinerary), value: `${summary.itineraryDayCount} shell days` },
-    { label: labels.previewEmergencyLabel, value: "1 card" },
-    { label: labels.previewBudgetLabel, value: `${summary.budgetCategoryCount} categories` },
+    { label: compactPreviewCountLabel(labels.previewItinerary), value: labels.countShellDays.replace("{count}", String(summary.itineraryDayCount)) },
+    { label: labels.previewEmergencyLabel, value: labels.countCard.replace("{count}", "1") },
+    { label: labels.previewBudgetLabel, value: labels.countCategories.replace("{count}", String(summary.budgetCategoryCount)) },
     {
       label: labels.previewSplittingLabel,
       value: summary.expenseSplittingEnabled ? labels.previewEnabled : labels.previewLight
@@ -1091,7 +1143,7 @@ function PreviewBox({
   ];
 
   return (
-    <div className="mt-4 rounded-xl border border-sky/70 bg-sky/25 px-3 py-3">
+    <div className="setup-generation-preview setup-generation-preview--ready mt-4 rounded-xl border border-sky/70 bg-sky/25 px-3 py-3">
       <div className="flex flex-col gap-1">
         <p className="text-sm font-semibold text-ink">{labels.previewTitle}</p>
         <p className="text-sm text-zinc-600">{labels.previewIntro}</p>
@@ -1258,17 +1310,17 @@ function TravelerCountRow({
   const canDecrease = value > min;
   const canIncrease = value < max;
   return (
-    <div className="grid min-h-12 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-3 py-2">
-      <label htmlFor={name} className="min-w-0 text-sm font-semibold text-zinc-600">
+    <div className="setup-generation-stepper-row grid min-h-12 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-3 py-2">
+      <label htmlFor={name} className="setup-generation-row-label min-w-0 text-sm font-semibold text-zinc-600">
         {label}
       </label>
-      <div className="inline-flex items-center gap-2">
+      <div className="setup-generation-stepper-controls inline-flex items-center gap-2">
         <button
           type="button"
           onClick={() => onChange(clampTravelerCount(value - 1))}
           disabled={!canDecrease}
           aria-label={`${label} -`}
-          className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-zinc-200 bg-zinc-50 text-base font-semibold text-ink disabled:cursor-not-allowed disabled:text-zinc-300"
+          className="setup-generation-stepper-button inline-flex h-9 w-9 items-center justify-center rounded-full border border-zinc-200 bg-zinc-50 text-base font-semibold text-ink disabled:cursor-not-allowed disabled:text-zinc-300"
         >
           -
         </button>
@@ -1280,14 +1332,14 @@ function TravelerCountRow({
           min={min}
           max={max}
           onChange={(event) => onChange(clampTravelerCount(Number(event.target.value)))}
-          className="h-9 w-11 rounded-full border border-zinc-200 bg-white text-center text-sm font-semibold text-ink [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+          className="setup-generation-stepper-value h-9 w-11 rounded-full border border-zinc-200 bg-white text-center text-sm font-semibold text-ink [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
         />
         <button
           type="button"
           onClick={() => onChange(clampTravelerCount(value + 1))}
           disabled={!canIncrease}
           aria-label={`${label} +`}
-          className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-zinc-200 bg-zinc-50 text-base font-semibold text-ink disabled:cursor-not-allowed disabled:text-zinc-300"
+          className="setup-generation-stepper-button inline-flex h-9 w-9 items-center justify-center rounded-full border border-zinc-200 bg-zinc-50 text-base font-semibold text-ink disabled:cursor-not-allowed disabled:text-zinc-300"
         >
           +
         </button>
@@ -1311,23 +1363,40 @@ function TravelerNameRow({
   editLabel: string;
   onChange: (value: string) => void;
 }) {
+  const inputId = `${name}-input`;
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  function focusTravelerName() {
+    inputRef.current?.focus();
+    inputRef.current?.select();
+  }
+
   return (
-    <label className="grid min-h-12 cursor-text grid-cols-[1.75rem_minmax(0,1fr)_auto] items-center gap-2 border-t border-zinc-100 px-3 py-2">
-      <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-zinc-100 text-xs font-semibold text-zinc-600">
+    <div className="setup-generation-traveler-row grid min-h-12 cursor-text grid-cols-[1.75rem_minmax(0,1fr)_auto] items-center gap-2 border-t border-zinc-100 px-3 py-2">
+      <span className="setup-generation-traveler-index inline-flex h-7 w-7 items-center justify-center rounded-full bg-zinc-100 text-xs font-semibold text-zinc-600">
         {index + 1}
       </span>
-      <span className="sr-only">{label}</span>
+      <label htmlFor={inputId} className="sr-only">
+        {label}
+      </label>
       <input
+        id={inputId}
+        ref={inputRef}
         name={name}
         value={value}
         aria-label={label}
         onChange={(event) => onChange(event.target.value)}
-        className="min-w-0 border-0 bg-transparent px-0 py-1 text-sm font-semibold text-ink outline-none placeholder:text-zinc-400"
+        className="setup-generation-traveler-input min-w-0 border-0 bg-transparent px-0 py-1 text-sm font-semibold text-ink outline-none placeholder:text-zinc-400"
       />
-      <span className="text-xs font-semibold text-moss" aria-hidden="true">
+      <button
+        type="button"
+        onClick={focusTravelerName}
+        className="setup-generation-traveler-edit text-xs font-semibold text-moss"
+        aria-label={`${editLabel} ${label}`}
+      >
         {editLabel}
-      </span>
-    </label>
+      </button>
+    </div>
   );
 }
 
@@ -1381,13 +1450,15 @@ function CompactSelectRow({
   onChange: (value: string) => void;
 }) {
   return (
-    <label className="relative grid min-h-12 cursor-pointer grid-cols-[minmax(7.5rem,0.85fr)_minmax(0,1fr)_auto] items-center gap-3 border-t border-zinc-100 px-3 py-2 first:border-t-0">
-      <span className="min-w-0 text-sm font-semibold text-zinc-600">{label}</span>
-      <span className="pointer-events-none min-w-0 break-words text-right text-sm font-semibold leading-5 text-ink">
-        {optionLabels?.get(value) ?? value}
+    <label className="setup-generation-select-row relative grid min-h-12 cursor-pointer grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-t border-zinc-100 px-3 py-2 first:border-t-0">
+      <span className="setup-generation-select-copy min-w-0">
+        <span className="setup-generation-select-label min-w-0 text-sm font-semibold text-zinc-600">{label}</span>
+        <span className="setup-generation-select-value pointer-events-none min-w-0 break-words text-sm font-semibold leading-5 text-ink">
+          {optionLabels?.get(value) ?? value}
+        </span>
       </span>
-      <span className="pointer-events-none text-zinc-400" aria-hidden="true">
-        &gt;
+      <span className="setup-generation-select-chevron pointer-events-none text-zinc-400" aria-hidden="true">
+        ›
       </span>
       <select
         name={name}
@@ -1422,9 +1493,13 @@ function SplittingToggleRow({
   onChange: (checked: boolean) => void;
 }) {
   return (
-    <label className="grid min-h-12 cursor-pointer grid-cols-[minmax(7.5rem,0.85fr)_minmax(0,1fr)_auto] items-center gap-3 px-3 py-2">
-      <span className="min-w-0 text-sm font-semibold text-zinc-600">{label}</span>
-      <span className="min-w-0 break-words text-right text-sm font-semibold leading-5 text-ink">{checked ? onLabel : offLabel}</span>
+    <label className="setup-generation-toggle-row flex min-h-12 cursor-pointer items-center justify-between gap-4 px-3 py-2">
+      <span className="setup-generation-toggle-copy min-w-0">
+        <span className="setup-generation-toggle-label text-sm font-semibold text-zinc-600">{label}</span>
+        <span className="setup-generation-toggle-value break-words text-sm font-semibold leading-5 text-ink">
+          {checked ? onLabel : offLabel}
+        </span>
+      </span>
       <input
         name={name}
         type="checkbox"
@@ -1432,7 +1507,7 @@ function SplittingToggleRow({
         onChange={(event) => onChange(event.target.checked)}
         className="peer sr-only"
       />
-      <span className="relative h-6 w-11 rounded-full bg-zinc-200 transition peer-checked:bg-moss peer-checked:[&>span]:translate-x-5">
+      <span className="setup-generation-switch relative h-6 w-11 rounded-full bg-zinc-200 transition peer-checked:bg-moss peer-checked:[&>span]:translate-x-5">
         <span className="absolute left-1 top-1 h-4 w-4 rounded-full bg-white shadow-sm transition" />
       </span>
     </label>
@@ -1452,9 +1527,10 @@ function CurrencyChecklist({
 }) {
   const selected = new Set(values);
   return (
-    <fieldset className="mt-3 rounded-xl border border-zinc-100 bg-white p-3">
-      <legend className="px-1 text-sm font-semibold text-ink">{label}</legend>
-      <div className="mt-1 grid grid-cols-3 gap-2 sm:grid-cols-4">
+    <div className="setup-generation-currency-section">
+      <h4 className="setup-generation-subsection-header">{label}</h4>
+      <div className="setup-generation-currency-card rounded-xl border border-zinc-100 bg-white p-3">
+        <div className="setup-generation-currency-grid grid grid-cols-2 gap-2 sm:grid-cols-4">
         {bookingCurrencies
           .filter((currency) => currency !== mainCurrency)
           .map((currency) => {
@@ -1463,7 +1539,7 @@ function CurrencyChecklist({
               <label
                 key={currency}
                 className={[
-                  "flex min-h-10 cursor-pointer items-center justify-center rounded-full border px-2 text-sm font-semibold transition",
+                  "setup-generation-currency-pill flex min-h-10 cursor-pointer items-center justify-center rounded-full border px-2 text-sm font-semibold transition",
                   isSelected
                     ? "border-moss bg-moss text-white shadow-[0_1px_0_rgba(0,0,0,0.08)]"
                     : "border-zinc-200 bg-zinc-50 text-zinc-700 hover:border-zinc-300"
@@ -1484,7 +1560,8 @@ function CurrencyChecklist({
               </label>
             );
           })}
+        </div>
       </div>
-    </fieldset>
+    </div>
   );
 }

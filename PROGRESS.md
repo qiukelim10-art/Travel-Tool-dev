@@ -1,5 +1,13 @@
 # Progress
 
+## 2026-07-01
+
+- Refreshed the first-entry starter workspace setup UI to match the current Stitch workspace style without changing setup-generation business logic, API contracts, access control, database schema, or generated workspace payloads. `SetupGenerationPanel` now uses ordinary section headers plus rounded section cards instead of fieldset/legend-style card titles for Trip basics, Travelers, Trip Preferences, Budget setup, and Destination / additional currencies.
+- Tightened the 390px mobile layout for the setup form: Traveler count now has a vertically centered right-side stepper, traveler rows keep index/name/Edit aligned on one row, Trip Preferences and Main currency use standard two-line list rows with right-centered chevrons, Expense splitting keeps the status text on the left and the toggle vertically centered on the right, and additional currency pills use a consistent two-column mobile grid.
+- Followed up on the Traveler row affordance: the `Edit` label is now a real button that focuses and selects the corresponding traveler name input, making the existing inline editing behavior explicit without changing traveler state or setup-generation payload logic.
+- Fixed the setup preview Trip Summary date label in Chinese: the date row no longer derives its label by stripping a full localized sentence, so Chinese now shows `日期` instead of leaving the left label column blank.
+- Verification passed with `npm run lint`, `npm run build`, `git diff --check` with CRLF warnings only, `SetupGenerationPanel` source search confirming no remaining `fieldset`/`legend`, desktop/LAN API checks on port `3114`, and Chrome DevTools 390px QA for the Budget section confirming no horizontal overflow, section/card gaps of 7-8px, and zero vertical center delta for the toggle and chevron.
+
 ## 2026-06-30
 
 - Refreshed the private access/token entry screen to match the current Stitch workspace visual system without changing private-link access logic, API contracts, database schema, route behavior, or stored token handling. `TripAccessGate` still controls loading, first setup, setup-result, and unauthorized token-entry states, but `AccessFrame`, token input, buttons, token box, and status messages now use the same `stitch-today-page` shell, side/top access chrome, Inter/system typography, green Stitch palette, rounded cards, and mobile-safe form sizing as the rest of the workspace.
